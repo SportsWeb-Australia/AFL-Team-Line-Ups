@@ -1477,3 +1477,47 @@
 /* ── Embed mode (iframe) ────────────────────────────────────────────────── */
 .sw1-root--embed { padding: 0; background: transparent; }
 .sw1-root--embed .sw1-frame { margin: 0 auto; box-shadow: none; }
+
+/* ── Branded launch splash ──────────────────────────────────────────────── */
+.sw1-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(120% 90% at 50% 38%, #0e3a24 0%, #06120c 62%, #04100a 100%);
+  transition: opacity 0.5s ease, visibility 0.5s ease;
+}
+.sw1-splash.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+.sw1-splash__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 22px;
+  padding: 24px;
+  animation: sw1-splash-pop 0.6s ease both;
+}
+.sw1-splash__logo {
+  width: min(62vw, 300px);
+  height: auto;
+  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
+}
+.sw1-splash__tag {
+  color: #7cf7ae;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  font-size: clamp(11px, 2.4vw, 15px);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  opacity: 0.92;
+  text-align: center;
+}
+@keyframes sw1-splash-pop {
+  from { transform: scale(0.94); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}

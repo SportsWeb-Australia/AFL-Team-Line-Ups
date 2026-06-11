@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import TeamSheet from './components/TeamSheet';
+import Splash from './components/Splash';
 import { sampleTeam } from './data/sampleTeam';
 import type { RenderMode } from './types';
 
@@ -25,6 +26,7 @@ export default function App() {
 
   return (
     <>
+      {!isEmbed && <Splash />}
       {isAdminSession && (
         <div
           style={{
