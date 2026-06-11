@@ -91,9 +91,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   const presentStatuses = useMemo(() => {
     const s = new Set<PlayerStatus>();
-    players.forEach((p) => p.status?.forEach((st) => s.add(st)));
+    // In public view the Unavailable group is hidden, so don't leak those
+    // players' statuses (injured/suspended/…) through the legend either.
+    const hidden = admin ? new Set<string>() : new Set(unavailable);
+    players.forEach((p) => {
+      if (hidden.has(p.id)) return;
+      p.status?.forEach((st) => s.add(st));
+    });
     return s;
-  }, [players]);
+  }, [players, unavailable, admin]);
 
   // ── selection mutations (admin only) ──────────────────────────────────────
   const setterFor: Record<BenchArea, React.Dispatch<React.SetStateAction<string[]>>> = {
@@ -648,8 +654,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           )}
         </div>
 
-        {/* Unavailable: full-width strip, separate from the field above */}
-        {renderBench('unavailable') && (
+        {/* Unavailable: admin-only — never shown on the public/embedded graphic */}
+        {admin && renderBench('unavailable') && (
           <div className="sw1-unavailable-wrap">{renderBench('unavailable')}</div>
         )}
 
