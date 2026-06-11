@@ -33,9 +33,11 @@ export default function SquadList({
   const [editNo, setEditNo] = useState('');
   const [editName, setEditName] = useState('');
 
-  const sorted = [...players].sort(
-    (a, b) => (parseInt(a.number, 10) || 0) - (parseInt(b.number, 10) || 0),
-  );
+  const numOf = (s: string) => {
+    const n = parseInt(s, 10);
+    return Number.isNaN(n) ? Infinity : n;
+  };
+  const sorted = [...players].sort((a, b) => numOf(a.number) - numOf(b.number));
 
   const startEdit = (p: Player) => {
     setEditId(p.id);
@@ -93,7 +95,7 @@ export default function SquadList({
               onClick={() => onSelect(p.id)}
               title="Tap to pick up, then tap a field position or bench group"
             >
-              <span className="sw1-squad__no">{p.number}</span>
+              <span className="sw1-squad__no">{p.number || "\u2013"}</span>
               <span className="sw1-squad__name">{p.name}</span>
               <span className={`sw1-squad__loc ${onField ? 'is-on' : ''} ${loc === 'Unavail' ? 'is-out' : ''}`}>
                 {loc ?? 'Available'}

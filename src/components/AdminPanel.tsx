@@ -99,10 +99,27 @@ export default function AdminPanel({
   const [num, setNum] = useState('');
   const [name, setName] = useState('');
   const [bulk, setBulk] = useState('');
+  const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   const add = () => {
-    if (!num.trim() || !name.trim()) return;
-    onAddPlayer(num.trim(), name.trim());
+    const n = num.trim();
+    const nm = name.trim();
+    if (!nm) {
+      setAddMsg({ ok: false, text: 'Enter a player name.' });
+      return;
+    }
+    if (n) {
+      const clash = players.find((p) => p.number.trim() === n);
+      if (clash) {
+        setAddMsg({ ok: false, text: `Number ${n} is already used by ${clash.name}.` });
+        return;
+      }
+    }
+    onAddPlayer(n, nm); // number may be blank — fill it in later
+    setAddMsg({
+      ok: true,
+      text: n ? `Added #${n} ${nm} to the squad.` : `Added ${nm} — add a number any time.`,
+    });
     setNum('');
     setName('');
   };
@@ -325,10 +342,13 @@ export default function AdminPanel({
       </div>
 
       <div className="sw1-admin__add">
-        <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="No." inputMode="numeric" />
+        <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="No. (optional)" inputMode="numeric" />
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Player name" />
         <button className="sw1-btn sw1-btn--primary" onClick={add}>Add</button>
       </div>
+      {addMsg && (
+        <p className={`sw1-addmsg ${addMsg.ok ? 'is-ok' : 'is-err'}`}>{addMsg.text}</p>
+      )}
 
       <details className="sw1-admin__bulk">
         <summary>Bulk import</summary>

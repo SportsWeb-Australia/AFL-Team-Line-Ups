@@ -116,7 +116,7 @@ export default function PlayerPlate({ player, visualMode, compact = false, showS
       )}
 
       <div className="sw1-plate__row">
-        <span className="sw1-plate__no">{player.number}</span>
+        <span className="sw1-plate__no">{player.number || "\u2013"}</span>
         <span className="sw1-plate__name">{player.name}</span>
 
         {roles.map((r) => {

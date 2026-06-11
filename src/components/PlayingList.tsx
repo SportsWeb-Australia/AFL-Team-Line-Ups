@@ -36,7 +36,7 @@ export default function PlayingList({
                 <span className="sw1-playinglist__player">
                   {p ? (
                     <>
-                      <span className="sw1-playinglist__no">{p.number}</span>
+                      <span className="sw1-playinglist__no">{p.number || "\u2013"}</span>
                       {p.name}
                     </>
                   ) : (

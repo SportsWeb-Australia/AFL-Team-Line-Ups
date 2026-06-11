@@ -274,8 +274,18 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setDbState('saving');
     setDbMsg('');
     try {
-      const refs = await saveTeamSheet(currentData(), dbRefs);
+      const { refs, playerIds } = await saveTeamSheet(currentData(), dbRefs);
       setDbRefs(refs);
+      // Write DB ids back onto players so the next save updates them (rather than
+      // duplicating) — this is what keeps numberless players stable across saves.
+      if (playerIds.size) {
+        setPlayers((prev) =>
+          prev.map((p) => {
+            const db = playerIds.get(p.id);
+            return db ? { ...p, dbId: db } : p;
+          }),
+        );
+      }
       setDbState('ok');
       setDbMsg('Saved to the SportsWeb One database.');
     } catch (err: any) {
@@ -290,11 +300,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   function addPlayer(number: string, name: string) {
-    setPlayers((prev) => [...prev, { id: uid(), number, name }]);
+    // Manual add = a record this app owns. Reusable across future line-ups.
+    setPlayers((prev) => [...prev, { id: uid(), number, name, sourceType: 'standalone' }]);
   }
 
   function importPlayers(rows: { number: string; name: string }[]) {
-    setPlayers((prev) => [...prev, ...rows.map((r) => ({ id: uid(), ...r }))]);
+    setPlayers((prev) => [
+      ...prev,
+      ...rows.map((r) => ({ id: uid(), sourceType: 'standalone' as const, ...r })),
+    ]);
   }
 
   function removePlayer(id: string) {

@@ -17,8 +17,10 @@ import type { RenderMode } from './types';
 const params = new URLSearchParams(window.location.search);
 const isAdminSession = params.has('admin');
 const isEmbed = params.has('embed');
-// Embeds (and ?fixture / ?load deep links) pull the published sheet from the DB.
-const autoLoad = isEmbed || params.has('fixture') || params.has('load');
+// Embeds, the admin editor, and ?fixture/?load deep links all pull the saved
+// sheet from the DB on open. Admin auto-load = your work persists across
+// reloads (falls back to the bundled demo when nothing has been saved yet).
+const autoLoad = isEmbed || isAdminSession || params.has('fixture') || params.has('load');
 
 export default function App() {
   // The editor previews public via state so selections persist across the switch.

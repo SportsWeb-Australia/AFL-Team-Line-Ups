@@ -16,6 +16,12 @@ export interface LoadedSheet {
 
 export const EMPTY_REFS: DbRefs = { clubId: null, teamId: null, fixtureId: null, lineupId: null };
 
+/** Result of a save: the refs plus app-id -> db-id for every persisted player. */
+export interface SaveResult {
+  refs: DbRefs;
+  playerIds: Map<string, string>;
+}
+
 /**
  * Loads a team sheet from the SportsWeb One database and maps it to the app's
  * `TeamSheetData` shape, plus the DB ids so a later save updates the same rows.
@@ -83,14 +89,50 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
       const p = r.player;
       players.push({
         id: p.id,
+        dbId: p.id,
         number: p.number ?? '',
         name: p.display_name ?? `${p.first_name} ${p.last_name}`,
         headshotUrl: p.headshot_url ?? undefined,
         jumperImageUrl: p.jumper_image_url ?? undefined,
+        sourceType: 'standalone',
       });
       if (r.position_key) positions[r.position_key as PositionKey] = p.id;
       else if (r.bench_area) bench[r.bench_area].push(p.id);
     }
+  }
+
+  // Full club roster — every saved player stays selectable after reload, not
+  // just those already placed in this line-up. This is what makes manually
+  // created (standalone) players reusable across future line-ups.
+  //
+  // [FUTURE — SportsWeb One linked clubs] When a club is SW1-linked, this is
+  // where we'd merge players synced from the SportsWeb One club/team database
+  // (sourceType 'sportsweb_one'), keyed by their SW1 external id so we never
+  // create duplicates. SW1 remains the source of truth for those records.
+  //
+  // [FUTURE — Fantasy AFL] A separate read-only public AFL player DB would be
+  // queried here for fantasy users (sourceType 'fantasy_afl'); never club data.
+  try {
+    const { data: roster } = await supabase
+      .from('players')
+      .select('id, number, first_name, last_name, display_name, headshot_url, jumper_image_url')
+      .eq('club_id', club.id)
+      .order('number');
+    const have = new Set(players.map((p) => p.id));
+    for (const p of (roster as any[]) ?? []) {
+      if (have.has(p.id)) continue;
+      players.push({
+        id: p.id,
+        dbId: p.id,
+        number: p.number ?? '',
+        name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
+        headshotUrl: p.headshot_url ?? undefined,
+        jumperImageUrl: p.jumper_image_url ?? undefined,
+        sourceType: 'standalone',
+      });
+    }
+  } catch {
+    /* roster fetch is best-effort; placed players above are already loaded */
   }
 
   const { data: sponsorRows } = await supabase
@@ -172,7 +214,7 @@ export async function loadLatestTeamSheet(): Promise<LoadedSheet | null> {
  * sequential (not one transaction) — fine for the editor; production should
  * move this behind a transactional, auth-guarded function.
  */
-export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<DbRefs> {
+export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<SaveResult> {
   if (!supabase) throw new Error('Database is not configured.');
 
   // 1. club -------------------------------------------------------------------
@@ -256,18 +298,30 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<DbR
   if (e5) throw e5;
   const lineupId = (lineup as any).id as string;
 
-  // 6. players (upsert by club_id + number) -> map app id -> db id -------------
-  const idMap = new Map<string, string>();
+  // 6. players -> map app id -> db id -----------------------------------------
+  // [FUTURE — SW1] Once add-source-type.sql is run, include
+  //   player_source_type: p.sourceType ?? 'standalone', external_id: p.externalId
+  // here, and for sourceType 'sportsweb_one' upsert on (player_source_type,
+  // external_id) instead so SW1-owned records are never duplicated.
+  const idMap = new Map<string, string>(); // app id -> db id (for lineup_positions)
+  const playerIds = new Map<string, string>(); // app id -> db id (returned for dedupe/write-back)
+
+  const splitName = (full: string) => {
+    const parts = full.trim().split(/\s+/);
+    const first = parts.shift() ?? full;
+    return { first: first || full, last: parts.join(' ') };
+  };
+
+  // 6a. Numbered players: upsert by (club_id, number) — dedupes by guernsey number.
   const numbered = d.players.filter((p) => p.number && p.number.trim());
   if (numbered.length) {
     const rows = numbered.map((p) => {
-      const parts = p.name.trim().split(/\s+/);
-      const first = parts.shift() ?? p.name;
+      const { first, last } = splitName(p.name);
       return {
         club_id: clubId,
         number: p.number,
-        first_name: first || p.name,
-        last_name: parts.join(' '),
+        first_name: first,
+        last_name: last,
         display_name: p.name,
         headshot_url: p.headshotUrl ?? null,
         jumper_image_url: p.jumperImageUrl ?? null,
@@ -281,8 +335,38 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<DbR
     const byNumber = new Map(((saved as any[]) ?? []).map((r) => [String(r.number), r.id as string]));
     for (const p of numbered) {
       const dbId = byNumber.get(String(p.number));
-      if (dbId) idMap.set(p.id, dbId);
+      if (dbId) {
+        idMap.set(p.id, dbId);
+        playerIds.set(p.id, dbId);
+      }
     }
+  }
+
+  // 6b. Numberless players: no guernsey number yet, so they can't key off number.
+  // Persist by row id instead — update the row we already know, otherwise insert —
+  // and report the id back so the app dedupes (rather than duplicates) on re-save.
+  const numberless = d.players.filter((p) => !(p.number && p.number.trim()) && p.name.trim());
+  for (const p of numberless) {
+    const { first, last } = splitName(p.name);
+    const row: Record<string, unknown> = {
+      club_id: clubId,
+      number: null,
+      first_name: first,
+      last_name: last,
+      display_name: p.name,
+      headshot_url: p.headshotUrl ?? null,
+      jumper_image_url: p.jumperImageUrl ?? null,
+    };
+    if (p.dbId) row.id = p.dbId; // update the existing row instead of inserting a new one
+    const { data: savedOne, error: eN } = await supabase
+      .from('players')
+      .upsert(row) // conflict target = primary key (id)
+      .select('id')
+      .single();
+    if (eN) throw eN;
+    const dbId = (savedOne as any).id as string;
+    idMap.set(p.id, dbId);
+    playerIds.set(p.id, dbId);
   }
 
   // 7. lineup_positions (wipe + reinsert) -------------------------------------
@@ -322,5 +406,5 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<DbR
     if (e8) throw e8;
   }
 
-  return { clubId, teamId, fixtureId, lineupId };
+  return { refs: { clubId, teamId, fixtureId, lineupId }, playerIds };
 }

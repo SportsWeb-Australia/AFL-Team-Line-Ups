@@ -1521,3 +1521,14 @@
   from { transform: scale(0.94); opacity: 0; }
   to { transform: scale(1); opacity: 1; }
 }
+
+/* ── Add-player feedback ────────────────────────────────────────────────── */
+.sw1-addmsg {
+  margin: 6px 2px 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  padding: 6px 10px;
+  border-radius: 8px;
+}
+.sw1-addmsg.is-ok { color: #15803d; background: #e8f7ee; border: 1px solid #b7e6c7; }
+.sw1-addmsg.is-err { color: #b91c1c; background: #fdeaea; border: 1px solid #f3c2c2; }

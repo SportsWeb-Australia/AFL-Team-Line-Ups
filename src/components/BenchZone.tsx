@@ -77,7 +77,7 @@ export default function BenchZone({
                   </span>
                 )}
                 <div className="sw1-availplate">
-                  <span className="sw1-availrow__no">{p.number}</span>
+                  <span className="sw1-availrow__no">{p.number || "\u2013"}</span>
                   <span className="sw1-availrow__name">{p.name}</span>
                 </div>
               </div>

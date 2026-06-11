@@ -32,6 +32,15 @@ export type PlayerStatus =
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
+/**
+ * Where a player record comes from / who owns it. Future-safe for three modes:
+ *  - 'standalone'   : created inside AFL Team Line Ups; this app owns the record.
+ *  - 'sportsweb_one': synced from a SportsWeb One club/team DB; SW1 is the source
+ *                     of truth and we must NOT duplicate these records.
+ *  - 'fantasy_afl'  : read-only public AFL player (future fantasy stream only).
+ */
+export type PlayerSourceType = 'standalone' | 'sportsweb_one' | 'fantasy_afl';
+
 /** Public = read-only published graphic. Admin = selectable / editable. */
 export type RenderMode = 'public' | 'admin';
 
@@ -45,6 +54,12 @@ export interface Player {
   /** Optional individual player sponsor (e.g. milestone round). */
   sponsor?: string | null;
   status?: PlayerStatus[];
+  /** Ownership / origin of this record. Defaults to 'standalone' when omitted. */
+  sourceType?: PlayerSourceType;
+  /** For linked players, the id in the source system (e.g. SportsWeb One player id). */
+  externalId?: string | null;
+  /** The database row id once saved. Lets numberless players persist & dedupe. */
+  dbId?: string;
 }
 
 export interface Club {
