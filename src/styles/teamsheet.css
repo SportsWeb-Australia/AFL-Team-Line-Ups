@@ -1,0 +1,1479 @@
+/* ===========================================================================
+   SportsWeb One — AFL Team Line Up
+   All styles are prefixed `sw1-` and scoped under `.sw1-root` so the widget
+   can be dropped into any club website without clashing. Club colours arrive
+   as CSS custom properties set by TeamSheet:
+     --club-primary, --club-secondary, --club-ink
+   Field colours are fixed (grass / maroon ring / white lines) and live here.
+   =========================================================================== */
+
+.sw1-root {
+  --ink: #0f172a;
+  --muted: #64748b;
+  --surface: #ffffff;
+  --bg: #e7eaee;
+  --hair: #dfe3ea;
+  --radius: 22px;
+  --shadow-card: 0 10px 28px rgba(16, 24, 40, 0.12);
+  --shadow-plate: 0 2px 8px rgba(12, 20, 40, 0.18);
+
+  /* sensible fallbacks if a club forgets to set colours */
+  --club-primary: #0c2340;
+  --club-secondary: #f5b301;
+  --club-ink: #ffffff;
+
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  padding: clamp(10px, 2vw, 22px);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  box-sizing: border-box;
+}
+.sw1-root *,
+.sw1-root *::before,
+.sw1-root *::after { box-sizing: border-box; }
+
+.sw1-frame {
+  max-width: 1180px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(14px, 2vw, 22px);
+}
+
+/* ── Header ─────────────────────────────────────────────────────────────── */
+.sw1-header {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: clamp(18px, 3vw, 30px);
+  color: var(--club-ink);
+  background:
+    linear-gradient(135deg, var(--club-primary) 0%,
+      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 100%);
+  box-shadow: var(--shadow-card);
+}
+.sw1-header__ghost {
+  position: absolute;
+  top: 50%;
+  width: 360px;
+  height: 360px;
+  object-fit: contain;
+  opacity: 0.08;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+.sw1-header__ghost--l { left: -90px; }
+.sw1-header__ghost--r { right: -90px; transform: translateY(-50%) scaleX(-1); }
+
+.sw1-header__crests {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: clamp(10px, 3vw, 28px);
+  margin-bottom: clamp(16px, 2.4vw, 26px);
+}
+.sw1-header__v {
+  font-size: clamp(34px, 6vw, 68px);
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0.85;
+}
+
+.sw1-crest { text-align: center; }
+.sw1-crest__badge {
+  height: clamp(64px, 12vw, 116px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw1-crest__badge img { max-height: 100%; max-width: 100%; object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.25)); }
+.sw1-crest__badge span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: clamp(56px, 11vw, 104px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  font-weight: 900;
+  font-size: clamp(20px, 4vw, 38px);
+  color: #fff;
+  border: 4px solid rgba(255, 255, 255, 0.65);
+}
+.sw1-crest__name {
+  margin-top: 8px;
+  font-weight: 900;
+  font-size: clamp(15px, 2.6vw, 28px);
+  letter-spacing: 0.01em;
+  text-transform: uppercase;
+}
+
+.sw1-header__detail {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1.4fr 1fr;
+  align-items: center;
+  gap: clamp(12px, 2vw, 22px);
+}
+
+.sw1-fixture {
+  position: relative;
+  z-index: 1;
+  max-width: 620px;
+  margin: clamp(16px, 2.4vw, 26px) auto 0;
+  text-align: center;
+  border-radius: 22px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.10);
+  padding: clamp(16px, 2.4vw, 26px) clamp(14px, 2vw, 24px);
+}
+.sw1-fixture__round {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 24px;
+  margin-bottom: 12px;
+  font-weight: 900;
+  font-size: clamp(14px, 1.8vw, 20px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--club-ink);
+  background: color-mix(in srgb, var(--club-primary) 70%, #000 12%);
+  clip-path: polygon(8% 0, 100% 0, 92% 100%, 0 100%);
+}
+.sw1-fixture__grade {
+  font-size: clamp(30px, 5.5vw, 58px);
+  font-weight: 900;
+  line-height: 1;
+}
+.sw1-fixture__when {
+  margin-top: 12px;
+  font-weight: 800;
+  font-size: clamp(13px, 1.7vw, 18px);
+}
+.sw1-fixture__comp {
+  margin-top: 6px;
+  font-weight: 700;
+  font-size: clamp(11px, 1.3vw, 13px);
+  opacity: 0.78;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Sponsors flanking the fixture */
+.sw1-sponsor { text-align: center; }
+.sw1-sponsor--empty { visibility: hidden; }
+.sw1-sponsor__tier {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+.sw1-sponsor__box {
+  aspect-ratio: 1;
+  width: min(100%, 150px);
+  margin: 0 auto;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.96);
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  font-weight: 900;
+  text-align: center;
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.14);
+}
+.sw1-sponsor__box img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* ── Rotating sponsor banner ────────────────────────────────────────────── */
+.sw1-banner {
+  position: relative;
+  border-radius: var(--radius);
+  background: var(--surface);
+  border: 1px solid var(--hair);
+  overflow: hidden;
+}
+.sw1-banner__slide {
+  display: block;
+  animation: sw1-fade 0.5s ease;
+}
+.sw1-banner__slide a { display: block; }
+.sw1-banner__img { display: block; width: 100%; height: auto; }
+@keyframes sw1-fade {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: none; }
+}
+.sw1-banner__fallback {
+  min-height: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+.sw1-banner__tier {
+  font-size: 10px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.sw1-banner__name {
+  font-weight: 900;
+  font-size: clamp(16px, 2.6vw, 22px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.sw1-banner__fallback img { max-height: 84px; max-width: 80%; object-fit: contain; }
+.sw1-banner__dots {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+.sw1-banner__dots span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.7);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.sw1-banner__dots span.is-active { background: var(--club-secondary); }
+
+/* picked-up player (tap on the field to pick up, then tap a slot to move/swap) */
+.sw1-slot.is-picked { z-index: 9; }
+.sw1-bench__item.is-picked .sw1-plate__row,
+.sw1-slot.is-picked .sw1-plate__row {
+  outline: 3px solid var(--club-secondary);
+  outline-offset: 2px;
+  border-radius: 10px;
+}
+
+/* small SportsWeb One revenue tag on the banner (hidden in the exported PNG) */
+.sw1-banner__advertise {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  z-index: 3;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  color: #fff;
+  background: rgba(12, 35, 64, 0.78);
+  padding: 4px 10px;
+  border-radius: 999px;
+  backdrop-filter: blur(4px);
+}
+.sw1-exporting .sw1-banner__advertise { display: none; }
+
+/* admin: sponsor banner rotation manager */
+.sw1-sponsorpanel {
+  margin-top: 14px;
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.sw1-sponsorpanel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.sw1-sponsorpanel__head strong { display: block; font-size: 14px; }
+.sw1-sponsorpanel__head span { font-size: 12px; color: #64748b; }
+.sw1-sponsorpanel__head a {
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--club-primary, #0c2340);
+  text-decoration: none;
+}
+.sw1-sponsorpanel__row { display: flex; align-items: center; gap: 6px; }
+.sw1-sponsorpanel__x {
+  border: 1px solid var(--hair);
+  background: #fff;
+  border-radius: 8px;
+  width: 26px;
+  height: 26px;
+  cursor: pointer;
+  color: #64748b;
+  flex: 0 0 auto;
+}
+.sw1-sponsorpanel__controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+}
+.sw1-sponsorpanel__speed {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #475569;
+}
+.sw1-sponsorpanel__speed select {
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+}
+.sw1-sponsorpanel__preview {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: #fff;
+  aspect-ratio: 8 / 1;
+  object-fit: contain;
+}
+.sw1-sponsorpanel__preview--empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #94a3b8;
+  background: repeating-linear-gradient(45deg, #f8fafc, #f8fafc 8px, #f1f5f9 8px, #f1f5f9 16px);
+}
+
+/* ── Mobile & tablet polish ─────────────────────────────────────────────── */
+@media (max-width: 760px) {
+  .sw1-frame { overflow: hidden; }
+  .sw1-header__crests { gap: 8px; }
+  .sw1-header__v { font-size: 34px; }
+  .sw1-fixture { margin-top: 14px; }
+  .sw1-adminbar { max-width: none; }
+  .sw1-stage { padding: 8px; }
+}
+
+/* ── Stage (admin panel + pitch) ────────────────────────────────────────── */
+.sw1-stage {
+  position: relative;
+  border-radius: 28px;
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--club-primary) 14%, #eef2f6),
+      color-mix(in srgb, var(--club-primary) 6%, #eef2f6)
+    );
+  padding: clamp(12px, 2vw, 20px);
+  box-shadow: var(--shadow-card);
+  display: block;
+}
+/* Admin controls now sit ABOVE the graphic (outside the exported frame),
+   so the field renders full-width exactly like the public embed.
+   Capped width keeps the inputs a sensible size on desktop. */
+.sw1-adminbar {
+  max-width: 880px;
+  margin: 0 auto 18px;
+}
+/* let the player list breathe across the full width */
+.sw1-adminbar .sw1-admin__list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* ── Pitch ──────────────────────────────────────────────────────────────── */
+.sw1-pitchwrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+}
+
+/* "HAWKS" (club name) tiled across the ground panel AROUND the oval — sits on
+   the stage background, behind the oval which covers the centre. */
+.sw1-stage-watermark {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.10;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 14px 10px;
+}
+.sw1-stage-watermark .sw1-watermark__row span { color: var(--club-primary); }
+
+/* Line labels are an overlay on the pitch, hanging off the left edge as bold
+   banners (z-index above the oval, so never behind it). Shown on wider screens
+   where there's room to the left; hidden on narrow phones. */
+.sw1-lines {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 6;
+  display: block;
+}
+.sw1-lines__label {
+  position: absolute;
+  left: -27cqw;
+  width: 27cqw;
+  height: 6.4cqw;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  padding: 0 2.2cqw 0 4.6cqw;
+  background: linear-gradient(
+    90deg,
+    var(--club-primary),
+    color-mix(in srgb, var(--club-primary) 72%, #ffffff)
+  );
+  color: var(--club-ink);
+  font-weight: 900;
+  font-size: 2.0cqw;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  clip-path: polygon(0 0, 98% 0, 94% 100%, 0 100%);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+}
+.sw1-lines__label span { position: relative; z-index: 2; }
+.sw1-lines__abbr { display: none; }
+.sw1-lines__label::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4cqw;
+  background: var(--club-secondary);
+}
+/* Below ~1080px the side gutter can't hold the full banner, so we switch to
+   short abbreviation pills (B / HB / C / HF / F) at the oval edge. */
+@media (max-width: 1080px) {
+  .sw1-lines__label {
+    left: -1cqw;
+    width: auto;
+    min-width: 0;
+    height: 8.5cqw;
+    padding: 0 3.2cqw;
+    font-size: 5cqw;
+    border-radius: 7px;
+    clip-path: none;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
+  }
+  .sw1-lines__label::before { display: none; }
+  .sw1-lines__full { display: none; }
+  .sw1-lines__abbr { display: inline; }
+}
+
+.sw1-pitch {
+  position: relative;
+  width: 100%;
+  max-width: 700px;
+  flex: 0 1 700px;
+  aspect-ratio: 1000 / 1230; /* matches the cropped field PNG */
+  container-type: inline-size; /* on-field plates size in cqw against this */
+}
+.sw1-oval-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+  pointer-events: none;
+  filter: drop-shadow(0 12px 26px rgba(16, 24, 40, 0.22));
+}
+
+/* Sits on top of the green (between the posts), so it reads as a ground
+   watermark and never shows in the transparent corners of the image. */
+.sw1-watermark {
+  position: absolute;
+  inset: 18% 8% 16% 8%;
+  overflow: hidden;
+  opacity: 0.1;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.sw1-watermark__row {
+  display: flex;
+  justify-content: space-around;
+  white-space: nowrap;
+  font-weight: 900;
+  font-size: 12px;
+  line-height: 1;
+  color: #ffffff;
+}
+.sw1-ground-logo {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46%;
+  transform: translate(-50%, -50%);
+  opacity: 0.12;
+  pointer-events: none;
+}
+
+/* on-field slot — a positioning anchor only; the plate sizes itself */
+.sw1-slot {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+/* On-field plates scale with the pitch width (cqw) so the spacing that works
+   at a wide "social card" size is preserved at every width — phones included.
+   Bounded by clamp() so they never get unreadably small or oversized.
+   Bench/admin plates are unaffected (they live outside .sw1-pitch). */
+.sw1-slot .sw1-plate__row { max-width: clamp(96px, 28cqw, 182px); }
+.sw1-slot .sw1-plate__no {
+  font-size: clamp(8px, 2.5cqw, 15px);
+  min-width: clamp(20px, 5cqw, 34px);
+  padding: 0 clamp(5px, 1.6cqw, 10px);
+}
+.sw1-slot .sw1-plate__name {
+  font-size: clamp(8px, 2.45cqw, 14px);
+  padding: clamp(3px, 1cqw, 6px) clamp(6px, 2cqw, 12px) clamp(3px, 1cqw, 6px) clamp(4px, 1.4cqw, 8px);
+}
+.sw1-slot .sw1-plate__badge {
+  font-size: clamp(7px, 1.9cqw, 10px);
+  min-width: clamp(13px, 3.4cqw, 18px);
+  height: clamp(13px, 3.4cqw, 18px);
+}
+.sw1-slot .sw1-plate__art { width: clamp(40px, 11cqw, 58px); height: clamp(40px, 11cqw, 58px); }
+.sw1-slot .sw1-plate--headshot .sw1-plate__art { width: clamp(42px, 11.5cqw, 62px); height: clamp(52px, 14.5cqw, 74px); }
+
+.sw1-slot__empty {
+  width: clamp(64px, 17cqw, 96px);
+  padding: clamp(5px, 1.4cqw, 8px) clamp(4px, 1cqw, 6px);
+  border: 2px dashed rgba(255, 255, 255, 0.8);
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.12);
+  color: #fff;
+  font-weight: 800;
+  font-size: clamp(8px, 1.9cqw, 10px);
+  text-align: center;
+}
+
+/* ── Player plate ───────────────────────────────────────────────────────── */
+.sw1-plate {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  user-select: none;
+  position: relative;
+}
+.sw1-plate__art {
+  width: 58px;
+  height: 58px;
+  margin-bottom: -10px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 6px 10px rgba(12, 20, 40, 0.28));
+}
+.sw1-plate__art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* headshots are transparent cut-outs that stand above the name plate, like a
+   real team graphic. A taller, narrower box suits head-and-shoulders portraits. */
+.sw1-plate--headshot .sw1-plate__art {
+  width: 64px;
+  height: 74px;
+  margin-bottom: -12px;
+}
+.sw1-plate--headshot .sw1-plate__art img { object-fit: contain; object-position: bottom; }
+
+.sw1-plate__row {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: stretch;
+  background: #fff;
+  border-radius: 11px;
+  overflow: hidden;
+  border: 1px solid #d9e0ea;
+  box-shadow: var(--shadow-plate);
+  max-width: 168px;
+}
+.sw1-plate__no {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  padding: 0 9px;
+  font-weight: 900;
+  font-size: 12px;
+  color: var(--club-ink);
+  background: var(--club-primary);
+  clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%);
+}
+.sw1-plate__name {
+  padding: 6px 12px 6px 8px;
+  font-weight: 800;
+  font-size: 12px;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.sw1-plate__badge {
+  align-self: center;
+  margin-right: 8px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 900;
+  color: var(--club-primary);
+  background: var(--club-secondary);
+}
+.sw1-plate--compact .sw1-plate__name { font-size: 11px; }
+.sw1-plate--compact .sw1-plate__no { font-size: 11px; min-width: 30px; }
+
+/* ── Benches ────────────────────────────────────────────────────────────── */
+.sw1-benches {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+@media (min-width: 760px) {
+  .sw1-benches { grid-template-columns: 1fr 1fr; }
+}
+.sw1-bench {
+  background: #eef2f6;
+  border-radius: 20px;
+  padding: 16px;
+  text-align: center;
+}
+.sw1-bench--drop { border: 2px dashed #cbd5e1; cursor: pointer; }
+.sw1-grouplabel,
+.sw1-bench__title {
+  display: inline-block;
+  margin: 0 0 14px;
+  padding: 7px 20px 7px 24px;
+  background: linear-gradient(
+    90deg,
+    var(--club-primary),
+    color-mix(in srgb, var(--club-primary) 76%, #ffffff)
+  );
+  color: var(--club-ink);
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.16);
+  clip-path: polygon(0 0, 96% 0, 92% 100%, 0 100%);
+}
+.sw1-grouplabel::before,
+.sw1-bench__title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 9px;
+  background: var(--club-secondary);
+}
+.sw1-bench__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  justify-items: center;
+}
+.sw1-bench__empty {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #64748b;
+  font-weight: 700;
+  margin: 6px 0;
+}
+
+/* ── Admin panel ────────────────────────────────────────────────────────── */
+.sw1-admin {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+  container-type: inline-size;
+}
+.sw1-admin__title { margin: 0 0 14px; font-size: 20px; font-weight: 900; }
+.sw1-admin__modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.sw1-admin__hint { font-size: 12px; color: #64748b; font-weight: 600; line-height: 1.5; margin: 0 0 14px; }
+.sw1-admin__buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.sw1-admin__add {
+  display: grid;
+  grid-template-columns: 78px 1fr auto;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.sw1-admin__bulk { margin-bottom: 14px; }
+.sw1-admin__bulk summary { font-weight: 800; cursor: pointer; margin-bottom: 8px; }
+.sw1-admin__bulk textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  margin-bottom: 8px;
+}
+.sw1-admin__list {
+  display: grid;
+  gap: 10px;
+  max-height: 420px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+.sw1-admin__listitem {
+  display: flex;
+  justify-content: center;
+  padding: 4px;
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.sw1-admin__listitem.is-selected {
+  border-color: var(--club-primary);
+  background: color-mix(in srgb, var(--club-primary) 8%, #ffffff);
+}
+
+.sw1-admin input,
+.sw1-admin textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+  font-size: 14px;
+}
+
+/* ── Buttons & chips ────────────────────────────────────────────────────── */
+.sw1-btn {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: var(--ink);
+  padding: 10px 14px;
+  border-radius: 11px;
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  transition: box-shadow 0.2s, transform 0.05s;
+}
+.sw1-btn:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1); }
+.sw1-btn:active { transform: translateY(1px); }
+.sw1-btn--primary {
+  background: var(--club-primary);
+  color: var(--club-ink);
+  border-color: var(--club-primary);
+}
+.sw1-chip {
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: var(--ink);
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+.sw1-chip.is-active {
+  background: var(--club-primary);
+  color: var(--club-ink);
+  border-color: var(--club-primary);
+}
+
+/* ── Toolbar (download / print) ─────────────────────────────────────────── */
+.sw1-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 1180px;
+  margin: 0 auto 14px;
+}
+
+/* ── Admin: match & branding ────────────────────────────────────────────── */
+.sw1-brand {
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+  background: #fff;
+}
+.sw1-brand > summary { font-weight: 900; cursor: pointer; }
+.sw1-brand__grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px 10px;
+  margin: 12px 0;
+}
+@container (min-width: 430px) {
+  .sw1-brand__grid { grid-template-columns: 1fr 1fr; }
+}
+.sw1-brand__full { grid-column: 1 / -1; }
+.sw1-brand label,
+.sw1-brand__logos label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.sw1-brand input[type='text'],
+.sw1-brand input:not([type]) {
+  font-size: 14px;
+}
+.sw1-brand__color { max-width: 100%; }
+.sw1-brand__color input[type='color'] {
+  width: 100%;
+  height: 34px;
+  padding: 2px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+}
+.sw1-brand__logos {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+@container (min-width: 430px) {
+  .sw1-brand__logos { grid-template-columns: 1fr 1fr; }
+}
+.sw1-brand__logos input[type='file'] { font-size: 11px; }
+
+/* ── Footer ─────────────────────────────────────────────────────────────── */
+.sw1-footer {
+  text-align: center;
+  font-weight: 700;
+  color: var(--muted);
+  font-size: 14px;
+  padding: 4px 0 2px;
+}
+.sw1-footer strong { color: var(--club-primary); }
+
+/* ── Focus & motion ─────────────────────────────────────────────────────── */
+.sw1-root :focus-visible { outline: 3px solid var(--club-secondary); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  .sw1-btn { transition: none; }
+}
+
+@media print {
+  .sw1-toolbar,
+  .sw1-admin { display: none !important; }
+  .sw1-root { background: #fff; padding: 0; }
+}
+
+/* ── Admin workspace: panel sits LEFT of the oval on desktop & tablet ───── */
+.sw1-workspace { display: block; }
+@media (min-width: 1024px) {
+  .sw1-workspace {
+    display: flex;
+    align-items: flex-start;
+    gap: clamp(16px, 2vw, 28px);
+    max-width: 1540px;
+    margin: 0 auto;
+  }
+  .sw1-workspace .sw1-adminbar {
+    flex: 0 0 clamp(390px, 34vw, 480px);
+    max-width: 480px;
+    margin: 0;
+    position: sticky;
+    top: 12px;
+    max-height: calc(100vh - 24px);
+    overflow: auto;
+  }
+  .sw1-workspace .sw1-frame {
+    flex: 1 1 auto;
+    min-width: 0;
+    margin: 0;
+  }
+}
+/* In the editor the big hanging line labels are hidden (empty slots already
+   name each position, and the panel occupies the left gutter). They return
+   in the public / preview view. */
+.sw1-root--admin .sw1-lines { display: none; }
+
+/* ── Followers (ruck division) centred directly under the oval ──────────── */
+.sw1-followers-wrap {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  margin-top: clamp(-6px, -0.3vw, 6px);
+}
+.sw1-followers {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(10px, 3vw, 34px);
+  margin-top: 4px;
+}
+.sw1-follower {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+}
+.sw1-follower__slot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  min-height: 42px;
+}
+.sw1-follower__slot.is-filled { cursor: grab; }
+.sw1-follower__slot.is-picked {
+  outline: 3px solid var(--club-secondary);
+  outline-offset: 3px;
+  border-radius: 999px;
+}
+.sw1-follower__empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 132px;
+  padding: 10px 14px;
+  border: 2px dashed rgba(12, 33, 58, 0.28);
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(12, 33, 58, 0.5);
+  background: rgba(255, 255, 255, 0.55);
+}
+.sw1-follower__label {
+  display: inline-block;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--club-primary);
+  color: var(--club-ink);
+  font-size: clamp(10px, 1.4vw, 12px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.18);
+}
+@media (max-width: 520px) {
+  .sw1-follower__slot,
+  .sw1-follower__empty { min-width: 98px; }
+}
+
+/* ── SportsWeb One branding header inside the admin panel ───────────────── */
+.sw1-admin-brand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+  border-radius: 16px;
+  background: linear-gradient(180deg, #f7f9fc, #eef2f7);
+  border: 1px solid rgba(12, 33, 58, 0.1);
+}
+.sw1-admin-brand img { height: 30px; width: auto; display: block; }
+.sw1-admin-brand__tag {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6b7a90;
+}
+
+/* ── Collapsible admin sections ─────────────────────────────────────────── */
+.sw1-section { margin-bottom: 16px; }
+.sw1-section > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 17px;
+  font-weight: 800;
+  color: #0c2340;
+  padding: 6px 2px;
+}
+.sw1-section > summary::-webkit-details-marker { display: none; }
+.sw1-section > summary::before {
+  content: '▸';
+  font-size: 12px;
+  color: #6b7a90;
+  transition: transform 0.15s ease;
+}
+.sw1-section[open] > summary::before { transform: rotate(90deg); }
+
+/* ── Status: role badges (captain/VC keep club gold; debut/milestone get colour) */
+.sw1-plate__badge.is-debut { background: #16a34a; color: #fff; }
+.sw1-plate__badge.is-milestone { background: #7c3aed; color: #fff; }
+
+/* ── Status: availability / health flags tint the whole plate ───────────── */
+.sw1-plate--flag .sw1-plate__row { border-width: 2px; }
+.sw1-plate--injured .sw1-plate__row    { border-color: #e23b3b; background: #fdecec; }
+.sw1-plate--concussion .sw1-plate__row { border-color: #2f6fed; background: #e9f0fe; }
+.sw1-plate--personal .sw1-plate__row   { border-color: #f59e0b; background: #fef4e2; }
+.sw1-plate--suspended .sw1-plate__row  { border-color: #8b5cf6; background: #f1ecfe; }
+
+.sw1-plate__health {
+  align-self: center;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-right: 7px;
+  padding: 0 4px;
+  height: 18px;
+  border-radius: 6px;
+  color: #fff;
+  flex: none;
+}
+.sw1-plate__health-icon { display: inline-flex; }
+.sw1-plate__health-icon svg { width: 13px; height: 13px; display: block; }
+.sw1-plate__health.has-label { padding: 0 8px 0 6px; height: 20px; }
+.sw1-plate__health-label {
+  font-size: 10px; font-weight: 800; letter-spacing: 0.02em; text-transform: uppercase;
+}
+.sw1-health--injured { background: #e23b3b; }
+.sw1-health--concussion { background: #2f6fed; }
+.sw1-health--personal { background: #f59e0b; }
+.sw1-health--suspended { background: #8b5cf6; }
+
+/* Labelled status floats on the top edge of the plate (Unavailable list) */
+.sw1-plate__health--float {
+  position: absolute;
+  top: 0;
+  right: 6px;
+  transform: translateY(-55%);
+  z-index: 4;
+  height: 20px;
+  padding: 0 9px 0 7px;
+  gap: 5px;
+  box-shadow: 0 4px 10px rgba(12, 20, 40, 0.28);
+}
+.sw1-plate__health--float .sw1-plate__health-label {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+/* room for the floating tag above the first row of bench plates */
+.sw1-bench__grid { padding-top: 12px; }
+
+/* ── Status legend / key strip (shows only statuses actually used) ──────── */
+.sw1-legend {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 16px;
+  padding: 10px 14px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(12, 33, 58, 0.08);
+}
+.sw1-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0c2340;
+}
+.sw1-legend__chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 6px;
+  color: #fff;
+}
+.sw1-legend__chip svg { width: 13px; height: 13px; }
+.sw1-legend__chip.is-role { background: var(--club-secondary); color: var(--club-primary); font-weight: 900; font-size: 11px; }
+.sw1-legend__chip.is-debut { background: #16a34a; }
+.sw1-legend__chip.is-milestone { background: #7c3aed; }
+
+/* ── SportsWeb One database bar (admin) ─────────────────────────────────── */
+.sw1-db {
+  margin-bottom: 16px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+.sw1-db--ok { border-color: #16a34a; background: #f0fdf4; }
+.sw1-db--error { border-color: #e23b3b; background: #fef2f2; }
+.sw1-db__row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sw1-db__row strong { font-size: 14px; }
+.sw1-db__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+}
+.sw1-db__dot.is-on { background: #16a34a; box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.18); }
+.sw1-db__dot.is-off { background: #cbd5e1; }
+.sw1-db__btns { margin-left: auto; display: inline-flex; gap: 8px; }
+.sw1-db__msg {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+  line-height: 1.5;
+}
+.sw1-db__hint {
+  margin: 6px 0 0;
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.5;
+}
+.sw1-db--error .sw1-db__msg { color: #b91c1c; }
+.sw1-db--ok .sw1-db__msg { color: #15803d; }
+
+/* ── Logo watermark (tiled faint logos behind the oval) ─────────────────── */
+.sw1-stage-watermark.is-logo .sw1-watermark__row { gap: 16px; align-items: center; }
+.sw1-stage-watermark.is-logo .sw1-watermark__row img {
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  flex: none;
+}
+
+/* ── Background-watermark control (admin) ───────────────────────────────── */
+.sw1-watermarkpanel {
+  margin-top: 14px;
+  border: 1px solid var(--hair);
+  border-radius: 14px;
+  padding: 14px;
+  background: linear-gradient(180deg, #ffffff, #f8fafc);
+}
+.sw1-watermarkpanel > strong { display: block; font-size: 14px; margin-bottom: 8px; }
+.sw1-watermarkpanel select {
+  padding: 9px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  background: #fff;
+  font: inherit;
+  font-size: 14px;
+  width: 100%;
+}
+.sw1-watermarkpanel__file {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-top: 8px;
+}
+.sw1-watermarkpanel__file input[type='file'] { font-size: 11px; }
+
+/* ── Below-oval bench layout ────────────────────────────────────────────── */
+/* Emergencies + Interchange: centred + stacked by default (mobile/tablet). */
+.sw1-emergencies,
+.sw1-interchange {
+  position: relative;
+  z-index: 2;
+  max-width: 360px;
+  margin: 16px auto 0;
+}
+/* Cards inside the stage read cleanly on the tinted background. */
+.sw1-emergencies .sw1-bench,
+.sw1-interchange .sw1-bench {
+  background: rgba(255, 255, 255, 0.74);
+}
+/* Desktop: the two benches float at the bottom corners of the oval. */
+@media (min-width: 1240px) {
+  .sw1-emergencies,
+  .sw1-interchange {
+    position: absolute;
+    bottom: 14px;
+    width: 190px;
+    max-width: none;
+    margin: 0;
+  }
+  .sw1-emergencies { left: 14px; }
+  .sw1-interchange { right: 14px; }
+  .sw1-emergencies .sw1-bench__grid,
+  .sw1-interchange .sw1-bench__grid { grid-template-columns: 1fr; }
+}
+/* Unavailable: full-width strip beneath the field. */
+.sw1-unavailable-wrap { margin-top: 16px; }
+.sw1-unavailable-wrap .sw1-bench__grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+
+/* ── Playing list (admin summary) ───────────────────────────────────────── */
+.sw1-playinglist { margin-top: 4px; }
+.sw1-playinglist__count {
+  font-size: 13px;
+  color: #475569;
+  margin-bottom: 10px;
+}
+.sw1-playinglist__count strong { color: #0c2340; font-size: 15px; }
+.sw1-playinglist__line { margin-bottom: 10px; }
+.sw1-playinglist__linehead {
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--club-primary, #0c2340);
+  padding: 4px 0;
+  border-bottom: 2px solid color-mix(in srgb, var(--club-primary) 20%, #e2e8f0);
+  margin-bottom: 4px;
+}
+.sw1-playinglist__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 5px 2px;
+  font-size: 13px;
+  border-bottom: 1px solid #eef2f6;
+}
+.sw1-playinglist__pos {
+  color: #64748b;
+  font-weight: 600;
+  flex: 0 0 auto;
+}
+.sw1-playinglist__player {
+  font-weight: 700;
+  color: #0f172a;
+  text-align: right;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.sw1-playinglist__no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 5px;
+  background: var(--club-primary);
+  color: var(--club-ink, #fff);
+  font-size: 11px;
+  font-weight: 800;
+}
+.sw1-playinglist__row.is-empty .sw1-playinglist__player { color: #cbd5e1; font-weight: 600; }
+
+/* ── Streamlined "unavailable" tags (tag floats on top of the name) ─────── */
+.sw1-bench--rows .sw1-bench__grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 10px;
+  justify-content: center;
+  padding-top: 4px;
+}
+.sw1-availcell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.sw1-availtag {
+  position: relative;
+  z-index: 2;
+  margin-bottom: -10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #fff;
+  padding: 2px 9px 2px 7px;
+  border-radius: 999px;
+  box-shadow: 0 2px 5px rgba(15, 23, 42, 0.18);
+}
+.sw1-availtag__icon { display: inline-flex; width: 12px; height: 12px; }
+.sw1-availtag__icon svg { width: 100%; height: 100%; }
+.sw1-availtag--injured { background: #e11d2a; }
+.sw1-availtag--concussion { background: #2f6df6; }
+.sw1-availtag--personal { background: #f59e0b; }
+.sw1-availtag--suspended { background: #8b5cf6; }
+.sw1-availplate {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 13px 12px 4px 4px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+}
+.sw1-bench--drop.sw1-bench--rows .sw1-availcell { cursor: grab; }
+.sw1-availcell.is-picked .sw1-availplate { outline: 2px solid var(--club-primary); outline-offset: 1px; }
+.sw1-availrow__no {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: var(--club-primary);
+  color: var(--club-ink, #fff);
+  font-weight: 800;
+  font-size: 12px;
+}
+.sw1-availrow__name { font-weight: 700; color: #0f172a; white-space: nowrap; }
+
+/* ── Full squad list (admin) ────────────────────────────────────────────── */
+.sw1-squad {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
+  max-height: 460px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.sw1-squad__row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  border: 1px solid #e7ecf1;
+  border-radius: 10px;
+  padding: 4px 6px 4px 4px;
+}
+.sw1-squad__row.is-selected {
+  border-color: var(--club-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--club-primary) 28%, transparent);
+}
+.sw1-squad__pick {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  padding: 4px;
+  text-align: left;
+}
+.sw1-squad__no {
+  flex: 0 0 auto;
+  min-width: 26px;
+  height: 26px;
+  border-radius: 7px;
+  background: var(--club-primary);
+  color: var(--club-ink, #fff);
+  font-weight: 800;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw1-squad__name {
+  font-weight: 700;
+  color: #0f172a;
+  font-size: 13px;
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sw1-squad__loc {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #64748b;
+  background: #eef2f6;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.sw1-squad__loc.is-on { color: #0c2340; background: color-mix(in srgb, var(--club-primary) 16%, #eef2f6); }
+.sw1-squad__loc.is-out { color: #b91c1c; background: #fde2e2; }
+.sw1-squad__controls { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
+.sw1-squad__avail {
+  font-size: 11px;
+  border: 1px solid #d7dee6;
+  border-radius: 7px;
+  padding: 3px 4px;
+  background: #fff;
+  color: #334155;
+  max-width: 104px;
+}
+.sw1-squad__edit,
+.sw1-squad__remove {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  border: 1px solid #d7dee6;
+  background: #fff;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw1-squad__edit:hover { background: #eef2f6; }
+.sw1-squad__remove:hover { background: #fde2e2; border-color: #f5b1b1; color: #b91c1c; }
+.sw1-squad__row--edit { gap: 6px; padding: 5px; }
+.sw1-squad__row--edit input { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
+.sw1-squad__editno { width: 50px; flex: 0 0 auto; }
+.sw1-squad__editname { flex: 1; min-width: 0; }
+.sw1-squad__ok,
+.sw1-squad__x {
+  width: 30px;
+  height: 32px;
+  border-radius: 7px;
+  border: 1px solid #d7dee6;
+  background: #fff;
+  cursor: pointer;
+  flex: 0 0 auto;
+}
+.sw1-squad__ok { color: #15803d; font-weight: 800; }
+
+/* ── Embed mode (iframe) ────────────────────────────────────────────────── */
+.sw1-root--embed { padding: 0; background: transparent; }
+.sw1-root--embed .sw1-frame { margin: 0 auto; box-shadow: none; }

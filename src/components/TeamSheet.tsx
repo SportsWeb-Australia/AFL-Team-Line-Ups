@@ -1,0 +1,665 @@
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { toPng } from 'html-to-image';
+import type {
+  BenchArea,
+  Player,
+  PlayerStatus,
+  PositionKey,
+  RenderMode,
+  TeamSheetData,
+  VisualMode,
+} from '../types';
+import { FIELD_SLOTS, FIELD_SLOTS_MOBILE, LINE_LABELS, BENCH_TITLES, FOLLOWER_LABELS } from '../lib/field';
+import MatchHeader from './MatchHeader';
+import RotatingBanner from './RotatingBanner';
+import Oval from './Oval';
+import PlayerPlate from './PlayerPlate';
+import BenchZone from './BenchZone';
+import StatusLegend from './StatusLegend';
+import PlayingList from './PlayingList';
+import AdminPanel from './AdminPanel';
+
+/** Availability reasons (as opposed to role badges like captain/debut). */
+const AVAIL_STATUSES: PlayerStatus[] = ['injured', 'concussion', 'personal', 'suspended'];
+import { loadLatestTeamSheet, saveTeamSheet, EMPTY_REFS, type DbRefs } from '../lib/source';
+import { isSupabaseConfigured } from '../lib/supabase';
+import '../styles/teamsheet.css';
+
+export interface TeamSheetProps {
+  data: TeamSheetData;
+  /** 'public' = read-only published graphic (default, no buttons — embed-ready). 'admin' = editable. */
+  mode?: RenderMode;
+  /** Embedded in an iframe — strips outer page chrome so it sits flush. */
+  embed?: boolean;
+  /** Pull the latest published team sheet from the database on first load. */
+  autoLoad?: boolean;
+}
+
+let nextId = 1000;
+const uid = () => `p${nextId++}`;
+
+/** Level lines on desktop/tablet, staggered on phones. */
+function useIsNarrow(bp = 760) {
+  const [narrow, setNarrow] = useState(
+    () => typeof window !== 'undefined' && window.innerWidth <= bp,
+  );
+  useEffect(() => {
+    const onResize = () => setNarrow(window.innerWidth <= bp);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, [bp]);
+  return narrow;
+}
+
+export default function TeamSheet({ data, mode = 'public', embed = false, autoLoad = false }: TeamSheetProps) {
+  const admin = mode === 'admin';
+  const isNarrow = useIsNarrow();
+  const slots = isNarrow ? FIELD_SLOTS_MOBILE : FIELD_SLOTS;
+
+  // The roster is stable; selection (the lineup) is the editable state.
+  const [players, setPlayers] = useState<Player[]>(data.players);
+  const [positions, setPositions] = useState<Partial<Record<PositionKey, string>>>(
+    data.lineup.positions,
+  );
+  const [followers, setFollowers] = useState<string[]>(data.lineup.followers);
+  const [interchange, setInterchange] = useState<string[]>(data.lineup.interchange);
+  const [emergencies, setEmergencies] = useState<string[]>(data.lineup.emergencies);
+  const [unavailable, setUnavailable] = useState<string[]>(data.lineup.unavailable);
+
+  const [visualMode, setVisualMode] = useState<VisualMode>('none');
+  const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+
+  // Branding/match details are editable in admin so a club can be set up live.
+  const [club, setClub] = useState(data.club);
+  const [match, setMatch] = useState(data.match);
+  const [sponsors, setSponsors] = useState(data.sponsors);
+
+  // Background watermark behind the oval (club/sponsor name or logo).
+  type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
+  const [wmSource, setWmSource] = useState<WmSource>('clubName');
+  const [wmSponsorName, setWmSponsorName] = useState('');
+  const [wmSponsorLogo, setWmSponsorLogo] = useState<string | null>(null);
+
+  const playerMap = useMemo(() => new Map(players.map((p) => [p.id, p] as const)), [players]);
+
+  const benchByArea: Record<BenchArea, string[]> = {
+    followers,
+    interchange,
+    emergencies,
+    unavailable,
+  };
+
+  const presentStatuses = useMemo(() => {
+    const s = new Set<PlayerStatus>();
+    players.forEach((p) => p.status?.forEach((st) => s.add(st)));
+    return s;
+  }, [players]);
+
+  // ── selection mutations (admin only) ──────────────────────────────────────
+  const setterFor: Record<BenchArea, React.Dispatch<React.SetStateAction<string[]>>> = {
+    followers: setFollowers,
+    interchange: setInterchange,
+    emergencies: setEmergencies,
+    unavailable: setUnavailable,
+  };
+
+  function clearEverywhere(id: string) {
+    setPositions((prev) => {
+      const next = { ...prev };
+      (Object.keys(next) as PositionKey[]).forEach((k) => {
+        if (next[k] === id) delete next[k];
+      });
+      return next;
+    });
+    (Object.keys(setterFor) as BenchArea[]).forEach((area) =>
+      setterFor[area]((prev) => prev.filter((x) => x !== id)),
+    );
+  }
+
+  type Loc =
+    | { kind: 'field'; slot: PositionKey }
+    | { kind: 'bench'; area: BenchArea }
+    | { kind: 'none' };
+
+  function locate(id: string): Loc {
+    for (const k of Object.keys(positions) as PositionKey[]) {
+      if (positions[k] === id) return { kind: 'field', slot: k };
+    }
+    for (const area of Object.keys(setterFor) as BenchArea[]) {
+      const arr = { followers, interchange, emergencies, unavailable }[area];
+      if (arr.includes(id)) return { kind: 'bench', area };
+    }
+    return { kind: 'none' };
+  }
+
+  /** Strip any availability tag (injured/etc.) without touching placement. */
+  function clearAvailTag(id: string) {
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        const roles = (p.status ?? []).filter((s) => !AVAIL_STATUSES.includes(s));
+        return { ...p, status: roles.length ? roles : undefined };
+      }),
+    );
+  }
+
+  /**
+   * When a flagged player is pulled out of Unavailable into the line-up, ask
+   * first, then clear their availability tag. Returns false to cancel the move.
+   */
+  function confirmLeaveUnavailable(id: string): boolean {
+    if (!unavailable.includes(id)) return true;
+    const p = players.find((x) => x.id === id);
+    const reason = (p?.status ?? []).find((s) => AVAIL_STATUSES.includes(s));
+    const label = reason ? reason.charAt(0).toUpperCase() + reason.slice(1) : 'unavailable';
+    const ok = window.confirm(
+      `${p?.name ?? 'This player'} is marked ${label}. Move them into the line-up and clear that status?`,
+    );
+    if (ok) clearAvailTag(id);
+    return ok;
+  }
+
+  /**
+   * Move a player into a field slot. If the slot is occupied, the two players
+   * SWAP (the occupant moves to the dragged player's old slot) when the dragged
+   * player came from another field slot — otherwise the occupant is freed back
+   * to the team list. This is the behaviour the index.html prototype used.
+   */
+  function placeIntoSlot(slot: PositionKey, id: string) {
+    if (!confirmLeaveUnavailable(id)) return;
+    const from = locate(id);
+    setPositions((prev) => {
+      const next = { ...prev };
+      const occupant = next[slot] ?? null;
+      (Object.keys(next) as PositionKey[]).forEach((k) => {
+        if (next[k] === id) delete next[k];
+      });
+      next[slot] = id;
+      if (occupant && occupant !== id && from.kind === 'field' && from.slot !== slot) {
+        next[from.slot] = occupant; // swap
+      }
+      return next;
+    });
+    if (from.kind === 'bench') setterFor[from.area]((prev) => prev.filter((x) => x !== id));
+    setSelectedPlayerId(null);
+  }
+
+  function assignToArea(area: BenchArea, id: string) {
+    // Pulling someone out of Unavailable into a playing group: confirm + clear tag.
+    if (area !== 'unavailable' && !confirmLeaveUnavailable(id)) return;
+    clearEverywhere(id);
+    setterFor[area]((prev) => [...prev, id]);
+    setSelectedPlayerId(null);
+  }
+
+  function loadBlank() {
+    setPositions({});
+    setFollowers([]);
+    setInterchange([]);
+    setEmergencies([]);
+    setUnavailable([]);
+  }
+
+  function loadDemo() {
+    setPositions(data.lineup.positions);
+    setFollowers(data.lineup.followers);
+    setInterchange(data.lineup.interchange);
+    setEmergencies(data.lineup.emergencies);
+    setUnavailable(data.lineup.unavailable);
+  }
+
+  // ── SportsWeb One database (Supabase) ─────────────────────────────────────
+  const [dbState, setDbState] = useState<'idle' | 'loading' | 'saving' | 'ok' | 'error'>('idle');
+  const [dbMsg, setDbMsg] = useState('');
+  const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
+
+  function applyData(d: TeamSheetData) {
+    setPlayers(d.players);
+    setPositions(d.lineup.positions);
+    setFollowers(d.lineup.followers);
+    setInterchange(d.lineup.interchange);
+    setEmergencies(d.lineup.emergencies);
+    setUnavailable(d.lineup.unavailable);
+    setClub(d.club);
+    setMatch(d.match);
+    setSponsors(d.sponsors);
+    setSelectedPlayerId(null);
+  }
+
+  function currentData(): TeamSheetData {
+    return {
+      club,
+      match,
+      sponsors,
+      players,
+      lineup: { positions, followers, interchange, emergencies, unavailable },
+      watermark: data.watermark,
+    };
+  }
+
+  async function loadFromDatabase() {
+    setDbState('loading');
+    setDbMsg('');
+    try {
+      const res = await loadLatestTeamSheet();
+      if (!res) {
+        setDbState('error');
+        setDbMsg('Connected, but no fixtures found yet. Run seed.sql or save one.');
+        return;
+      }
+      applyData(res.data);
+      setDbRefs(res.refs);
+      setDbState('ok');
+      setDbMsg(`Loaded ${res.data.club.name} vs ${res.data.match.opponent} from the database.`);
+    } catch (err: any) {
+      console.error('Database load failed', err);
+      setDbState('error');
+      setDbMsg(err?.message ?? 'Could not reach the database.');
+    }
+  }
+
+  // Embeds / deep links pull the published sheet from the DB on first paint.
+  useEffect(() => {
+    if (autoLoad) loadFromDatabase();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function saveToDatabase() {
+    setDbState('saving');
+    setDbMsg('');
+    try {
+      const refs = await saveTeamSheet(currentData(), dbRefs);
+      setDbRefs(refs);
+      setDbState('ok');
+      setDbMsg('Saved to the SportsWeb One database.');
+    } catch (err: any) {
+      console.error('Database save failed', err);
+      setDbState('error');
+      setDbMsg(
+        err?.message?.includes('row-level security') || err?.code === '42501'
+          ? 'Save blocked by row-level security — run supabase/enable-writes.sql first.'
+          : err?.message ?? 'Could not save to the database.',
+      );
+    }
+  }
+
+  function addPlayer(number: string, name: string) {
+    setPlayers((prev) => [...prev, { id: uid(), number, name }]);
+  }
+
+  function importPlayers(rows: { number: string; name: string }[]) {
+    setPlayers((prev) => [...prev, ...rows.map((r) => ({ id: uid(), ...r }))]);
+  }
+
+  function removePlayer(id: string) {
+    clearEverywhere(id);
+    setPlayers((prev) => prev.filter((p) => p.id !== id));
+    setSelectedPlayerId((cur) => (cur === id ? null : cur));
+  }
+
+  function updatePlayer(id: string, fields: { number?: string; name?: string }) {
+    setPlayers((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, ...fields } : p)),
+    );
+  }
+
+  /**
+   * Set (or clear) a player's availability. Choosing an unavailable reason
+   * tags the player and shifts them straight into the Unavailable group;
+   * choosing "available" clears the tag and frees them from that group.
+   * Role badges (captain, debut, …) are preserved either way.
+   */
+  function setAvailability(id: string, reason: PlayerStatus | null) {
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id !== id) return p;
+        const roles = (p.status ?? []).filter((s) => !AVAIL_STATUSES.includes(s));
+        const next = reason ? [...roles, reason] : roles;
+        return { ...p, status: next.length ? next : undefined };
+      }),
+    );
+    if (reason) {
+      assignToArea('unavailable', id); // clears them elsewhere, drops into Unavailable
+    } else {
+      setUnavailable((prev) => prev.filter((x) => x !== id));
+    }
+  }
+
+  /** Where each player currently sits, for the squad list chips. */
+  const playerLocation = useMemo(() => {
+    const m = new Map<string, string>();
+    (Object.keys(positions) as PositionKey[]).forEach((k) => {
+      const id = positions[k];
+      if (id) m.set(id, k);
+    });
+    followers.forEach((id) => m.set(id, 'Ruck/Rov'));
+    interchange.forEach((id) => m.set(id, 'Interch'));
+    emergencies.forEach((id) => m.set(id, 'Emerg'));
+    unavailable.forEach((id) => m.set(id, 'Unavail'));
+    return m;
+  }, [positions, followers, interchange, emergencies, unavailable]);
+
+  // Club colours flow into the stylesheet as custom properties.
+  const themeVars = {
+    '--club-primary': club.primaryColor,
+    '--club-secondary': club.secondaryColor,
+    '--club-ink': club.inkColor ?? '#ffffff',
+  } as React.CSSProperties;
+
+  const fieldName = club.shortName ?? club.name;
+
+  // Resolve what the background watermark shows.
+  const wmIsLogo = wmSource === 'clubLogo' || wmSource === 'sponsorLogo';
+  const wmLogo =
+    wmSource === 'clubLogo' ? club.logoUrl : wmSource === 'sponsorLogo' ? wmSponsorLogo : null;
+  const wmText =
+    wmSource === 'sponsorName' || wmSource === 'sponsorLogo'
+      ? wmSponsorName || 'Sponsor'
+      : fieldName;
+
+  const renderBench = (area: BenchArea) => {
+    const ids = benchByArea[area];
+    if (!admin && ids.length === 0) return null;
+    return (
+      <BenchZone
+        title={BENCH_TITLES[area]}
+        area={area}
+        players={ids.map((id) => playerMap.get(id)).filter(Boolean) as Player[]}
+        visualMode={visualMode}
+        enabled={admin}
+        selectedPlayerId={selectedPlayerId}
+        onAssign={assignToArea}
+        onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
+        rowLayout={area === 'unavailable'}
+      />
+    );
+  };
+
+  const updateClub = (patch: Partial<typeof club>) => setClub((c) => ({ ...c, ...patch }));
+  const updateMatch = (patch: Partial<typeof match>) => setMatch((m) => ({ ...m, ...patch }));
+
+  type LogoTarget = 'home' | 'away';
+  function setLogo(target: LogoTarget, dataUrl: string) {
+    if (target === 'home') updateClub({ logoUrl: dataUrl });
+    else updateMatch({ opponentLogoUrl: dataUrl });
+  }
+
+  function setSponsorLogo(index: number, dataUrl: string) {
+    setSponsors((s) => {
+      const rotating = [...(s?.rotating ?? [])];
+      if (!rotating[index]) rotating[index] = { name: `Banner ${index + 1}` };
+      // an uploaded image is the full banner for that slot
+      rotating[index] = { ...rotating[index], bannerUrl: dataUrl };
+      return { ...s, rotating };
+    });
+  }
+
+  function addSponsorSlot() {
+    setSponsors((s) => {
+      const rotating = [...(s?.rotating ?? [])];
+      if (rotating.length >= 5) return s; // cap at 5
+      rotating.push({ name: `Banner ${rotating.length + 1}` });
+      return { ...s, rotating };
+    });
+  }
+
+  function removeSponsorSlot(index: number) {
+    setSponsors((s) => {
+      const rotating = (s?.rotating ?? []).filter((_, i) => i !== index);
+      return { ...s, rotating };
+    });
+  }
+
+  function setRotationMs(ms: number) {
+    setSponsors((s) => ({ ...s, rotationMs: ms }));
+  }
+
+  // ── PNG export ─────────────────────────────────────────────────────────────
+  // Captures the graphic region only (the toolbar sits outside it). html-to-image
+  // freezes computed styles, so clip-paths, container units and color-mix all
+  // export exactly as rendered.
+  const captureRef = useRef<HTMLDivElement>(null);
+  const [downloading, setDownloading] = useState(false);
+
+  function slugify(s: string) {
+    return s.trim().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
+  }
+
+  async function downloadPng() {
+    const node = captureRef.current;
+    if (!node) return;
+    setDownloading(true);
+    node.classList.add('sw1-exporting');
+    try {
+      const dataUrl = await toPng(node, {
+        pixelRatio: 2, // crisp on retina / good for socials
+        backgroundColor: '#eef2f6',
+        cacheBust: true,
+        width: Math.ceil(node.scrollWidth),
+        height: Math.ceil(node.scrollHeight),
+        style: { margin: '0', transform: 'none' },
+      });
+      const a = document.createElement('a');
+      a.download = `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(
+        match.round,
+      )}.png`;
+      a.href = dataUrl;
+      a.click();
+    } catch (err) {
+      console.error('PNG export failed', err);
+      alert('Could not export the image here. As a fallback, take a screenshot of the graphic.');
+    } finally {
+      node.classList.remove('sw1-exporting');
+      setDownloading(false);
+    }
+  }
+
+  return (
+    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
+      {admin && (
+        <div className="sw1-toolbar">
+          <button className="sw1-btn" onClick={() => window.print()}>
+            Print
+          </button>
+          <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
+            {downloading ? 'Preparing…' : 'Download graphic'}
+          </button>
+        </div>
+      )}
+
+      <div className={admin ? 'sw1-workspace' : undefined}>
+        {admin && (
+          <div className="sw1-adminbar">
+          <AdminPanel
+            players={players}
+            squadLocation={playerLocation}
+            visualMode={visualMode}
+            selectedPlayerId={selectedPlayerId}
+            onVisualMode={setVisualMode}
+            onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
+            onAddPlayer={addPlayer}
+            onImport={importPlayers}
+            onSetAvailability={setAvailability}
+            onRemovePlayer={removePlayer}
+            onUpdatePlayer={updatePlayer}
+            onLoadBlank={loadBlank}
+            onLoadDemo={loadDemo}
+            club={club}
+            match={match}
+            sponsors={sponsors}
+            onClub={updateClub}
+            onMatch={updateMatch}
+            onLogo={setLogo}
+            onSponsorLogo={setSponsorLogo}
+            onAddSponsor={addSponsorSlot}
+            onRemoveSponsor={removeSponsorSlot}
+            onRotationMs={setRotationMs}
+            rotationMs={sponsors?.rotationMs ?? 3800}
+            dbConfigured={isSupabaseConfigured}
+            dbState={dbState}
+            dbMsg={dbMsg}
+            onLoadFromDb={loadFromDatabase}
+            onSaveToDb={saveToDatabase}
+            wmSource={wmSource}
+            onWmSource={setWmSource}
+            wmSponsorName={wmSponsorName}
+            onWmSponsorName={setWmSponsorName}
+            onWmSponsorLogo={setWmSponsorLogo}
+            wmHasSponsorLogo={!!wmSponsorLogo}
+            playingList={<PlayingList positions={positions} playerMap={playerMap} />}
+          />
+        </div>
+      )}
+
+      <div className="sw1-frame" ref={captureRef}>
+        <MatchHeader club={club} match={match} />
+
+        <RotatingBanner
+          sponsors={sponsors?.rotating}
+          interval={sponsors?.rotationMs ?? 3800}
+          showAdvertise={!admin}
+        />
+
+        <div className="sw1-stage">
+          {data.watermark && (
+            <div className={`sw1-stage-watermark ${wmIsLogo && wmLogo ? 'is-logo' : ''}`} aria-hidden>
+              {Array.from({ length: 16 }).map((_, r) => (
+                <div key={r} className="sw1-watermark__row">
+                  {Array.from({ length: 10 }).map((__, c) =>
+                    wmIsLogo && wmLogo ? (
+                      <img key={c} src={wmLogo} alt="" />
+                    ) : (
+                      <span key={c}>{wmText}</span>
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="sw1-pitchwrap">
+            <div className="sw1-pitch">
+              <Oval />
+
+              {/* line labels hang off the left edge, over the field */}
+              <div className="sw1-lines" aria-hidden>
+                {LINE_LABELS.map((l) => (
+                  <div key={l.text} className="sw1-lines__label" style={{ top: `${l.top}%` }}>
+                    <span className="sw1-lines__full">{l.text}</span>
+                    <span className="sw1-lines__abbr">{l.abbr}</span>
+                  </div>
+                ))}
+              </div>
+
+              {slots.map((slot) => {
+                const id = positions[slot.key];
+                const player = id ? playerMap.get(id) : null;
+                const picked = !!id && selectedPlayerId === id;
+                return (
+                  <div
+                    key={slot.key}
+                    className={`sw1-slot ${picked ? 'is-picked' : ''}`}
+                    style={{ left: `${slot.x}%`, top: `${slot.y}%` }}
+                    data-slot={slot.key}
+                    onClick={() => {
+                      if (!admin) return;
+                      if (selectedPlayerId) placeIntoSlot(slot.key, selectedPlayerId);
+                      else if (id) setSelectedPlayerId(id); // pick up a placed player
+                    }}
+                    onDragOver={(e) => admin && e.preventDefault()}
+                    onDrop={(e) => {
+                      if (!admin) return;
+                      e.preventDefault();
+                      const dropped = e.dataTransfer.getData('text/plain') || selectedPlayerId;
+                      if (dropped) placeIntoSlot(slot.key, dropped);
+                    }}
+                  >
+                    {player ? (
+                      <div
+                        draggable={admin}
+                        onDragStart={(e) => e.dataTransfer.setData('text/plain', player.id)}
+                      >
+                        <PlayerPlate player={player} visualMode={visualMode} compact />
+                      </div>
+                    ) : admin ? (
+                      <div className="sw1-slot__empty">{slot.label}</div>
+                    ) : null}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Followers (ruck division) sit centred directly under the oval */}
+          {(admin || benchByArea.followers.length > 0) && (
+            <div className="sw1-followers-wrap">
+              <div className="sw1-grouplabel">Followers</div>
+              <div className="sw1-followers">
+              {[0, 1, 2].map((idx) => {
+                const id = benchByArea.followers[idx];
+                const player = id ? playerMap.get(id) : null;
+                const picked = !!id && selectedPlayerId === id;
+                return (
+                  <div key={idx} className="sw1-follower">
+                    <div
+                      className={`sw1-follower__slot ${picked ? 'is-picked' : ''} ${
+                        player ? 'is-filled' : ''
+                      }`}
+                      onClick={() => {
+                        if (!admin) return;
+                        if (selectedPlayerId) assignToArea('followers', selectedPlayerId);
+                        else if (id) setSelectedPlayerId(id);
+                      }}
+                      onDragOver={(e) => admin && e.preventDefault()}
+                      onDrop={(e) => {
+                        if (!admin) return;
+                        e.preventDefault();
+                        const dropped = e.dataTransfer.getData('text/plain') || selectedPlayerId;
+                        if (dropped) assignToArea('followers', dropped);
+                      }}
+                    >
+                      {player ? (
+                        <div
+                          draggable={admin}
+                          onDragStart={(e) => e.dataTransfer.setData('text/plain', player.id)}
+                        >
+                          <PlayerPlate player={player} visualMode={visualMode} compact />
+                        </div>
+                      ) : (
+                        <div className="sw1-follower__empty">{FOLLOWER_LABELS[idx]}</div>
+                      )}
+                    </div>
+                    <div className="sw1-follower__label">{FOLLOWER_LABELS[idx]}</div>
+                  </div>
+                );
+              })}
+              </div>
+            </div>
+          )}
+
+          {/* Emergencies sit centred under the followers, with a clear gap */}
+          {renderBench('emergencies') && (
+            <div className="sw1-emergencies">{renderBench('emergencies')}</div>
+          )}
+
+          {/* Interchange sits bottom-right of the oval on desktop, stacks on mobile */}
+          {renderBench('interchange') && (
+            <div className="sw1-interchange">{renderBench('interchange')}</div>
+          )}
+        </div>
+
+        {/* Unavailable: full-width strip, separate from the field above */}
+        {renderBench('unavailable') && (
+          <div className="sw1-unavailable-wrap">{renderBench('unavailable')}</div>
+        )}
+
+        <StatusLegend present={presentStatuses} />
+
+        <footer className="sw1-footer">
+          Powered by <strong>SportsWeb One</strong>
+        </footer>
+      </div>
+      </div>
+    </div>
+  );
+}
