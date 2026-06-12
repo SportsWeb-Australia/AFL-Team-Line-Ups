@@ -76,6 +76,9 @@ interface Props {
   onDeleteSheet?: (fixtureId: string) => void;
   onCopyEmbed?: () => void;
   onClone?: () => void;
+  /** Ins & Outs vs last week (admin reference only). Null until a prior round exists. */
+  insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
+  onRefreshInsOuts?: () => void;
   // background watermark
   wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
   onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo') => void;
@@ -134,6 +137,8 @@ export default function AdminPanel({
   onDeleteSheet,
   onCopyEmbed,
   onClone,
+  insOuts,
+  onRefreshInsOuts,
   wmSource,
   onWmSource,
   wmSponsorName,
@@ -425,6 +430,71 @@ export default function AdminPanel({
       <details className="sw1-section" open={!isNarrow}>
         <summary>Playing list</summary>
         {playingList}
+      </details>
+
+      {/* Ins & Outs vs last week — admin reference only (never on the public graphic) */}
+      <details className="sw1-section" open={!isNarrow}>
+        <summary>Ins &amp; Outs vs last week</summary>
+        {!dbConfigured ? (
+          <p className="sw1-admin__hint">
+            Connect the SportsWeb One database to compare rounds — this reads the previous
+            saved round for this grade and shows who's changed.
+          </p>
+        ) : !insOuts ? (
+          <div className="sw1-inouts">
+            <p className="sw1-admin__hint">
+              Save at least two rounds for this grade and the changes since the previous
+              round will show here.
+            </p>
+            {onRefreshInsOuts && (
+              <button type="button" className="sw1-btn" onClick={onRefreshInsOuts}>
+                Check for last round
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="sw1-inouts">
+            <p className="sw1-inouts__vs">
+              Compared with {insOuts.round ? <strong>{insOuts.round}</strong> : 'the previous round'}.
+              Field + bench, excluding Unavailable.
+            </p>
+            <div className="sw1-inouts__cols">
+              <div className="sw1-inouts__col">
+                <span className="sw1-inouts__head sw1-inouts__head--in">
+                  In <span className="sw1-inouts__count">{insOuts.ins.length}</span>
+                </span>
+                {insOuts.ins.length === 0 ? (
+                  <span className="sw1-inouts__empty">No changes in</span>
+                ) : (
+                  insOuts.ins.map((p, i) => (
+                    <span key={`in-${i}`} className="sw1-inouts__chip sw1-inouts__chip--in">
+                      {p.number && <b>{p.number}</b>} {p.name}
+                    </span>
+                  ))
+                )}
+              </div>
+              <div className="sw1-inouts__col">
+                <span className="sw1-inouts__head sw1-inouts__head--out">
+                  Out <span className="sw1-inouts__count">{insOuts.outs.length}</span>
+                </span>
+                {insOuts.outs.length === 0 ? (
+                  <span className="sw1-inouts__empty">No changes out</span>
+                ) : (
+                  insOuts.outs.map((p, i) => (
+                    <span key={`out-${i}`} className="sw1-inouts__chip sw1-inouts__chip--out">
+                      {p.number && <b>{p.number}</b>} {p.name}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            {onRefreshInsOuts && (
+              <button type="button" className="sw1-btn sw1-inouts__refresh" onClick={onRefreshInsOuts}>
+                Refresh
+              </button>
+            )}
+          </div>
+        )}
       </details>
 
       {/* Team list */}

@@ -504,3 +504,77 @@ export async function deleteTeamSheet(fixtureId: string): Promise<void> {
   const { error } = await supabase.from('fixtures').delete().eq('id', fixtureId);
   if (error) throw error;
 }
+
+/** A player named in a saved round, for "Ins & Outs" comparison. */
+export interface PrevSelection {
+  number: string;
+  name: string;
+}
+export interface PrevLineup {
+  fixtureId: string;
+  round: string | null;
+  players: PrevSelection[];
+}
+
+/**
+ * Find the round BEFORE the one in the editor (same club + grade) and return who
+ * was named in it — field + bench, excluding Unavailable. Used by the admin-only
+ * "Ins & Outs vs last week" panel.
+ *
+ * "Previous" = the fixture created just before the current one (newest-first by
+ * created_at). When building a brand-new/unsaved round, it's simply the most
+ * recent saved round for that grade. Returns null when there's nothing to compare
+ * against yet (no DB, no club, or only one saved round).
+ */
+export async function loadPreviousSelections(
+  clubId: string | null,
+  gradeName: string,
+  currentFixtureId: string | null,
+): Promise<PrevLineup | null> {
+  if (!supabase || !clubId) return null;
+
+  const { data: teamRows } = await supabase
+    .from('teams')
+    .select('id')
+    .eq('club_id', clubId)
+    .eq('name', gradeName || 'Seniors')
+    .limit(1);
+  const teamId = (teamRows as any[])?.[0]?.id;
+  if (!teamId) return null;
+
+  const { data: fixtures } = await supabase
+    .from('fixtures')
+    .select('id, round, created_at')
+    .eq('team_id', teamId)
+    .order('created_at', { ascending: false });
+  const list = (fixtures as any[]) ?? [];
+  if (!list.length) return null;
+
+  let prev: any = null;
+  if (currentFixtureId) {
+    const idx = list.findIndex((f) => f.id === currentFixtureId);
+    prev = idx >= 0 ? list[idx + 1] : list[0]; // the round older than the current one
+  } else {
+    prev = list[0]; // unsaved/new round → compare to the latest saved one
+  }
+  if (!prev) return null;
+
+  const { data: lu } = await supabase.from('lineups').select('id').eq('fixture_id', prev.id).limit(1);
+  const lineupId = (lu as any[])?.[0]?.id;
+  if (!lineupId) return { fixtureId: prev.id, round: prev.round ?? null, players: [] };
+
+  const { data: rows } = await supabase
+    .from('lineup_positions')
+    .select('bench_area, player:players ( number, display_name, first_name, last_name )')
+    .eq('lineup_id', lineupId);
+
+  const players: PrevSelection[] = ((rows as any[]) ?? [])
+    .filter((r) => r.bench_area !== 'unavailable')
+    .map((r) => ({
+      number: r.player?.number ?? '',
+      name: r.player?.display_name ?? `${r.player?.first_name ?? ''} ${r.player?.last_name ?? ''}`.trim(),
+    }))
+    .filter((p) => p.name);
+
+  return { fixtureId: prev.id, round: prev.round ?? null, players };
+}

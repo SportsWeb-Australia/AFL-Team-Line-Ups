@@ -27,9 +27,12 @@ import {
   listSavedSheets,
   saveTeamSheet,
   deleteTeamSheet,
+  loadPreviousSelections,
   EMPTY_REFS,
   type DbRefs,
   type SavedSheet,
+  type PrevLineup,
+  type PrevSelection,
 } from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
 import '../styles/teamsheet.css';
@@ -279,6 +282,21 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
   const [copyMsg, setCopyMsg] = useState('');
+  // "Ins & Outs vs last week" — a snapshot of the previous round's named side.
+  // The live diff against the current selections is computed in a useMemo below.
+  const [prevWeek, setPrevWeek] = useState<PrevLineup | null>(null);
+
+  function refreshPrevWeek(clubId: string | null, grade: string, fixtureId: string | null) {
+    if (!clubId) {
+      setPrevWeek(null);
+      return;
+    }
+    loadPreviousSelections(clubId, grade, fixtureId)
+      .then(setPrevWeek)
+      .catch(() => {
+        /* best-effort; comparison panel simply stays empty */
+      });
+  }
 
   function refreshSavedSheets(clubId: string | null) {
     if (!clubId) {
@@ -330,6 +348,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       applyData(res.data);
       setDbRefs(res.refs);
       refreshSavedSheets(res.refs.clubId);
+      refreshPrevWeek(res.refs.clubId, res.data.match.grade, res.refs.fixtureId);
       setDbState('ok');
       setDbMsg(`Loaded ${res.data.club.name} vs ${res.data.match.opponent} from the database.`);
     } catch (err: any) {
@@ -353,6 +372,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       applyData(res.data);
       setDbRefs(res.refs);
       refreshSavedSheets(res.refs.clubId);
+      refreshPrevWeek(res.refs.clubId, res.data.match.grade, res.refs.fixtureId);
       setDbState('ok');
       setDbMsg(`Loaded ${res.data.match.round || 'team'} · ${res.data.match.grade}.`);
     } catch (err: any) {
@@ -505,6 +525,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       setDbState('ok');
       setDbMsg('Saved to the SportsWeb One database.');
       refreshSavedSheets(refs.clubId);
+      refreshPrevWeek(refs.clubId, match.grade, refs.fixtureId);
     } catch (err: any) {
       console.error('Database save failed', err);
       setDbState('error');
@@ -606,6 +627,38 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     unavailable.forEach((id) => m.set(id, 'Unavail'));
     return m;
   }, [positions, followers, interchange, emergencies, unavailable]);
+
+  /**
+   * Ins & Outs vs last week (admin reference). Compares the side named THIS round
+   * (field + bench, excluding Unavailable) against the previous saved round's
+   * named side, matching on guernsey number when present and on name otherwise.
+   * Recomputes live as you change the selections. Null until there's a prior
+   * round to compare against.
+   */
+  const insOuts = useMemo(() => {
+    if (!prevWeek) return null;
+    const byId = new Map(players.map((p) => [p.id, p]));
+    const thisSide: PrevLineup['players'] = [
+      ...(Object.values(positions).filter(Boolean) as string[]),
+      ...followers,
+      ...interchange,
+      ...emergencies,
+    ]
+      .map((id) => byId.get(id))
+      .filter((p): p is NonNullable<typeof p> => !!p)
+      .map((p) => ({ number: p.number, name: p.name }));
+
+    const keyOf = (number: string, name: string) =>
+      number && number.trim() ? `#${number.trim()}` : name.trim().toLowerCase();
+    const thisKeys = new Map(thisSide.map((p) => [keyOf(p.number, p.name), p]));
+    const prevKeys = new Map(prevWeek.players.map((p) => [keyOf(p.number, p.name), p]));
+
+    const ins = [...thisKeys].filter(([k]) => !prevKeys.has(k)).map(([, p]) => p);
+    const outs = [...prevKeys].filter(([k]) => !thisKeys.has(k)).map(([, p]) => p);
+    const byNo = (a: PrevSelection, b: PrevSelection) =>
+      (parseInt(a.number, 10) || 999) - (parseInt(b.number, 10) || 999);
+    return { round: prevWeek.round, ins: ins.sort(byNo), outs: outs.sort(byNo) };
+  }, [prevWeek, players, positions, followers, interchange, emergencies]);
 
   // Club colours flow into the stylesheet as custom properties.
   const themeVars = {
@@ -790,6 +843,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onDeleteSheet={deleteSheet}
             onCopyEmbed={copyEmbedCode}
             onClone={cloneToNewRound}
+            insOuts={insOuts}
+            onRefreshInsOuts={() => refreshPrevWeek(dbRefs.clubId, match.grade, dbRefs.fixtureId)}
             wmSource={wmSource}
             onWmSource={setWmSource}
             wmSponsorName={wmSponsorName}
