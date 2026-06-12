@@ -115,18 +115,23 @@ export default function PlayerPlate({ player, visualMode, compact = false, showS
         </span>
       )}
 
+      {/* Role badges sit as small tags across the top corner so long names keep their width */}
+      {roles.length > 0 && (
+        <div className="sw1-plate__badges">
+          {roles.map((r) => {
+            const b = ROLE_BADGE[r]!;
+            return (
+              <span key={r} className={`sw1-plate__badge ${b.cls}`} title={b.title}>
+                {b.short}
+              </span>
+            );
+          })}
+        </div>
+      )}
+
       <div className="sw1-plate__row">
         <span className="sw1-plate__no">{player.number || "\u2013"}</span>
         <span className="sw1-plate__name">{player.name}</span>
-
-        {roles.map((r) => {
-          const b = ROLE_BADGE[r]!;
-          return (
-            <span key={r} className={`sw1-plate__badge ${b.cls}`} title={b.title}>
-              {b.short}
-            </span>
-          );
-        })}
 
         {/* On-field / bench: small icon chip inline */}
         {health && !showStatusLabel && (

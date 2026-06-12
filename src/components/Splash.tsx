@@ -10,8 +10,8 @@ export default function Splash() {
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setHide(true), 1500);
-    const t2 = setTimeout(() => setGone(true), 2050);
+    const t1 = setTimeout(() => setHide(true), 2500);
+    const t2 = setTimeout(() => setGone(true), 3050);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);

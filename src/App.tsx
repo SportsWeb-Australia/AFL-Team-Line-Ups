@@ -70,7 +70,7 @@ export default function App() {
               color: mode === 'admin' ? '#0f172a' : '#fff',
             }}
           >
-            {mode === 'admin' ? 'Preview public embed →' : '← Back to editor'}
+            {mode === 'admin' ? 'Preview public view live →' : '← Back to editor'}
           </button>
         </div>
       )}

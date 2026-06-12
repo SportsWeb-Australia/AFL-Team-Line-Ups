@@ -240,6 +240,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setSelectedPlayerId(null);
   }
 
+  /** Quick-place from the squad list dropdown: a field position or a bench group. */
+  function quickPlace(id: string, target: PositionKey | 'interchange' | 'emergencies' | 'followers') {
+    if (target === 'interchange' || target === 'emergencies' || target === 'followers') {
+      assignToArea(target, id);
+    } else {
+      placeIntoSlot(target, id);
+    }
+  }
+
   function loadBlank() {
     if (
       lineupFilledCount() > 0 &&
@@ -840,6 +849,18 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   return (
     <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
       {admin && (
+        <a
+          className="sw1-swhead"
+          href="https://sportsweb.com.au"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="SportsWeb One"
+        >
+          <span className="sw1-swhead__word"><b>SPORTSWEB</b> ONE</span>
+          <span className="sw1-swhead__tag">One platform. Every club function.</span>
+        </a>
+      )}
+      {admin && (
         <div className="sw1-toolbar">
           <button className="sw1-btn" onClick={() => window.print()}>
             Print
@@ -850,6 +871,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <button className="sw1-btn" onClick={shareTeam}>
             Share
           </button>
+          {isSupabaseConfigured && (
+            <button
+              className="sw1-btn sw1-btn--primary"
+              onClick={saveToDatabase}
+              disabled={dbState === 'saving' || dbState === 'loading'}
+            >
+              {dbState === 'saving' ? 'Saving…' : 'Save team'}
+            </button>
+          )}
           <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
             {downloading ? 'Preparing…' : 'Download graphic'}
           </button>
@@ -862,7 +892,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <AdminPanel
             players={players}
             squadLocation={playerLocation}
-            isNarrow={isNarrow}
+            fieldSlots={slots}
+            positions={positions}
+            onQuickPlace={quickPlace}
             visualMode={visualMode}
             selectedPlayerId={selectedPlayerId}
             onVisualMode={setVisualMode}
@@ -890,7 +922,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             dbState={dbState}
             dbMsg={dbMsg}
             onLoadFromDb={loadFromDatabase}
-            onSaveToDb={saveToDatabase}
             onNewTeam={startNewTeam}
             savedSheets={savedSheets}
             currentFixtureId={dbRefs.fixtureId}
