@@ -216,14 +216,16 @@ export interface SavedSheet {
 }
 
 /**
- * Lists every saved team sheet for the recall picker, newest first. Each row is
- * one fixture (a round/date under a grade). Read-only — safe without write access.
+ * Lists saved team sheets for ONE club (the recall picker), newest first. Each
+ * row is one fixture (a round/date under a grade). Scoped by club so clubs never
+ * see each other's teams — the first cut of multi-tenant isolation. Read-only.
  */
-export async function listSavedSheets(): Promise<SavedSheet[]> {
-  if (!supabase) return [];
+export async function listSavedSheets(clubId: string | null): Promise<SavedSheet[]> {
+  if (!supabase || !clubId) return [];
   const { data, error } = await supabase
     .from('fixtures')
-    .select('id, round, match_date_text, opponent_name, created_at, team:teams ( name )')
+    .select('id, round, match_date_text, opponent_name, created_at, team:teams!inner ( name, club_id )')
+    .eq('team.club_id', clubId)
     .order('created_at', { ascending: false });
   if (error) return [];
   return ((data as any[]) ?? []).map((f) => ({

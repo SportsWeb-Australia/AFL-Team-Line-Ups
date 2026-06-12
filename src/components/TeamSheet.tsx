@@ -271,8 +271,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
 
-  function refreshSavedSheets() {
-    listSavedSheets()
+  function refreshSavedSheets(clubId: string | null) {
+    if (!clubId) {
+      setSavedSheets([]);
+      return;
+    }
+    listSavedSheets(clubId)
       .then(setSavedSheets)
       .catch(() => {
         /* best-effort; recall list stays as-is */
@@ -316,6 +320,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       applyData(res.data);
       setDbRefs(res.refs);
+      refreshSavedSheets(res.refs.clubId);
       setDbState('ok');
       setDbMsg(`Loaded ${res.data.club.name} vs ${res.data.match.opponent} from the database.`);
     } catch (err: any) {
@@ -338,6 +343,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       const res = await loadTeamSheet(fixtureId);
       applyData(res.data);
       setDbRefs(res.refs);
+      refreshSavedSheets(res.refs.clubId);
       setDbState('ok');
       setDbMsg(`Loaded ${res.data.match.round || 'team'} · ${res.data.match.grade}.`);
     } catch (err: any) {
@@ -361,8 +367,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   // Embeds / deep links pull the published sheet from the DB on first paint.
   useEffect(() => {
     if (autoLoad) loadFromDatabase();
-    // Populate the recall picker for the editor.
-    if (admin && isSupabaseConfigured) refreshSavedSheets();
+    // The recall picker is populated by loadFromDatabase once the club is known.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -384,7 +389,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       setDbState('ok');
       setDbMsg('Saved to the SportsWeb One database.');
-      refreshSavedSheets();
+      refreshSavedSheets(refs.clubId);
     } catch (err: any) {
       console.error('Database save failed', err);
       setDbState('error');
