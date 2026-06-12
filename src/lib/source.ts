@@ -206,6 +206,35 @@ export async function loadLatestTeamSheet(): Promise<LoadedSheet | null> {
   return loadTeamSheet((data[0] as any).id);
 }
 
+/** A saved team in the recall list (one per fixture = round/date/grade). */
+export interface SavedSheet {
+  fixtureId: string;
+  round: string | null;
+  dateText: string | null;
+  grade: string | null;
+  opponent: string | null;
+}
+
+/**
+ * Lists every saved team sheet for the recall picker, newest first. Each row is
+ * one fixture (a round/date under a grade). Read-only — safe without write access.
+ */
+export async function listSavedSheets(): Promise<SavedSheet[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('fixtures')
+    .select('id, round, match_date_text, opponent_name, created_at, team:teams ( name )')
+    .order('created_at', { ascending: false });
+  if (error) return [];
+  return ((data as any[]) ?? []).map((f) => ({
+    fixtureId: f.id as string,
+    round: f.round ?? null,
+    dateText: f.match_date_text ?? null,
+    grade: f.team?.name ?? null,
+    opponent: f.opponent_name ?? null,
+  }));
+}
+
 /**
  * Saves the current sheet back to the database. Updates the rows in `refs` when
  * present, otherwise creates fresh ones. Returns the (possibly new) refs.
@@ -234,19 +263,31 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
   if (e1) throw e1;
   const clubId = (club as any).id as string;
 
-  // 2. team -------------------------------------------------------------------
-  const { data: team, error: e2 } = await supabase
-    .from('teams')
-    .upsert({
-      ...(refs.teamId ? { id: refs.teamId } : {}),
-      club_id: clubId,
-      name: d.match.grade || 'Seniors',
-      competition: d.match.competition ?? null,
-    })
-    .select('id')
-    .single();
-  if (e2) throw e2;
-  const teamId = (team as any).id as string;
+  // 2. team (find-or-create by club + grade name; the grade IS the identity, so
+  //    switching grade targets a different team rather than renaming this one) --
+  const gradeName = d.match.grade || 'Seniors';
+  let teamId: string;
+  {
+    const { data: existing, error: te } = await supabase
+      .from('teams')
+      .select('id')
+      .eq('club_id', clubId)
+      .eq('name', gradeName)
+      .limit(1);
+    if (te) throw te;
+    if (existing && existing.length) {
+      teamId = (existing[0] as any).id;
+      await supabase.from('teams').update({ competition: d.match.competition ?? null }).eq('id', teamId);
+    } else {
+      const { data: t, error: e2 } = await supabase
+        .from('teams')
+        .insert({ club_id: clubId, name: gradeName, competition: d.match.competition ?? null })
+        .select('id')
+        .single();
+      if (e2) throw e2;
+      teamId = (t as any).id;
+    }
+  }
 
   // 3. venue (find by name, else create) --------------------------------------
   let venueId: string | null = null;
@@ -266,37 +307,63 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
     }
   }
 
-  // 4. fixture ----------------------------------------------------------------
-  const { data: fixture, error: e4 } = await supabase
-    .from('fixtures')
-    .upsert({
-      ...(refs.fixtureId ? { id: refs.fixtureId } : {}),
-      team_id: teamId,
-      round: d.match.round ?? null,
-      match_date_text: d.match.date ?? null,
-      match_time: d.match.time ?? null,
-      venue_id: venueId,
-      opponent_name: d.match.opponent ?? null,
-      opponent_logo_url: d.match.opponentLogoUrl ?? null,
-      opponent_club_id: null,
-    })
-    .select('id')
-    .single();
-  if (e4) throw e4;
-  const fixtureId = (fixture as any).id as string;
+  // 4. fixture (find-or-create by team + round + date → one saved team each) ---
+  const roundVal = d.match.round?.trim() ? d.match.round.trim() : null;
+  const dateVal = d.match.date?.trim() ? d.match.date.trim() : null;
+  const fixtureFields = {
+    team_id: teamId,
+    round: roundVal,
+    match_date_text: dateVal,
+    match_time: d.match.time ?? null,
+    venue_id: venueId,
+    opponent_name: d.match.opponent ?? null,
+    opponent_logo_url: d.match.opponentLogoUrl ?? null,
+    opponent_club_id: null,
+  };
+  let fixtureId: string;
+  {
+    let q = supabase.from('fixtures').select('id').eq('team_id', teamId);
+    q = roundVal === null ? q.is('round', null) : q.eq('round', roundVal);
+    q = dateVal === null ? q.is('match_date_text', null) : q.eq('match_date_text', dateVal);
+    const { data: existing, error: fe } = await q.limit(1);
+    if (fe) throw fe;
+    if (existing && existing.length) {
+      fixtureId = (existing[0] as any).id;
+      const { error: ue } = await supabase.from('fixtures').update(fixtureFields).eq('id', fixtureId);
+      if (ue) throw ue;
+    } else {
+      const { data: fx, error: e4 } = await supabase
+        .from('fixtures')
+        .insert(fixtureFields)
+        .select('id')
+        .single();
+      if (e4) throw e4;
+      fixtureId = (fx as any).id;
+    }
+  }
 
-  // 5. lineup -----------------------------------------------------------------
-  const { data: lineup, error: e5 } = await supabase
-    .from('lineups')
-    .upsert({
-      ...(refs.lineupId ? { id: refs.lineupId } : {}),
-      fixture_id: fixtureId,
-      published: true,
-    })
-    .select('id')
-    .single();
-  if (e5) throw e5;
-  const lineupId = (lineup as any).id as string;
+  // 5. lineup (one per fixture) -----------------------------------------------
+  let lineupId: string;
+  {
+    const { data: existing, error: le } = await supabase
+      .from('lineups')
+      .select('id')
+      .eq('fixture_id', fixtureId)
+      .limit(1);
+    if (le) throw le;
+    if (existing && existing.length) {
+      lineupId = (existing[0] as any).id;
+      await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
+    } else {
+      const { data: ln, error: e5 } = await supabase
+        .from('lineups')
+        .insert({ fixture_id: fixtureId, published: true })
+        .select('id')
+        .single();
+      if (e5) throw e5;
+      lineupId = (ln as any).id;
+    }
+  }
 
   // 6. players -> map app id -> db id -----------------------------------------
   // [FUTURE — SW1] Once add-source-type.sql is run, include

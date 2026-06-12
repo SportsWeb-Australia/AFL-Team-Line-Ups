@@ -21,7 +21,15 @@ import AdminPanel from './AdminPanel';
 
 /** Availability reasons (as opposed to role badges like captain/debut). */
 const AVAIL_STATUSES: PlayerStatus[] = ['injured', 'concussion', 'personal', 'suspended'];
-import { loadLatestTeamSheet, saveTeamSheet, EMPTY_REFS, type DbRefs } from '../lib/source';
+import {
+  loadLatestTeamSheet,
+  loadTeamSheet,
+  listSavedSheets,
+  saveTeamSheet,
+  EMPTY_REFS,
+  type DbRefs,
+  type SavedSheet,
+} from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
 import '../styles/teamsheet.css';
 
@@ -37,6 +45,23 @@ export interface TeamSheetProps {
 
 let nextId = 1000;
 const uid = () => `p${nextId++}`;
+
+/**
+ * Pick black or white text for a given fill colour, by WCAG relative luminance.
+ * Keeps labels readable on any club primary — including dark inks on dark fills.
+ */
+function readableOn(hex?: string | null): string {
+  if (!hex) return '#ffffff';
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) return '#ffffff';
+  const ch = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  const L = 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
+  return L > 0.45 ? '#0b1220' : '#ffffff';
+}
 
 /** Level lines on desktop/tablet, staggered on phones. */
 function useIsNarrow(bp = 760) {
@@ -174,6 +199,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function placeIntoSlot(slot: PositionKey, id: string) {
     if (!confirmLeaveUnavailable(id)) return;
     const from = locate(id);
+    // Duplicate barrier: if this player is already on the ground elsewhere, make
+    // sure the user means to move them (rather than thinking they're adding anew).
+    if (from.kind === 'field' && from.slot !== slot) {
+      const nm = players.find((p) => p.id === id)?.name ?? 'That player';
+      if (!window.confirm(`${nm} is already on the ground. Move them to this position?`)) return;
+    }
     setPositions((prev) => {
       const next = { ...prev };
       const occupant = next[slot] ?? null;
@@ -199,6 +230,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   function loadBlank() {
+    if (
+      lineupFilledCount() > 0 &&
+      !window.confirm('Clear all on-field and bench selections? Your squad list stays intact.')
+    )
+      return;
     setPositions({});
     setFollowers([]);
     setInterchange([]);
@@ -206,7 +242,22 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setUnavailable([]);
   }
 
+  function lineupFilledCount() {
+    return (
+      Object.values(positions).filter(Boolean).length +
+      followers.length +
+      interchange.length +
+      emergencies.length +
+      unavailable.length
+    );
+  }
+
   function loadDemo() {
+    if (
+      lineupFilledCount() > 0 &&
+      !window.confirm('Load the saved demo line-up? This replaces your current on-field and bench selections.')
+    )
+      return;
     setPositions(data.lineup.positions);
     setFollowers(data.lineup.followers);
     setInterchange(data.lineup.interchange);
@@ -218,6 +269,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [dbState, setDbState] = useState<'idle' | 'loading' | 'saving' | 'ok' | 'error'>('idle');
   const [dbMsg, setDbMsg] = useState('');
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
+  const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
+
+  function refreshSavedSheets() {
+    listSavedSheets()
+      .then(setSavedSheets)
+      .catch(() => {
+        /* best-effort; recall list stays as-is */
+      });
+  }
 
   function applyData(d: TeamSheetData) {
     setPlayers(d.players);
@@ -247,7 +307,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setDbState('loading');
     setDbMsg('');
     try {
-      const res = await loadLatestTeamSheet();
+      const fixtureParam = new URLSearchParams(window.location.search).get('fixture');
+      const res = fixtureParam ? await loadTeamSheet(fixtureParam) : await loadLatestTeamSheet();
       if (!res) {
         setDbState('error');
         setDbMsg('Connected, but no fixtures found yet. Run seed.sql or save one.');
@@ -264,9 +325,44 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     }
   }
 
+  // Recall a specific saved team (round/date) from the picker.
+  async function loadSheet(fixtureId: string) {
+    if (
+      lineupFilledCount() > 0 &&
+      !window.confirm('Load this saved team? It replaces your current on-field and bench selections.')
+    )
+      return;
+    setDbState('loading');
+    setDbMsg('');
+    try {
+      const res = await loadTeamSheet(fixtureId);
+      applyData(res.data);
+      setDbRefs(res.refs);
+      setDbState('ok');
+      setDbMsg(`Loaded ${res.data.match.round || 'team'} · ${res.data.match.grade}.`);
+    } catch (err: any) {
+      console.error('Database load failed', err);
+      setDbState('error');
+      setDbMsg(err?.message ?? 'Could not load that team.');
+    }
+  }
+
+  // Copy the chrome-free embed URL for the currently loaded/saved team.
+  function copyEmbedLink() {
+    const id = dbRefs.fixtureId;
+    if (!id) return;
+    const url = `${window.location.origin}/?embed=1&fixture=${id}`;
+    navigator.clipboard?.writeText(url).then(
+      () => setDbMsg('Embed link copied to your clipboard.'),
+      () => setDbMsg(url),
+    );
+  }
+
   // Embeds / deep links pull the published sheet from the DB on first paint.
   useEffect(() => {
     if (autoLoad) loadFromDatabase();
+    // Populate the recall picker for the editor.
+    if (admin && isSupabaseConfigured) refreshSavedSheets();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -288,6 +384,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       setDbState('ok');
       setDbMsg('Saved to the SportsWeb One database.');
+      refreshSavedSheets();
     } catch (err: any) {
       console.error('Database save failed', err);
       setDbState('error');
@@ -364,6 +461,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     '--club-primary': club.primaryColor,
     '--club-secondary': club.secondaryColor,
     '--club-ink': club.inkColor ?? '#ffffff',
+    // Guaranteed-readable text colour for anything filled with --club-primary
+    // (buttons, number tabs, follower pills). Derived from the fill's luminance
+    // so it works even when a club's ink colour matches its primary (e.g. navy).
+    '--club-on-primary': readableOn(club.primaryColor),
   } as React.CSSProperties;
 
   const fieldName = club.shortName ?? club.name;
@@ -395,7 +496,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     );
   };
 
-  const updateClub = (patch: Partial<typeof club>) => setClub((c) => ({ ...c, ...patch }));
+  const updateClub = (patch: Partial<typeof club>) =>
+    setClub((c) => {
+      const next = { ...c, ...patch };
+      // Renaming the club shouldn't leave a stale short name (e.g. the demo's
+      // "HAWKS") driving the watermark — let it follow the new name.
+      if (patch.name !== undefined && patch.shortName === undefined) next.shortName = undefined;
+      return next;
+    });
   const updateMatch = (patch: Partial<typeof match>) => setMatch((m) => ({ ...m, ...patch }));
 
   type LogoTarget = 'home' | 'away';
@@ -493,6 +601,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <AdminPanel
             players={players}
             squadLocation={playerLocation}
+            isNarrow={isNarrow}
             visualMode={visualMode}
             selectedPlayerId={selectedPlayerId}
             onVisualMode={setVisualMode}
@@ -520,6 +629,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             dbMsg={dbMsg}
             onLoadFromDb={loadFromDatabase}
             onSaveToDb={saveToDatabase}
+            savedSheets={savedSheets}
+            currentFixtureId={dbRefs.fixtureId}
+            onLoadSheet={loadSheet}
+            onCopyEmbed={copyEmbedLink}
             wmSource={wmSource}
             onWmSource={setWmSource}
             wmSponsorName={wmSponsorName}

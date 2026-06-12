@@ -97,9 +97,11 @@ export default function SquadList({
             >
               <span className="sw1-squad__no">{p.number || "\u2013"}</span>
               <span className="sw1-squad__name">{p.name}</span>
-              <span className={`sw1-squad__loc ${onField ? 'is-on' : ''} ${loc === 'Unavail' ? 'is-out' : ''}`}>
-                {loc ?? 'Available'}
-              </span>
+              {loc && (
+                <span className={`sw1-squad__loc ${onField ? 'is-on' : ''} ${loc === 'Unavail' ? 'is-out' : ''}`}>
+                  {loc}
+                </span>
+              )}
             </button>
 
             <div className="sw1-squad__controls">

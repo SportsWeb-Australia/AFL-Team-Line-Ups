@@ -1,14 +1,32 @@
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, Player, PlayerStatus, Sponsor, VisualMode } from '../types';
+import type { SavedSheet } from '../lib/source';
 import SquadList from './SquadList';
 import sportswebLogo from '../assets/sportsweb-logo.svg';
 
 type LogoTarget = 'home' | 'away';
 
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/** "2026-07-20" → "20 Jul"; leaves free-text dates untouched. */
+function shortDate(text: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(text.trim());
+  if (!m) return text;
+  return `${parseInt(m[3], 10)} ${MONTHS[parseInt(m[2], 10) - 1] ?? m[2]}`;
+}
+
+/** "Round 7 · 20 Jul · Seniors vs Hillcrest" */
+function savedSheetLabel(s: SavedSheet): string {
+  const head = [s.round, s.dateText ? shortDate(s.dateText) : null].filter(Boolean).join(' · ');
+  const tail = [s.grade, s.opponent ? `vs ${s.opponent}` : null].filter(Boolean).join(' ');
+  return [head, tail].filter(Boolean).join(' · ') || 'Untitled team';
+}
+
 interface Props {
   players: Player[];
   squadLocation: Map<string, string>;
+  isNarrow?: boolean;
   visualMode: VisualMode;
   selectedPlayerId: string | null;
   onVisualMode: (m: VisualMode) => void;
@@ -38,6 +56,10 @@ interface Props {
   dbMsg: string;
   onLoadFromDb: () => void;
   onSaveToDb: () => void;
+  savedSheets?: SavedSheet[];
+  currentFixtureId?: string | null;
+  onLoadSheet?: (fixtureId: string) => void;
+  onCopyEmbed?: () => void;
   // background watermark
   wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
   onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo') => void;
@@ -61,6 +83,7 @@ function readAsDataUrl(file: File): Promise<string> {
 export default function AdminPanel({
   players,
   squadLocation,
+  isNarrow,
   visualMode,
   selectedPlayerId,
   onVisualMode,
@@ -88,6 +111,10 @@ export default function AdminPanel({
   dbMsg,
   onLoadFromDb,
   onSaveToDb,
+  savedSheets = [],
+  currentFixtureId,
+  onLoadSheet,
+  onCopyEmbed,
   wmSource,
   onWmSource,
   wmSponsorName,
@@ -189,16 +216,42 @@ export default function AdminPanel({
           </p>
         )}
         {dbConfigured && dbMsg && <p className="sw1-db__msg">{dbMsg}</p>}
+
+        {dbConfigured && savedSheets.length > 0 && (
+          <div className="sw1-db__saved">
+            <label className="sw1-db__savedlabel">
+              Saved teams
+              <select
+                className="sw1-db__select"
+                value={currentFixtureId ?? ''}
+                onChange={(e) => e.target.value && onLoadSheet?.(e.target.value)}
+              >
+                <option value="">Choose a saved team to load…</option>
+                {savedSheets.map((s) => (
+                  <option key={s.fixtureId} value={s.fixtureId}>
+                    {savedSheetLabel(s)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {currentFixtureId && onCopyEmbed && (
+              <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyEmbed}>
+                Copy embed link for this team
+              </button>
+            )}
+          </div>
+        )}
+
         {dbConfigured && (
           <p className="sw1-db__hint">
-            Load pulls the latest fixture. Save writes the whole sheet back (needs the one-time
-            enable-writes.sql).
+            Each round/date saves as its own team. Save writes the whole sheet back
+            (needs the one-time enable-writes.sql); pick a saved team above to reload it.
           </p>
         )}
       </div>
 
       {/* Match & branding */}
-      <details className="sw1-brand sw1-section" open>
+      <details className="sw1-brand sw1-section" open={!isNarrow}>
         <summary>Match &amp; branding</summary>
 
         <div className="sw1-brand__grid">
@@ -315,7 +368,7 @@ export default function AdminPanel({
       </details>
 
       {/* Playing list — read-only summary of the on-field selections */}
-      <details className="sw1-section" open>
+      <details className="sw1-section" open={!isNarrow}>
         <summary>Playing list</summary>
         {playingList}
       </details>

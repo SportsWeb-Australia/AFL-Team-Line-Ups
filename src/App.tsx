@@ -1,6 +1,7 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TeamSheet from './components/TeamSheet';
 import Splash from './components/Splash';
+import InstallPrompt from './components/InstallPrompt';
 import { sampleTeam } from './data/sampleTeam';
 import type { RenderMode } from './types';
 
@@ -25,6 +26,24 @@ const autoLoad = isEmbed || isAdminSession || params.has('fixture') || params.ha
 export default function App() {
   // The editor previews public via state so selections persist across the switch.
   const [mode, setMode] = useState<RenderMode>(isAdminSession ? 'admin' : 'public');
+
+  // Embed auto-height: report our content height to the host page so the iframe
+  // can size itself to fit any device (no fixed height / inner scrollbar).
+  useEffect(() => {
+    if (!isEmbed) return;
+    const post = () => {
+      const h = Math.ceil(document.documentElement.scrollHeight);
+      window.parent?.postMessage({ type: 'sw1-embed-height', height: h }, '*');
+    };
+    post();
+    const ro = new ResizeObserver(post);
+    ro.observe(document.body);
+    window.addEventListener('load', post);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('load', post);
+    };
+  }, []);
 
   return (
     <>
@@ -57,6 +76,7 @@ export default function App() {
       )}
 
       <TeamSheet data={sampleTeam} mode={mode} embed={isEmbed} autoLoad={autoLoad} />
+      {!isEmbed && <InstallPrompt />}
     </>
   );
 }
