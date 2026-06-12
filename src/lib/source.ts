@@ -77,7 +77,7 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
     const { data: rows, error: rowsErr } = await supabase
       .from('lineup_positions')
       .select(
-        `position_key, bench_area, sort_order,
+        `position_key, bench_area, sort_order, status,
          player:players ( id, number, first_name, last_name, display_name,
                           headshot_url, jumper_image_url )`,
       )
@@ -87,6 +87,7 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
 
     for (const r of (rows as any[]) ?? []) {
       const p = r.player;
+      const status = Array.isArray(r.status) && r.status.length ? (r.status as Player['status']) : undefined;
       players.push({
         id: p.id,
         dbId: p.id,
@@ -95,6 +96,7 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
         headshotUrl: p.headshot_url ?? undefined,
         jumperImageUrl: p.jumper_image_url ?? undefined,
         sourceType: 'standalone',
+        status,
       });
       if (r.position_key) positions[r.position_key as PositionKey] = p.id;
       else if (r.bench_area) bench[r.bench_area].push(p.id);
@@ -440,15 +442,26 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
 
   // 7. lineup_positions (wipe + reinsert) -------------------------------------
   await supabase.from('lineup_positions').delete().eq('lineup_id', lineupId);
+  // Role badges (captain/VC/debut/milestone) and availability tags (injured/etc.)
+  // live on the player but belong to THIS line-up — a captain one week may not be
+  // the next — so they're stored per selection row, keyed by app player id.
+  const statusByApp = new Map<string, string[]>();
+  for (const p of d.players) {
+    if (p.status && p.status.length) statusByApp.set(p.id, p.status as string[]);
+  }
+  const statusFor = (appId: string) => {
+    const s = statusByApp.get(appId);
+    return s && s.length ? s : null;
+  };
   const posRows: Record<string, unknown>[] = [];
   for (const [pos, appId] of Object.entries(d.lineup.positions)) {
     const dbId = appId ? idMap.get(appId) : undefined;
-    if (dbId) posRows.push({ lineup_id: lineupId, player_id: dbId, position_key: pos });
+    if (dbId) posRows.push({ lineup_id: lineupId, player_id: dbId, position_key: pos, status: statusFor(appId!) });
   }
   (['followers', 'interchange', 'emergencies', 'unavailable'] as BenchArea[]).forEach((area) => {
     d.lineup[area].forEach((appId, i) => {
       const dbId = idMap.get(appId);
-      if (dbId) posRows.push({ lineup_id: lineupId, player_id: dbId, bench_area: area, sort_order: i });
+      if (dbId) posRows.push({ lineup_id: lineupId, player_id: dbId, bench_area: area, sort_order: i, status: statusFor(appId) });
     });
   });
   if (posRows.length) {
@@ -476,4 +489,18 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
   }
 
   return { refs: { clubId, teamId, fixtureId, lineupId }, playerIds };
+}
+
+/**
+ * Permanently delete one saved team (fixture) and its line-up.
+ *
+ * Fixtures cascade to lineups → lineup_positions, so removing the fixture row
+ * clears the whole saved team. Players, the club and sponsors are shared club
+ * assets and are deliberately left untouched, so deleting Round 7 never wipes
+ * your squad or your other rounds.
+ */
+export async function deleteTeamSheet(fixtureId: string): Promise<void> {
+  if (!supabase) throw new Error('Database is not configured.');
+  const { error } = await supabase.from('fixtures').delete().eq('id', fixtureId);
+  if (error) throw error;
 }

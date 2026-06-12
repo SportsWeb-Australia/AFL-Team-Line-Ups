@@ -26,6 +26,7 @@ import {
   loadTeamSheet,
   listSavedSheets,
   saveTeamSheet,
+  deleteTeamSheet,
   EMPTY_REFS,
   type DbRefs,
   type SavedSheet,
@@ -45,6 +46,13 @@ export interface TeamSheetProps {
 
 let nextId = 1000;
 const uid = () => `p${nextId++}`;
+
+/** Increment a trailing number in a round label: "Round 7" → "Round 8". */
+function bumpRound(r: string): string {
+  const m = /(\d+)\s*$/.exec(r);
+  if (!m) return r;
+  return r.slice(0, m.index) + String(parseInt(m[1], 10) + 1);
+}
 
 /**
  * Pick black or white text for a given fill colour, by WCAG relative luminance.
@@ -270,6 +278,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [dbMsg, setDbMsg] = useState('');
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
+  const [copyMsg, setCopyMsg] = useState('');
 
   function refreshSavedSheets(clubId: string | null) {
     if (!clubId) {
@@ -353,15 +362,121 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     }
   }
 
-  // Copy the chrome-free embed URL for the currently loaded/saved team.
-  function copyEmbedLink() {
+  // Copy a ready-to-paste embed snippet for the currently loaded/saved team.
+  // A "Custom HTML" block needs real markup, not a bare URL (a bare URL just
+  // shows as text — which is exactly what was happening). So we hand over a full
+  // <iframe> plus a tiny listener that resizes it to the line-up's height, with
+  // a sensible fallback height in case the host strips the script.
+  function copyEmbedCode() {
     const id = dbRefs.fixtureId;
-    if (!id) return;
-    const url = `${window.location.origin}/?embed=1&fixture=${id}`;
-    navigator.clipboard?.writeText(url).then(
-      () => setDbMsg('Embed link copied to your clipboard.'),
-      () => setDbMsg(url),
+    if (!id) {
+      setDbMsg('Save this team first — then you can copy its embed code.');
+      return;
+    }
+    const src = `${window.location.origin}/?embed=1&fixture=${id}`;
+    const frameId = `sw1-lineup-${id.slice(0, 8)}`;
+    const code =
+      `<iframe id="${frameId}" src="${src}" title="Team line-up" loading="lazy" ` +
+      `scrolling="no" height="900" style="width:100%;border:0;display:block;overflow:hidden"></iframe>\n` +
+      `<script>(function(){var id="${frameId}";window.addEventListener("message",function(e){` +
+      `if(e&&e.data&&e.data.type==="sw1-embed-height"){var f=document.getElementById(id);` +
+      `if(f){f.style.height=e.data.height+"px";}}});})();</script>`;
+    navigator.clipboard?.writeText(code).then(
+      () => setDbMsg('Embed code copied — paste it into a Custom HTML block on your club site.'),
+      () => setDbMsg(code),
     );
+  }
+
+  // Permanently delete a saved team (fixture) after confirming. The squad, club
+  // and your other saved rounds are untouched.
+  async function deleteSheet(fixtureId: string) {
+    const target = savedSheets.find((s) => s.fixtureId === fixtureId);
+    const label = target ? `${target.round ?? 'this team'} · ${target.grade ?? ''}`.trim() : 'this saved team';
+    if (!window.confirm(`Delete ${label}? This removes the saved team and its line-up for good. Your squad and other rounds stay put.`)) {
+      return;
+    }
+    setDbState('saving');
+    setDbMsg('');
+    try {
+      await deleteTeamSheet(fixtureId);
+      setSavedSheets((prev) => prev.filter((s) => s.fixtureId !== fixtureId));
+      // If we just deleted the team that's open, drop the fixture ref so the next
+      // Save creates a fresh record rather than trying to update a deleted row.
+      if (dbRefs.fixtureId === fixtureId) {
+        setDbRefs((cur) => ({ ...cur, fixtureId: null, lineupId: null }));
+      }
+      setDbState('ok');
+      setDbMsg('Saved team deleted.');
+    } catch (err: any) {
+      console.error('Delete failed', err);
+      setDbState('error');
+      setDbMsg(err?.message ?? 'Could not delete that team.');
+    }
+  }
+
+  // Clone the loaded team into a new round: keep players + line-up, but retarget
+  // the fixture so the next Save creates a fresh record instead of overwriting
+  // the source round.
+  function cloneToNewRound() {
+    const next = window.prompt(
+      'Clone this team into a new round. Enter the new round:',
+      bumpRound(match.round || 'Round 1'),
+    );
+    if (next === null) return;
+    const r = next.trim();
+    setMatch((m) => ({ ...m, round: r }));
+    setDbRefs((cur) => ({ ...cur, fixtureId: null, lineupId: null }));
+    setDbState('idle');
+    setDbMsg(`Cloned to ${r || 'a new round'} — update the date/opponent, then Save to create it.`);
+  }
+
+  // Build a shareable plain-text team list grouped by line (for socials/chat).
+  function buildTeamListText(): string {
+    const byId = new Map(players.map((p) => [p.id, p]));
+    const nm = (id?: string) => {
+      const p = id ? byId.get(id) : undefined;
+      if (!p) return null;
+      return p.number?.trim() ? `${p.number} ${p.name}` : p.name;
+    };
+    const groups: [string, PositionKey[]][] = [
+      ['Backs', ['BPL', 'FB', 'BPR']],
+      ['Half-backs', ['HBL', 'CHB', 'HBR']],
+      ['Centre', ['WL', 'C', 'WR']],
+      ['Half-forwards', ['HFL', 'CHF', 'HFR']],
+      ['Forwards', ['FPL', 'FF', 'FPR']],
+    ];
+    const out: string[] = [];
+    const head = [club.name, match.grade, match.round].filter(Boolean).join(' — ');
+    if (head) out.push(head);
+    const sub = [match.opponent ? `vs ${match.opponent}` : null, match.date, match.venue]
+      .filter(Boolean)
+      .join(' · ');
+    if (sub) out.push(sub);
+    out.push('');
+    for (const [label, keys] of groups) {
+      const names = keys.map((k) => nm(positions[k])).filter(Boolean);
+      if (names.length) out.push(`${label}: ${names.join(', ')}`);
+    }
+    const foll = followers.map((id) => nm(id)).filter(Boolean);
+    if (foll.length) out.push(`Followers: ${foll.join(', ')}`);
+    const ic = interchange.map((id) => nm(id)).filter(Boolean);
+    if (ic.length) out.push(`Interchange: ${ic.join(', ')}`);
+    const em = emergencies.map((id) => nm(id)).filter(Boolean);
+    if (em.length) out.push(`Emergencies: ${em.join(', ')}`);
+    return out.join('\n');
+  }
+
+  function copyTeamList() {
+    const text = buildTeamListText();
+    const done = () => {
+      setCopyMsg('Team list copied!');
+      window.setTimeout(() => setCopyMsg(''), 2500);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).then(done, () => window.prompt('Copy your team list:', text));
+    } else {
+      window.prompt('Copy your team list:', text);
+    }
   }
 
   // Embeds / deep links pull the published sheet from the DB on first paint.
@@ -445,6 +560,37 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } else {
       setUnavailable((prev) => prev.filter((x) => x !== id));
     }
+  }
+
+  /**
+   * Toggle a role badge (captain / vice-captain / debut / milestone) on a player.
+   * Captain and vice-captain are one-per-team, so turning one on for a player
+   * strips it from everyone else, and a single player can't hold both at once.
+   * Debut and milestone are free to apply to as many players as needed.
+   * Availability tags (injured/etc.) are left untouched.
+   */
+  function setRole(id: string, role: PlayerStatus, on: boolean) {
+    const isUnique = role === 'captain' || role === 'vice-captain';
+    setPlayers((prev) =>
+      prev.map((p) => {
+        if (p.id === id) {
+          let next = (p.status ?? []).filter((s) => s !== role);
+          if (on) {
+            // C and VC are mutually exclusive on the same player.
+            if (role === 'captain') next = next.filter((s) => s !== 'vice-captain');
+            if (role === 'vice-captain') next = next.filter((s) => s !== 'captain');
+            next = [...next, role];
+          }
+          return { ...p, status: next.length ? next : undefined };
+        }
+        // Hand a unique role to one player → take it off whoever held it before.
+        if (on && isUnique && (p.status ?? []).includes(role)) {
+          const next = (p.status ?? []).filter((s) => s !== role);
+          return { ...p, status: next.length ? next : undefined };
+        }
+        return p;
+      }),
+    );
   }
 
   /** Where each player currently sits, for the squad list chips. */
@@ -594,6 +740,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <button className="sw1-btn" onClick={() => window.print()}>
             Print
           </button>
+          <button className="sw1-btn" onClick={copyTeamList}>
+            {copyMsg || 'Copy team list'}
+          </button>
           <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
             {downloading ? 'Preparing…' : 'Download graphic'}
           </button>
@@ -614,6 +763,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onAddPlayer={addPlayer}
             onImport={importPlayers}
             onSetAvailability={setAvailability}
+            onSetRole={setRole}
             onRemovePlayer={removePlayer}
             onUpdatePlayer={updatePlayer}
             onLoadBlank={loadBlank}
@@ -637,7 +787,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             savedSheets={savedSheets}
             currentFixtureId={dbRefs.fixtureId}
             onLoadSheet={loadSheet}
-            onCopyEmbed={copyEmbedLink}
+            onDeleteSheet={deleteSheet}
+            onCopyEmbed={copyEmbedCode}
+            onClone={cloneToNewRound}
             wmSource={wmSource}
             onWmSource={setWmSource}
             wmSponsorName={wmSponsorName}

@@ -9,6 +9,14 @@ const REASONS: { value: PlayerStatus; label: string }[] = [
 ];
 const REASON_VALUES = REASONS.map((r) => r.value);
 
+/** One-tap honour badges. C/VC are one-per-team; debut/milestone are unlimited. */
+const ROLE_TOGGLES: { value: PlayerStatus; label: string; cls: string; title: string }[] = [
+  { value: 'captain', label: 'C', cls: 'is-captain', title: 'Captain' },
+  { value: 'vice-captain', label: 'VC', cls: 'is-vc', title: 'Vice-captain' },
+  { value: 'debut', label: '★ Debut', cls: 'is-debut', title: 'Debut' },
+  { value: 'milestone', label: '◆ Milestone', cls: 'is-milestone', title: 'Milestone' },
+];
+
 interface Props {
   players: Player[];
   /** playerId → short location label (position key, bench area, etc.). */
@@ -16,6 +24,7 @@ interface Props {
   selectedPlayerId: string | null;
   onSelect: (id: string) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
+  onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
 }
@@ -26,6 +35,7 @@ export default function SquadList({
   selectedPlayerId,
   onSelect,
   onSetAvailability,
+  onSetRole,
   onRemovePlayer,
   onUpdatePlayer,
 }: Props) {
@@ -88,48 +98,68 @@ export default function SquadList({
             key={p.id}
             className={`sw1-squad__row ${selectedPlayerId === p.id ? 'is-selected' : ''}`}
           >
-            <button
-              className="sw1-squad__pick"
-              draggable
-              onDragStart={(e) => e.dataTransfer.setData('text/plain', p.id)}
-              onClick={() => onSelect(p.id)}
-              title="Tap to pick up, then tap a field position or bench group"
-            >
-              <span className="sw1-squad__no">{p.number || "\u2013"}</span>
-              <span className="sw1-squad__name">{p.name}</span>
-              {loc && (
-                <span className={`sw1-squad__loc ${onField ? 'is-on' : ''} ${loc === 'Unavail' ? 'is-out' : ''}`}>
-                  {loc}
-                </span>
-              )}
-            </button>
-
-            <div className="sw1-squad__controls">
-              <select
-                className="sw1-squad__avail"
-                value={reason}
-                onChange={(e) =>
-                  onSetAvailability(p.id, (e.target.value || null) as PlayerStatus | null)
-                }
-                title="Availability"
-              >
-                <option value="">Available</option>
-                {REASONS.map((r) => (
-                  <option key={r.value} value={r.value}>
-                    {r.label}
-                  </option>
-                ))}
-              </select>
-              <button className="sw1-squad__edit" onClick={() => startEdit(p)} title="Edit">
-                ✎
-              </button>
+            <div className="sw1-squad__main">
               <button
-                className="sw1-squad__remove"
-                onClick={() => onRemovePlayer(p.id)}
-                title="Remove from squad"
+                className="sw1-squad__pick"
+                draggable
+                onDragStart={(e) => e.dataTransfer.setData('text/plain', p.id)}
+                onClick={() => onSelect(p.id)}
+                title="Tap to pick up, then tap a field position or bench group"
               >
-                ✕
+                <span className="sw1-squad__no">{p.number || "\u2013"}</span>
+                <span className="sw1-squad__name">{p.name}</span>
+                {loc && (
+                  <span className={`sw1-squad__loc ${onField ? 'is-on' : ''} ${loc === 'Unavail' ? 'is-out' : ''}`}>
+                    {loc}
+                  </span>
+                )}
               </button>
+
+              <div className="sw1-squad__controls">
+                <select
+                  className="sw1-squad__avail"
+                  value={reason}
+                  onChange={(e) =>
+                    onSetAvailability(p.id, (e.target.value || null) as PlayerStatus | null)
+                  }
+                  title="Availability"
+                >
+                  <option value="">Available</option>
+                  {REASONS.map((r) => (
+                    <option key={r.value} value={r.value}>
+                      {r.label}
+                    </option>
+                  ))}
+                </select>
+                <button className="sw1-squad__edit" onClick={() => startEdit(p)} title="Edit">
+                  ✎
+                </button>
+                <button
+                  className="sw1-squad__remove"
+                  onClick={() => onRemovePlayer(p.id)}
+                  title="Remove from squad"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            <div className="sw1-squad__roles">
+              {ROLE_TOGGLES.map((r) => {
+                const on = (p.status ?? []).includes(r.value);
+                return (
+                  <button
+                    key={r.value}
+                    type="button"
+                    className={`sw1-rolechip ${r.cls} ${on ? 'is-on' : ''}`}
+                    aria-pressed={on}
+                    title={`${r.title}${on ? ' — tap to clear' : ''}`}
+                    onClick={() => onSetRole(p.id, r.value, !on)}
+                  >
+                    {r.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
         );

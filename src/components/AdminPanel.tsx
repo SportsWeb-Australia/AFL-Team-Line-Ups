@@ -7,6 +7,19 @@ import sportswebLogo from '../assets/sportsweb-logo.svg';
 
 type LogoTarget = 'home' | 'away';
 
+/** 8:00 AM → 7:45 PM in 15-minute steps, for the kick-off time dropdown. */
+const TIME_OPTIONS: string[] = (() => {
+  const out: string[] = [];
+  for (let h = 8; h <= 19; h++) {
+    for (const m of [0, 15, 30, 45]) {
+      const ap = h < 12 ? 'AM' : 'PM';
+      const hr = h % 12 === 0 ? 12 : h % 12;
+      out.push(`${hr}:${String(m).padStart(2, '0')} ${ap}`);
+    }
+  }
+  return out;
+})();
+
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 /** "2026-07-20" → "20 Jul"; leaves free-text dates untouched. */
@@ -34,6 +47,7 @@ interface Props {
   onAddPlayer: (number: string, name: string) => void;
   onImport: (rows: { number: string; name: string }[]) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
+  onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
   onLoadBlank: () => void;
@@ -59,7 +73,9 @@ interface Props {
   savedSheets?: SavedSheet[];
   currentFixtureId?: string | null;
   onLoadSheet?: (fixtureId: string) => void;
+  onDeleteSheet?: (fixtureId: string) => void;
   onCopyEmbed?: () => void;
+  onClone?: () => void;
   // background watermark
   wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
   onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo') => void;
@@ -91,6 +107,7 @@ export default function AdminPanel({
   onAddPlayer,
   onImport,
   onSetAvailability,
+  onSetRole,
   onRemovePlayer,
   onUpdatePlayer,
   onLoadBlank,
@@ -114,7 +131,9 @@ export default function AdminPanel({
   savedSheets = [],
   currentFixtureId,
   onLoadSheet,
+  onDeleteSheet,
   onCopyEmbed,
+  onClone,
   wmSource,
   onWmSource,
   wmSponsorName,
@@ -212,7 +231,11 @@ export default function AdminPanel({
         </div>
         {!dbConfigured && (
           <p className="sw1-db__msg">
-            Not connected. Add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env, then restart.
+            Not connected yet. Saving teams, reloading them next week and the embed
+            codes all run off the SportsWeb One database — so this is the bit to turn
+            on first. It's a 5-minute one-off: see <strong>CONNECT-DATABASE.md</strong>{' '}
+            in the project (add two keys to Vercel, run two SQL files). Until then the
+            widget runs on the built-in demo only.
           </p>
         )}
         {dbConfigured && dbMsg && <p className="sw1-db__msg">{dbMsg}</p>}
@@ -234,10 +257,28 @@ export default function AdminPanel({
                 ))}
               </select>
             </label>
-            {currentFixtureId && onCopyEmbed && (
-              <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyEmbed}>
-                Copy embed link for this team
-              </button>
+            {currentFixtureId && (
+              <div className="sw1-db__savedactions">
+                {onClone && (
+                  <button type="button" className="sw1-btn" onClick={onClone}>
+                    Clone to new round
+                  </button>
+                )}
+                {onCopyEmbed && (
+                  <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyEmbed}>
+                    Copy embed code for this team
+                  </button>
+                )}
+                {onDeleteSheet && (
+                  <button
+                    type="button"
+                    className="sw1-btn sw1-db__deletebtn"
+                    onClick={() => onDeleteSheet(currentFixtureId)}
+                  >
+                    Delete this team
+                  </button>
+                )}
+              </div>
             )}
           </div>
         )}
@@ -259,9 +300,22 @@ export default function AdminPanel({
           <label>Opponent<input value={match.opponent} onChange={(e) => onMatch({ opponent: e.target.value })} /></label>
           <label>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
           <label>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
-          <label>Date<input value={match.date} onChange={(e) => onMatch({ date: e.target.value })} /></label>
-          <label>Time<input value={match.time} onChange={(e) => onMatch({ time: e.target.value })} /></label>
+          <label>Date<input type="date" value={match.date} onChange={(e) => onMatch({ date: e.target.value })} /></label>
+          <label>
+            Time
+            <select value={match.time} onChange={(e) => onMatch({ time: e.target.value })}>
+              {match.time && !TIME_OPTIONS.includes(match.time) && (
+                <option value={match.time}>{match.time}</option>
+              )}
+              {TIME_OPTIONS.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </label>
           <label className="sw1-brand__full">Venue<input value={match.venue} onChange={(e) => onMatch({ venue: e.target.value })} /></label>
+          <label className="sw1-brand__full">Competition / league<input value={match.competition ?? ''} onChange={(e) => onMatch({ competition: e.target.value })} placeholder="e.g. Eastern Football Netball League" /></label>
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
         </div>
@@ -415,6 +469,7 @@ export default function AdminPanel({
         selectedPlayerId={selectedPlayerId}
         onSelect={onSelect}
         onSetAvailability={onSetAvailability}
+        onSetRole={onSetRole}
         onRemovePlayer={onRemovePlayer}
         onUpdatePlayer={onUpdatePlayer}
       />

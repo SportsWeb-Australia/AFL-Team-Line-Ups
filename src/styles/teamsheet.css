@@ -1372,17 +1372,50 @@
 }
 .sw1-squad__row {
   display: flex;
-  align-items: center;
-  gap: 6px;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
   background: #fff;
   border: 1px solid #e7ecf1;
   border-radius: 10px;
-  padding: 4px 6px 4px 4px;
+  padding: 4px 6px 5px 4px;
+}
+.sw1-squad__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .sw1-squad__row.is-selected {
   border-color: var(--club-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--club-primary) 28%, transparent);
 }
+
+/* One-tap honour badges (Captain / VC / Debut / Milestone) */
+.sw1-squad__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px 0 4px;
+}
+.sw1-rolechip {
+  flex: 0 0 auto;
+  border: 1px solid #d7dee6;
+  background: #fff;
+  color: #51606f;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.sw1-rolechip:hover { border-color: #b9c4d0; background: #f3f6f9; }
+.sw1-rolechip.is-on { color: #fff; border-color: transparent; }
+.sw1-rolechip.is-captain.is-on { background: var(--club-secondary); color: var(--club-primary); }
+.sw1-rolechip.is-vc.is-on { background: var(--club-secondary); color: var(--club-primary); }
+.sw1-rolechip.is-debut.is-on { background: #16a34a; }
+.sw1-rolechip.is-milestone.is-on { background: #7c3aed; }
 .sw1-squad__pick {
   flex: 1;
   min-width: 0;
@@ -1458,7 +1491,7 @@
 }
 .sw1-squad__edit:hover { background: #eef2f6; }
 .sw1-squad__remove:hover { background: #fde2e2; border-color: #f5b1b1; color: #b91c1c; }
-.sw1-squad__row--edit { gap: 6px; padding: 5px; }
+.sw1-squad__row--edit { flex-direction: row; align-items: center; gap: 6px; padding: 5px; }
 .sw1-squad__row--edit input { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
 .sw1-squad__editno { width: 50px; flex: 0 0 auto; }
 .sw1-squad__editname { flex: 1; min-width: 0; }
@@ -1630,3 +1663,22 @@
   color: #0f172a;
 }
 .sw1-db__embedbtn { align-self: flex-start; font-size: 12.5px; padding: 7px 12px; }
+
+/* ── Saved-team actions (clone / copy embed) ────────────────────────────── */
+.sw1-db__savedactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw1-db__deletebtn {
+  font-size: 12.5px;
+  padding: 7px 12px;
+  color: #b91c1c;
+  border-color: #f3c2c2;
+}
+.sw1-db__deletebtn:hover { background: #fde2e2; border-color: #ef9a9a; }
+
+/* ── Watermark polish: spacing between repeats + readable light logos ────── */
+.sw1-stage-watermark .sw1-watermark__row span { padding: 0 1.7em; }
+.sw1-stage-watermark.is-logo { opacity: 0.2; }
+.sw1-stage-watermark.is-logo .sw1-watermark__row { gap: 30px; }
+.sw1-stage-watermark.is-logo .sw1-watermark__row img {
+  /* Edge definition so white/light sponsor logos still read on a pale stage. */
+  filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
+}
