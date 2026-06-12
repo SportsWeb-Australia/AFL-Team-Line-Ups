@@ -1,9 +1,24 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, Player, PlayerStatus, Sponsor, VisualMode } from '../types';
 import type { SavedSheet } from '../lib/source';
 import SquadList from './SquadList';
 import sportswebLogo from '../assets/sportsweb-logo.svg';
+
+/** Outbound SportsWeb links (single place to update the domain). */
+const SPORTSWEB_URL = 'https://sportsweb.com.au';
+const SPORTSWEB_CONTACT = 'https://sportsweb.com.au/contact';
+const SPORTSWEB_UPGRADE = 'https://sportsweb.com.au/premium-websites';
+
+/** House banner ad — swap `src` for a supplied 728×90-style creative when ready. */
+const HOUSE_AD: { src?: string; href: string; alt: string } = {
+  src: undefined, // no creative yet → renders the on-brand placeholder below
+  href: SPORTSWEB_URL,
+  alt: 'SportsWeb One — websites & apps for grassroots sport',
+};
+
+/** Quick-start walkthrough video — drop in a real embed URL when available. */
+const QUICKSTART_VIDEO_URL = '';
 
 type LogoTarget = 'home' | 'away';
 
@@ -70,6 +85,7 @@ interface Props {
   dbMsg: string;
   onLoadFromDb: () => void;
   onSaveToDb: () => void;
+  onNewTeam?: () => void;
   savedSheets?: SavedSheet[];
   currentFixtureId?: string | null;
   onLoadSheet?: (fixtureId: string) => void;
@@ -131,6 +147,7 @@ export default function AdminPanel({
   dbMsg,
   onLoadFromDb,
   onSaveToDb,
+  onNewTeam,
   savedSheets = [],
   currentFixtureId,
   onLoadSheet,
@@ -151,6 +168,15 @@ export default function AdminPanel({
   const [name, setName] = useState('');
   const [bulk, setBulk] = useState('');
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const quickRef = useRef<HTMLDetailsElement>(null);
+
+  const openQuickStart = () => {
+    const el = quickRef.current;
+    if (el) {
+      el.open = true;
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
 
   const add = () => {
     const n = num.trim();
@@ -204,36 +230,98 @@ export default function AdminPanel({
 
   return (
     <aside className="sw1-admin">
-      {/* SportsWeb One branding (placeholder logo — swap for the real asset) */}
-      <div className="sw1-admin-brand">
-        <img src={sportswebLogo} alt="SportsWeb One" />
-        <span className="sw1-admin-brand__tag">Club admin</span>
-      </div>
+      {/* App branding — AFL Team Line Ups, powered by SportsWeb One */}
+      <header className="sw1-appbrand">
+        <div className="sw1-appbrand__id">
+          <strong className="sw1-appbrand__title">AFL Team Line Ups</strong>
+          <a className="sw1-appbrand__by" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
+            Powered by <img src={sportswebLogo} alt="SportsWeb One" />
+          </a>
+        </div>
+        <div className="sw1-appbrand__tools">
+          <button type="button" className="sw1-pill" onClick={openQuickStart}>
+            Help
+          </button>
+          <a className="sw1-pill sw1-pill--chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
+            Chat
+          </a>
+        </div>
+      </header>
+
+      {/* House banner — fixed slot, creative supplied by SportsWeb */}
+      <a className="sw1-housead" href={HOUSE_AD.href} target="_blank" rel="noopener noreferrer">
+        {HOUSE_AD.src ? (
+          <img src={HOUSE_AD.src} alt={HOUSE_AD.alt} />
+        ) : (
+          <span className="sw1-housead__ph">
+            <strong>SportsWeb One</strong>
+            <span>Websites &amp; apps for grassroots sport →</span>
+          </span>
+        )}
+      </a>
+
+      {/* Quick start — guide + walkthrough video (collapsed on mobile) */}
+      <details className="sw1-section sw1-quick" ref={quickRef} open={!isNarrow}>
+        <summary>Quick start</summary>
+        <div className="sw1-quick__body">
+          <div className="sw1-quick__video">
+            {QUICKSTART_VIDEO_URL ? (
+              <iframe
+                src={QUICKSTART_VIDEO_URL}
+                title="AFL Team Line Ups — quick start"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            ) : (
+              <span className="sw1-quick__videoph">▶ Walkthrough video coming soon</span>
+            )}
+          </div>
+          <ol className="sw1-quick__steps">
+            <li><strong>Set up the match</strong> — open <em>Match &amp; branding</em>, enter round, grade, opponent, date and your club colours.</li>
+            <li><strong>Build your squad</strong> — in <em>Team list</em>, add players (or use Bulk import), then tap a player and tap a field position or bench group to place them.</li>
+            <li><strong>Mark roles</strong> — use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
+            <li><strong>Save the team</strong> — hit <em>Save this team</em>. Each round/date saves on its own.</li>
+            <li><strong>Publish</strong> — <em>Download graphic</em> for socials, or <em>Copy embed code</em> to drop the live line-up onto your club site.</li>
+          </ol>
+          <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
+            Need a hand? Chat with the SportsWeb team →
+          </a>
+        </div>
+      </details>
 
       {/* SportsWeb One database */}
       <div className={`sw1-db sw1-db--${dbState}`}>
         <div className="sw1-db__row">
           <span className={`sw1-db__dot ${dbConfigured ? 'is-on' : 'is-off'}`} />
           <strong>SportsWeb One database</strong>
-          <span className="sw1-db__btns">
+        </div>
+
+        {dbConfigured && (
+          <div className="sw1-db__actions">
+            {onNewTeam && (
+              <button type="button" className="sw1-btn" onClick={onNewTeam}>
+                + New team
+              </button>
+            )}
             <button
               type="button"
               className="sw1-btn"
               onClick={onLoadFromDb}
-              disabled={!dbConfigured || dbState === 'loading' || dbState === 'saving'}
+              disabled={dbState === 'loading' || dbState === 'saving'}
             >
-              {dbState === 'loading' ? 'Loading…' : 'Load'}
+              {dbState === 'loading' ? 'Loading…' : 'Load last week & edit'}
             </button>
             <button
               type="button"
               className="sw1-btn sw1-btn--primary"
               onClick={onSaveToDb}
-              disabled={!dbConfigured || dbState === 'loading' || dbState === 'saving'}
+              disabled={dbState === 'loading' || dbState === 'saving'}
             >
               {dbState === 'saving' ? 'Saving…' : 'Save'}
             </button>
-          </span>
-        </div>
+          </div>
+        )}
+
         {!dbConfigured && (
           <p className="sw1-db__msg">
             Not connected yet. Saving teams, reloading them next week and the embed
@@ -248,13 +336,13 @@ export default function AdminPanel({
         {dbConfigured && savedSheets.length > 0 && (
           <div className="sw1-db__saved">
             <label className="sw1-db__savedlabel">
-              Saved teams
+              Recent teams
               <select
                 className="sw1-db__select"
                 value={currentFixtureId ?? ''}
                 onChange={(e) => e.target.value && onLoadSheet?.(e.target.value)}
               >
-                <option value="">Choose a saved team to load…</option>
+                <option value="">Pick a recent team to load &amp; edit…</option>
                 {savedSheets.map((s) => (
                   <option key={s.fixtureId} value={s.fixtureId}>
                     {savedSheetLabel(s)}
@@ -305,7 +393,20 @@ export default function AdminPanel({
           <label>Opponent<input value={match.opponent} onChange={(e) => onMatch({ opponent: e.target.value })} /></label>
           <label>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
           <label>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
-          <label>Date<input type="date" value={match.date} onChange={(e) => onMatch({ date: e.target.value })} /></label>
+          <label>Date<input
+            type="date"
+            value={match.date}
+            onChange={(e) => onMatch({ date: e.target.value })}
+            onClick={(e) => {
+              // Open the calendar from a click anywhere on the field, not just the
+              // little icon. showPicker() is a no-op/throw on older browsers, so guard it.
+              try {
+                (e.currentTarget as HTMLInputElement & { showPicker?: () => void }).showPicker?.();
+              } catch {
+                /* unsupported — the icon still works */
+              }
+            }}
+          /></label>
           <label>
             Time
             <select value={match.time} onChange={(e) => onMatch({ time: e.target.value })}>
@@ -337,7 +438,7 @@ export default function AdminPanel({
               <strong>Sponsor banner rotation</strong>
               <span>Powered by SportsWeb One — upload sold banner ads (728×90 style)</span>
             </div>
-            <a href="https://www.sportswebone.com.au" target="_blank" rel="noopener noreferrer">
+            <a href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
               Manage sponsors →
             </a>
           </div>
@@ -498,8 +599,27 @@ export default function AdminPanel({
       </details>
 
       {/* Team list */}
-      <details className="sw1-section" open>
+      <details className="sw1-section" open={!isNarrow}>
         <summary>Team list</summary>
+
+      {/* Save right where you build the team (mirrors the database card up top) */}
+      <div className="sw1-teamsave">
+        <button
+          type="button"
+          className="sw1-btn sw1-btn--primary sw1-teamsave__btn"
+          onClick={onSaveToDb}
+          disabled={!dbConfigured || dbState === 'loading' || dbState === 'saving'}
+        >
+          {dbState === 'saving' ? 'Saving…' : 'Save this team'}
+        </button>
+        {!dbConfigured ? (
+          <span className="sw1-teamsave__hint">Connect the database (top of panel) to save.</span>
+        ) : dbMsg ? (
+          <span className={`sw1-teamsave__msg ${dbState === 'error' ? 'is-err' : ''}`}>{dbMsg}</span>
+        ) : (
+          <span className="sw1-teamsave__hint">Saves as its own team by round &amp; date — reload &amp; edit it any week.</span>
+        )}
+      </div>
 
       <div className="sw1-admin__modes">
         {(['jumper', 'headshot', 'none'] as VisualMode[]).map((m) => (
@@ -514,7 +634,13 @@ export default function AdminPanel({
       </p>
 
       <div className="sw1-admin__buttons">
-        <button className="sw1-btn" onClick={onLoadDemo}>Load saved demo</button>
+        <button
+          className="sw1-btn"
+          onClick={onLoadDemo}
+          title="Loads the built-in example team (Riverton Hawks) so you can see a full line-up. This is just a demo — it doesn't touch your saved teams in the database."
+        >
+          Load example team
+        </button>
         <button className="sw1-btn" onClick={onLoadBlank}>Clear selections</button>
       </div>
 
@@ -544,6 +670,17 @@ export default function AdminPanel({
         onUpdatePlayer={onUpdatePlayer}
       />
       </details>
+
+      {/* Footer — upgrade CTA + SportsWeb link */}
+      <footer className="sw1-appfoot">
+        <a className="sw1-upgrade" href={SPORTSWEB_UPGRADE} target="_blank" rel="noopener noreferrer">
+          <strong>Upgrade to a premium SportsWeb One website</strong>
+          <span>Match your team apps — and get this app free →</span>
+        </a>
+        <a className="sw1-appfoot__link" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
+          Powered by SportsWeb One · sportsweb.com.au
+        </a>
+      </footer>
     </aside>
   );
 }

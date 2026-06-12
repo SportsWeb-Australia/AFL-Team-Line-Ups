@@ -253,6 +253,29 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setUnavailable([]);
   }
 
+  /**
+   * Start a fresh team for a new round: clear the selections and the match round /
+   * opponent / date, keep the squad and club branding, and reset the DB refs so the
+   * next Save creates a new saved team instead of overwriting the last one.
+   */
+  function startNewTeam() {
+    if (
+      lineupFilledCount() > 0 &&
+      !window.confirm('Start a new team? This clears the current selections and the match round so you can build the next one — your squad and club branding stay.')
+    )
+      return;
+    setPositions({});
+    setFollowers([]);
+    setInterchange([]);
+    setEmergencies([]);
+    setUnavailable([]);
+    setMatch((m) => ({ ...m, round: '', opponent: '', date: '' }));
+    setSelectedPlayerId(null);
+    setDbRefs(EMPTY_REFS);
+    setDbState('idle');
+    setDbMsg('');
+  }
+
   function lineupFilledCount() {
     return (
       Object.values(positions).filter(Boolean).length +
@@ -266,14 +289,18 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function loadDemo() {
     if (
       lineupFilledCount() > 0 &&
-      !window.confirm('Load the saved demo line-up? This replaces your current on-field and bench selections.')
+      !window.confirm(
+        'Load the built-in example team? This replaces the current squad, match details and selections with the demo — it does NOT touch your saved teams in the database.',
+      )
     )
       return;
-    setPositions(data.lineup.positions);
-    setFollowers(data.lineup.followers);
-    setInterchange(data.lineup.interchange);
-    setEmergencies(data.lineup.emergencies);
-    setUnavailable(data.lineup.unavailable);
+    // Load the whole bundled example (players, club, match, sponsors, line-up) so
+    // it's self-consistent — and treat it as a fresh, unsaved team so a later Save
+    // creates a new record rather than overwriting whatever was last loaded.
+    applyData(data);
+    setDbRefs(EMPTY_REFS);
+    setDbState('idle');
+    setDbMsg('');
   }
 
   // ── SportsWeb One database (Supabase) ─────────────────────────────────────
@@ -497,6 +524,30 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } else {
       window.prompt('Copy your team list:', text);
     }
+  }
+
+  /**
+   * Share to socials. On mobile this opens the native share sheet (Facebook,
+   * Instagram, Messenger, WhatsApp, etc.) with the team list and, if the team has
+   * been saved, a link to its live embed. On desktop browsers without the Web
+   * Share API it falls back to copying the team list.
+   */
+  async function shareTeam() {
+    const text = buildTeamListText();
+    const url = dbRefs.fixtureId
+      ? `${window.location.origin}/?embed=1&fixture=${dbRefs.fixtureId}`
+      : undefined;
+    const title = [club.name, match.round].filter(Boolean).join(' — ') || 'Team line-up';
+    const nav = navigator as Navigator & { share?: (d: ShareData) => Promise<void> };
+    if (nav.share) {
+      try {
+        await nav.share({ title, text, url });
+      } catch {
+        /* user cancelled or share failed — no fallback so we don't surprise-copy */
+      }
+      return;
+    }
+    copyTeamList(); // desktop without Web Share → copy the list instead
   }
 
   // Embeds / deep links pull the published sheet from the DB on first paint.
@@ -796,6 +847,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <button className="sw1-btn" onClick={copyTeamList}>
             {copyMsg || 'Copy team list'}
           </button>
+          <button className="sw1-btn" onClick={shareTeam}>
+            Share
+          </button>
           <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
             {downloading ? 'Preparing…' : 'Download graphic'}
           </button>
@@ -837,6 +891,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             dbMsg={dbMsg}
             onLoadFromDb={loadFromDatabase}
             onSaveToDb={saveToDatabase}
+            onNewTeam={startNewTeam}
             savedSheets={savedSheets}
             currentFixtureId={dbRefs.fixtureId}
             onLoadSheet={loadSheet}

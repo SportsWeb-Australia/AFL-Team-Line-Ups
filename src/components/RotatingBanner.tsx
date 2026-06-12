@@ -66,7 +66,7 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
       {showAdvertise && (
         <a
           className="sw1-banner__advertise"
-          href="https://www.sportswebone.com.au"
+          href="https://sportsweb.com.au"
           target="_blank"
           rel="noopener noreferrer"
         >

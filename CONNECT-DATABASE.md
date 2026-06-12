@@ -39,11 +39,21 @@ team so you can see a recall straight away.)
 
 ## 3. Grab your two keys
 
-In Supabase: **Project Settings → API**. You need:
+In Supabase: **Project Settings (gear, bottom-left) → API Keys**. You need:
 
-- **Project URL** — looks like `https://abcdxyz.supabase.co`
-- **anon public** key — the long `eyJ...` string (the *anon* one, **not** the
-  service_role key — never ship service_role in a website).
+- **Project URL** — `https://<your-ref>.supabase.co`. It's shown on that page (and
+  in the green **Connect** button at the top of the dashboard). The `<your-ref>`
+  part is also right there in your browser's address bar.
+- **The client key** — Supabase is mid-way through renaming these, so you'll see
+  one of two things:
+  - a **Publishable key** that starts `sb_publishable_…` → use that, **or**
+  - a classic **anon public** key (a long `eyJ…` string, under a "Legacy API
+    Keys" tab) → use that.
+  Either works as the client key. **Never** use the **secret** / **service_role**
+  key in a website — that one stays server-side only.
+
+(The env var below is named `VITE_SUPABASE_ANON_KEY` for continuity; the value can
+be either the publishable or the anon key.)
 
 ## 4. Add them to Vercel
 

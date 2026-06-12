@@ -16,6 +16,23 @@ export interface LoadedSheet {
 
 export const EMPTY_REFS: DbRefs = { clubId: null, teamId: null, fixtureId: null, lineupId: null };
 
+/**
+ * True when an error is "the lineup_positions.status column isn't there yet" —
+ * i.e. add-status.sql hasn't been run. Lets load + save fall back gracefully so
+ * the app works before the migration (without status persistence) and lights it
+ * up automatically once the column exists. Covers the Postgres undefined-column
+ * code, the PostgREST schema-cache code, and the human-readable message.
+ */
+function isMissingStatusColumn(err: any): boolean {
+  const code = err?.code;
+  const msg = String(err?.message ?? '').toLowerCase();
+  return (
+    code === '42703' ||
+    code === 'PGRST204' ||
+    (msg.includes('status') && (msg.includes('does not exist') || msg.includes('schema cache')))
+  );
+}
+
 /** Result of a save: the refs plus app-id -> db-id for every persisted player. */
 export interface SaveResult {
   refs: DbRefs;
@@ -74,15 +91,22 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
   const players: Player[] = [];
 
   if (lineup) {
-    const { data: rows, error: rowsErr } = await supabase
-      .from('lineup_positions')
-      .select(
-        `position_key, bench_area, sort_order, status,
-         player:players ( id, number, first_name, last_name, display_name,
-                          headshot_url, jumper_image_url )`,
-      )
-      .eq('lineup_id', (lineup as any).id)
-      .order('sort_order');
+    const selectWith = (withStatus: boolean) =>
+      supabase!
+        .from('lineup_positions')
+        .select(
+          `position_key, bench_area, sort_order${withStatus ? ', status' : ''},
+           player:players ( id, number, first_name, last_name, display_name,
+                            headshot_url, jumper_image_url )`,
+        )
+        .eq('lineup_id', (lineup as any).id)
+        .order('sort_order');
+
+    let { data: rows, error: rowsErr } = await selectWith(true);
+    if (rowsErr && isMissingStatusColumn(rowsErr)) {
+      // add-status.sql not run yet — load everything else and skip status.
+      ({ data: rows, error: rowsErr } = await selectWith(false));
+    }
     if (rowsErr) throw rowsErr;
 
     for (const r of (rows as any[]) ?? []) {
@@ -465,7 +489,13 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
     });
   });
   if (posRows.length) {
-    const { error: e7 } = await supabase.from('lineup_positions').insert(posRows);
+    let { error: e7 } = await supabase.from('lineup_positions').insert(posRows);
+    if (e7 && isMissingStatusColumn(e7)) {
+      // add-status.sql not run yet — save the placements without status so the
+      // team still saves (run the migration later to start persisting badges).
+      const stripped = posRows.map(({ status, ...rest }) => rest);
+      ({ error: e7 } = await supabase.from('lineup_positions').insert(stripped));
+    }
     if (e7) throw e7;
   }
 
