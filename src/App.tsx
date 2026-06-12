@@ -21,7 +21,7 @@ const isEmbed = params.has('embed');
 // Embeds, the admin editor, and ?fixture/?load deep links all pull the saved
 // sheet from the DB on open. Admin auto-load = your work persists across
 // reloads (falls back to the bundled demo when nothing has been saved yet).
-const autoLoad = isEmbed || isAdminSession || params.has('fixture') || params.has('load');
+const autoLoad = isEmbed || isAdminSession || params.has('fixture') || params.has('club') || params.has('load');
 
 export default function App() {
   // The editor previews public via state so selections persist across the switch.

@@ -80,10 +80,16 @@ export default function SquadList({
     group.slots.push(s);
   }
 
-  // Available first (by number), unavailable grouped at the bottom.
+  // Available first; just-added (numberless) players float to the TOP newest-first,
+  // then numbered players in guernsey order. Unavailable grouped at the bottom.
   const reasonOf = (p: Player) => (p.status ?? []).find((s) => REASON_VALUES.includes(s)) ?? '';
   const byNumber = (a: Player, b: Player) => numOf(a.number) - numOf(b.number);
-  const available = players.filter((p) => !reasonOf(p)).sort(byNumber);
+  const hasNum = (p: Player) => !!(p.number && p.number.trim());
+  const availablePool = players.filter((p) => !reasonOf(p));
+  const available = [
+    ...availablePool.filter((p) => !hasNum(p)).reverse(),
+    ...availablePool.filter(hasNum).sort(byNumber),
+  ];
   const unavailable = players.filter((p) => reasonOf(p)).sort(byNumber);
 
   const startEdit = (p: Player) => {

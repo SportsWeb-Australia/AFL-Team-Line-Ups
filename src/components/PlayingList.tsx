@@ -1,18 +1,28 @@
-import type { Player, PositionKey } from '../types';
+import type { Player, PlayerStatus, PositionKey } from '../types';
 import { FIELD_SLOTS, type LineName } from '../lib/field';
 
 const LINES: LineName[] = ['BACKS', 'HALF BACKS', 'CENTRE', 'HALF FORWARDS', 'FORWARDS'];
 
+const AVAIL_LABEL: Partial<Record<PlayerStatus, string>> = {
+  injured: 'Injured',
+  concussion: 'Concussion',
+  personal: 'Personal',
+  suspended: 'Suspended',
+};
+
 /**
  * A read-only summary of the on-field selections, grouped by line with full
- * position names — mirrors the "playing list" in the original reference.
+ * position names — mirrors the "playing list" in the original reference. Any
+ * unavailable players are listed at the bottom with their reason tag.
  */
 export default function PlayingList({
   positions,
   playerMap,
+  unavailable = [],
 }: {
   positions: Partial<Record<PositionKey, string>>;
   playerMap: Map<string, Player>;
+  unavailable?: Player[];
 }) {
   const filled = Object.values(positions).filter(Boolean).length;
 
@@ -48,6 +58,24 @@ export default function PlayingList({
           })}
         </div>
       ))}
+
+      {unavailable.length > 0 && (
+        <div className="sw1-playinglist__line sw1-playinglist__unavail">
+          <div className="sw1-playinglist__linehead">UNAVAILABLE</div>
+          {unavailable.map((p) => {
+            const reason = (p.status ?? []).find((s) => s in AVAIL_LABEL);
+            return (
+              <div key={p.id} className="sw1-playinglist__row">
+                <span className="sw1-playinglist__player">
+                  <span className="sw1-playinglist__no">{p.number || "\u2013"}</span>
+                  {p.name}
+                </span>
+                {reason && <span className="sw1-playinglist__tag">{AVAIL_LABEL[reason]}</span>}
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

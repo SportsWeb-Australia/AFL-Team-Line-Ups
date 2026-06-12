@@ -236,6 +236,37 @@ export async function loadLatestTeamSheet(
   return loadTeamSheet((data[0] as any).id, opts);
 }
 
+/**
+ * Latest team sheet for a club (optionally a single grade), newest first. This
+ * powers the auto-updating embed: a club page embeds by club+grade rather than a
+ * pinned fixture, so it always shows whatever is currently published for that
+ * grade — no code change needed each round. Walks newest→oldest and returns the
+ * first fixture that resolves under the given options (so with publishedOnly it
+ * skips drafts and lands on the most recent LIVE team).
+ */
+export async function loadLatestForClubGrade(
+  clubId: string,
+  grade: string | null,
+  opts: { publishedOnly?: boolean } = {},
+): Promise<LoadedSheet | null> {
+  if (!supabase) throw new Error('Database is not configured.');
+  let q = supabase
+    .from('fixtures')
+    .select('id, created_at, team:teams!inner ( name, club_id )')
+    .eq('team.club_id', clubId)
+    .order('created_at', { ascending: false })
+    .limit(20);
+  if (grade) q = q.eq('team.name', grade);
+  const { data, error } = await q;
+  if (error) throw error;
+  if (!data || data.length === 0) return null;
+  for (const row of data as any[]) {
+    const sheet = await loadTeamSheet(row.id, opts);
+    if (sheet) return sheet;
+  }
+  return null;
+}
+
 /** A saved team in the recall list (one per fixture = round/date/grade). */
 export interface SavedSheet {
   fixtureId: string;
@@ -491,9 +522,17 @@ export async function saveTeamSheet(
     return s && s.length ? s : null;
   };
   const posRows: Record<string, unknown>[] = [];
+  let fieldOrder = 0;
   for (const [pos, appId] of Object.entries(d.lineup.positions)) {
     const dbId = appId ? idMap.get(appId) : undefined;
-    if (dbId) posRows.push({ lineup_id: lineupId, player_id: dbId, position_key: pos, status: statusFor(appId!) });
+    if (dbId)
+      posRows.push({
+        lineup_id: lineupId,
+        player_id: dbId,
+        position_key: pos,
+        sort_order: fieldOrder++,
+        status: statusFor(appId!),
+      });
   }
   (['followers', 'interchange', 'emergencies', 'unavailable'] as BenchArea[]).forEach((area) => {
     d.lineup[area].forEach((appId, i) => {

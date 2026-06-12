@@ -5,38 +5,14 @@ import type { SavedSheet } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { SHOW_EMBED } from '../lib/config';
-import sportswebLogo from '../assets/sportsweb-logo.svg';
+import { SPORTSWEB_MODULES } from './SportsWebModules';
+import sportswebOneLogo from '../assets/sportsweb-one-logo.png';
 import appLogo from '../assets/app-logo.png';
 
 /** Outbound SportsWeb links (single place to update the domain). */
 const SPORTSWEB_URL = 'https://sportsweb.com.au';
 const SPORTSWEB_CONTACT = 'https://sportsweb.com.au/contact';
 const SPORTSWEB_UPGRADE = 'https://sportsweb.com.au/premium-websites';
-
-/**
- * Real SportsWeb One logo. The supplied artwork couldn't be bundled yet — when
- * it's available, save it to src/assets and set this to the import, e.g.
- *   import sportswebOneLogo from '../assets/sportsweb-one-logo.png';
- *   const SPORTSWEB_ONE_LOGO: string | undefined = sportswebOneLogo;
- * Until then the footer shows the metallic-blue wordmark below.
- */
-const SPORTSWEB_ONE_LOGO: string | undefined = undefined;
-
-/** SportsWeb One platform modules — cycled in the footer promo. */
-const SPORTSWEB_MODULES = [
-  'Premium websites & club apps',
-  'Books — club finance & treasury',
-  'Workplace — document storage & office suite (Microsoft & Google compatible)',
-  'Superstore & point of sale — coming soon',
-  'Engagement widgets — digital trading cards & more',
-];
-
-/** House banner ad — swap `src` for a supplied 728×90-style creative when ready. */
-const HOUSE_AD: { src?: string; href: string; alt: string } = {
-  src: undefined, // no creative yet → renders the on-brand placeholder below
-  href: SPORTSWEB_URL,
-  alt: 'SportsWeb One — websites & apps for grassroots sport',
-};
 
 /** Quick-start walkthrough video — drop in a real embed URL when available. */
 const QUICKSTART_VIDEO_URL = '';
@@ -113,6 +89,7 @@ interface Props {
   onLoadSheet?: (fixtureId: string) => void;
   onDeleteSheet?: (fixtureId: string) => void;
   onCopyEmbed?: () => void;
+  onCopyTeamEmbed?: () => void;
   onClone?: () => void;
   /** Ins & Outs vs last week (admin reference only). Null until a prior round exists. */
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
@@ -176,6 +153,7 @@ export default function AdminPanel({
   onLoadSheet,
   onDeleteSheet,
   onCopyEmbed,
+  onCopyTeamEmbed,
   onClone,
   insOuts,
   onRefreshInsOuts,
@@ -269,7 +247,7 @@ export default function AdminPanel({
           <div className="sw1-appbrand__idtext">
             <strong className="sw1-appbrand__title">AFL Team Line Ups</strong>
             <a className="sw1-appbrand__by" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
-              Powered by <img src={sportswebLogo} alt="SportsWeb One" />
+              <img src={sportswebOneLogo} alt="SportsWeb One" />
             </a>
           </div>
         </div>
@@ -282,18 +260,6 @@ export default function AdminPanel({
           </a>
         </div>
       </header>
-
-      {/* House banner — fixed slot, creative supplied by SportsWeb */}
-      <a className="sw1-housead" href={HOUSE_AD.href} target="_blank" rel="noopener noreferrer">
-        {HOUSE_AD.src ? (
-          <img src={HOUSE_AD.src} alt={HOUSE_AD.alt} />
-        ) : (
-          <span className="sw1-housead__ph">
-            <strong>SportsWeb One</strong>
-            <span>Websites &amp; apps for grassroots sport →</span>
-          </span>
-        )}
-      </a>
 
       {/* Quick start — guide + walkthrough video (collapsed on mobile) */}
       <details className="sw1-section sw1-quick" ref={quickRef}>
@@ -386,9 +352,14 @@ export default function AdminPanel({
                     Clone to new round
                   </button>
                 )}
+                {SHOW_EMBED && onCopyTeamEmbed && (
+                  <button type="button" className="sw1-btn sw1-btn--primary sw1-db__embedbtn" onClick={onCopyTeamEmbed}>
+                    Copy this team's embed code
+                  </button>
+                )}
                 {SHOW_EMBED && onCopyEmbed && (
                   <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyEmbed}>
-                    Copy embed code for this team
+                    Copy auto-updating embed (latest for this grade)
                   </button>
                 )}
                 {onDeleteSheet && (
@@ -682,21 +653,25 @@ export default function AdminPanel({
       />
       </details>
 
-      {/* SportsWeb One platform footer */}
+      {/* SportsWeb One platform footer — one scrolling promo button */}
       <footer className="sw1-swfoot">
-        <div className="sw1-swbrand">
-          {SPORTSWEB_ONE_LOGO ? (
-            <img className="sw1-swbrand__logo" src={SPORTSWEB_ONE_LOGO} alt="SportsWeb One" />
-          ) : (
-            <span className="sw1-swbrand__word"><b>SPORTSWEB</b> ONE</span>
-          )}
-          <span className="sw1-swbrand__tag">One platform. Every club function.</span>
-          <span className="sw1-swbrand__sub">The operating system for all local sports clubs.</span>
-        </div>
-
-        <a className="sw1-swmodule" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
-          <span className="sw1-swmodule__label">The SportsWeb One platform</span>
-          <span className="sw1-swmodule__item" key={moduleIdx}>{SPORTSWEB_MODULES[moduleIdx]}</span>
+        <a
+          className="sw1-swpromo"
+          href={SPORTSWEB_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          title="The SportsWeb One platform"
+        >
+          <span className="sw1-swpromo__head">The SportsWeb One platform</span>
+          <span className="sw1-swpromo__item" key={moduleIdx}>
+            <span className="sw1-swpromo__icon">{SPORTSWEB_MODULES[moduleIdx].icon}</span>
+            <span className="sw1-swpromo__label">{SPORTSWEB_MODULES[moduleIdx].label}</span>
+          </span>
+          <span className="sw1-swpromo__dots" aria-hidden>
+            {SPORTSWEB_MODULES.map((m, i) => (
+              <span key={m.key} className={i === moduleIdx ? 'is-on' : ''} />
+            ))}
+          </span>
         </a>
 
         <a className="sw1-upgrade" href={SPORTSWEB_UPGRADE} target="_blank" rel="noopener noreferrer">

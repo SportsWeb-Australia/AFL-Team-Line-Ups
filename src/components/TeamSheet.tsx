@@ -18,11 +18,14 @@ import BenchZone from './BenchZone';
 import StatusLegend from './StatusLegend';
 import PlayingList from './PlayingList';
 import AdminPanel from './AdminPanel';
+import { ModuleMarquee } from './SportsWebModules';
+import sportswebOneLogo from '../assets/sportsweb-one-logo.png';
 
 /** Availability reasons (as opposed to role badges like captain/debut). */
 const AVAIL_STATUSES: PlayerStatus[] = ['injured', 'concussion', 'personal', 'suspended'];
 import {
   loadLatestTeamSheet,
+  loadLatestForClubGrade,
   loadTeamSheet,
   listSavedSheets,
   saveTeamSheet,
@@ -377,8 +380,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     try {
       // Public + embed views only ever show a published team; the editor sees drafts.
       const publishedOnly = mode !== 'admin';
-      const fixtureParam = new URLSearchParams(window.location.search).get('fixture');
-      const res = fixtureParam
+      const qp = new URLSearchParams(window.location.search);
+      const fixtureParam = qp.get('fixture');
+      const clubParam = qp.get('club');
+      const gradeParam = qp.get('grade');
+      // Embed-by-club+grade auto-updates each round; ?fixture pins one team; else latest.
+      const res = clubParam
+        ? await loadLatestForClubGrade(clubParam, gradeParam, { publishedOnly })
+        : fixtureParam
         ? await loadTeamSheet(fixtureParam, { publishedOnly })
         : await loadLatestTeamSheet({ publishedOnly });
       if (!res) {
@@ -429,12 +438,39 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   // <iframe> plus a tiny listener that resizes it to the line-up's height, with
   // a sensible fallback height in case the host strips the script.
   function copyEmbedCode() {
+    const clubId = dbRefs.clubId;
+    if (!clubId) {
+      setDbMsg('Save this team first — then you can copy its embed code.');
+      return;
+    }
+    // Embed by club + grade so the page auto-updates each round: it always shows
+    // whatever is currently PUBLISHED for this grade, with no code change weekly.
+    const grade = match.grade?.trim();
+    const params = new URLSearchParams({ embed: '1', client: 'sportsweb', club: clubId });
+    if (grade) params.set('grade', grade);
+    const src = `${window.location.origin}/?${params.toString()}`;
+    const frameId = `sw1-lineup-${clubId.slice(0, 8)}${grade ? '-' + grade.toLowerCase().replace(/\s+/g, '') : ''}`;
+    const code =
+      `<iframe id="${frameId}" src="${src}" title="Team line-up" loading="lazy" ` +
+      `scrolling="no" height="900" style="width:100%;border:0;display:block;overflow:hidden"></iframe>\n` +
+      `<script>(function(){var id="${frameId}";window.addEventListener("message",function(e){` +
+      `if(e&&e.data&&e.data.type==="sw1-embed-height"){var f=document.getElementById(id);` +
+      `if(f){f.style.height=e.data.height+"px";}}});})();</script>`;
+    navigator.clipboard?.writeText(code).then(
+      () => setDbMsg('Embed code copied — it auto-updates each round when you Publish. Paste it into a Custom HTML block.'),
+      () => setDbMsg(code),
+    );
+  }
+
+  // Per-team embed: pinned to THIS fixture, so each published team gets its own
+  // code (what you want when embedding specific teams on a sample site tonight).
+  function copyTeamEmbedCode() {
     const id = dbRefs.fixtureId;
     if (!id) {
       setDbMsg('Save this team first — then you can copy its embed code.');
       return;
     }
-    const src = `${window.location.origin}/?embed=1&fixture=${id}`;
+    const src = `${window.location.origin}/?embed=1&client=sportsweb&fixture=${id}`;
     const frameId = `sw1-lineup-${id.slice(0, 8)}`;
     const code =
       `<iframe id="${frameId}" src="${src}" title="Team line-up" loading="lazy" ` +
@@ -443,7 +479,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       `if(e&&e.data&&e.data.type==="sw1-embed-height"){var f=document.getElementById(id);` +
       `if(f){f.style.height=e.data.height+"px";}}});})();</script>`;
     navigator.clipboard?.writeText(code).then(
-      () => setDbMsg('Embed code copied — paste it into a Custom HTML block on your club site.'),
+      () => setDbMsg('This team\u2019s embed code copied — it shows THIS published team only. Publish first, then paste into a Custom HTML block.'),
       () => setDbMsg(code),
     );
   }
@@ -872,16 +908,21 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   return (
     <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
       {admin && (
-        <a
-          className="sw1-swhead"
-          href="https://sportsweb.com.au"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="SportsWeb One"
-        >
-          <span className="sw1-swhead__word"><b>SPORTSWEB</b> ONE</span>
-          <span className="sw1-swhead__tag">One platform. Every club function.</span>
-        </a>
+        <div className="sw1-swhead">
+          <a
+            className="sw1-swhead__brand"
+            href="https://sportsweb.com.au"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="SportsWeb One"
+          >
+            <img className="sw1-swhead__logo" src={sportswebOneLogo} alt="SportsWeb One" />
+            <span className="sw1-swhead__tag">
+              The operating system for grassroots sport — one platform, every club function.
+            </span>
+          </a>
+          <ModuleMarquee />
+        </div>
       )}
       {admin && (
         <div className="sw1-toolbar">
@@ -962,6 +1003,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onLoadSheet={loadSheet}
             onDeleteSheet={deleteSheet}
             onCopyEmbed={copyEmbedCode}
+            onCopyTeamEmbed={copyTeamEmbedCode}
             onClone={cloneToNewRound}
             insOuts={insOuts}
             onRefreshInsOuts={() => refreshPrevWeek(dbRefs.clubId, match.grade, dbRefs.fixtureId)}
@@ -971,7 +1013,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onWmSponsorName={setWmSponsorName}
             onWmSponsorLogo={setWmSponsorLogo}
             wmHasSponsorLogo={!!wmSponsorLogo}
-            playingList={<PlayingList positions={positions} playerMap={playerMap} />}
+            playingList={
+              <PlayingList
+                positions={positions}
+                playerMap={playerMap}
+                unavailable={players.filter((p) =>
+                  (p.status ?? []).some((s) => AVAIL_STATUSES.includes(s)),
+                )}
+              />
+            }
           />
         </div>
       )}
