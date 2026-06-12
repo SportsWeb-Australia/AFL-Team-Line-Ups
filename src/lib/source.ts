@@ -43,7 +43,10 @@ export interface SaveResult {
  * Loads a team sheet from the SportsWeb One database and maps it to the app's
  * `TeamSheetData` shape, plus the DB ids so a later save updates the same rows.
  */
-export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
+export async function loadTeamSheet(
+  fixtureId: string,
+  opts: { publishedOnly?: boolean } = {},
+): Promise<LoadedSheet> {
   if (!supabase) throw new Error('Database is not configured.');
 
   const sb = supabase;
@@ -63,15 +66,14 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
     return res;
   }
 
+  // Public/embed views only ever show a PUBLISHED line-up; the admin editor
+  // loads the latest line-up whether it's a draft or live.
+  let lineupQuery = sb.from('lineups').select('id').eq('fixture_id', fixtureId);
+  if (opts.publishedOnly) lineupQuery = lineupQuery.eq('published', true);
+
   const [{ data: fx, error: fxErr }, { data: lineup, error: lnErr }] = await Promise.all([
     fetchFixture(),
-    sb
-      .from('lineups')
-      .select('id')
-      .eq('fixture_id', fixtureId)
-      .order('published', { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+    lineupQuery.order('published', { ascending: false }).limit(1).maybeSingle(),
   ]);
 
   if (fxErr) throw fxErr;
@@ -220,7 +222,9 @@ export async function loadTeamSheet(fixtureId: string): Promise<LoadedSheet> {
 }
 
 /** Load the most recently created fixture's sheet — used by the "Load" button. */
-export async function loadLatestTeamSheet(): Promise<LoadedSheet | null> {
+export async function loadLatestTeamSheet(
+  opts: { publishedOnly?: boolean } = {},
+): Promise<LoadedSheet | null> {
   if (!supabase) throw new Error('Database is not configured.');
   const { data, error } = await supabase
     .from('fixtures')
@@ -229,7 +233,7 @@ export async function loadLatestTeamSheet(): Promise<LoadedSheet | null> {
     .limit(1);
   if (error) throw error;
   if (!data || data.length === 0) return null;
-  return loadTeamSheet((data[0] as any).id);
+  return loadTeamSheet((data[0] as any).id, opts);
 }
 
 /** A saved team in the recall list (one per fixture = round/date/grade). */
@@ -271,7 +275,12 @@ export async function listSavedSheets(clubId: string | null): Promise<SavedSheet
  * sequential (not one transaction) — fine for the editor; production should
  * move this behind a transactional, auth-guarded function.
  */
-export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<SaveResult> {
+export async function saveTeamSheet(
+  d: TeamSheetData,
+  refs: DbRefs,
+  opts: { publish?: boolean } = {},
+): Promise<SaveResult> {
+  const publish = opts.publish ?? true;
   if (!supabase) throw new Error('Database is not configured.');
 
   // 1. club -------------------------------------------------------------------
@@ -381,11 +390,15 @@ export async function saveTeamSheet(d: TeamSheetData, refs: DbRefs): Promise<Sav
     if (le) throw le;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
-      await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
+      // Publish marks it live. A draft save just updates the data and leaves the
+      // live/offline status untouched (so re-editing a live team never blanks it).
+      if (publish) {
+        await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
+      }
     } else {
       const { data: ln, error: e5 } = await supabase
         .from('lineups')
-        .insert({ fixture_id: fixtureId, published: true })
+        .insert({ fixture_id: fixtureId, published: publish })
         .select('id')
         .single();
       if (e5) throw e5;

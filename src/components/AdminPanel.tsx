@@ -4,6 +4,7 @@ import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, Visua
 import type { SavedSheet } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
+import { SHOW_EMBED } from '../lib/config';
 import sportswebLogo from '../assets/sportsweb-logo.svg';
 import appLogo from '../assets/app-logo.png';
 
@@ -385,7 +386,7 @@ export default function AdminPanel({
                     Clone to new round
                   </button>
                 )}
-                {onCopyEmbed && (
+                {SHOW_EMBED && onCopyEmbed && (
                   <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyEmbed}>
                     Copy embed code for this team
                   </button>

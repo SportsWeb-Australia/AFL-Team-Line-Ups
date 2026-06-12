@@ -35,6 +35,7 @@ import {
   type PrevSelection,
 } from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
+import { SHOW_EMBED, PUBLISH_TARGET_LABEL } from '../lib/config';
 import '../styles/teamsheet.css';
 
 export interface TeamSheetProps {
@@ -374,8 +375,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setDbState('loading');
     setDbMsg('');
     try {
+      // Public + embed views only ever show a published team; the editor sees drafts.
+      const publishedOnly = mode !== 'admin';
       const fixtureParam = new URLSearchParams(window.location.search).get('fixture');
-      const res = fixtureParam ? await loadTeamSheet(fixtureParam) : await loadLatestTeamSheet();
+      const res = fixtureParam
+        ? await loadTeamSheet(fixtureParam, { publishedOnly })
+        : await loadLatestTeamSheet({ publishedOnly });
       if (!res) {
         setDbState('error');
         setDbMsg('Connected, but no fixtures found yet. Run seed.sql or save one.');
@@ -566,11 +571,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function saveToDatabase() {
+  async function persist(publish: boolean) {
     setDbState('saving');
     setDbMsg('');
     try {
-      const { refs, playerIds } = await saveTeamSheet(currentData(), dbRefs);
+      const { refs, playerIds } = await saveTeamSheet(currentData(), dbRefs, { publish });
       setDbRefs(refs);
       // Write DB ids back onto players so the next save updates them (rather than
       // duplicating) — this is what keeps numberless players stable across saves.
@@ -583,7 +588,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         );
       }
       setDbState('ok');
-      setDbMsg('Saved to the SportsWeb One database.');
+      setDbMsg(
+        publish
+          ? `Published — your team is now live on ${PUBLISH_TARGET_LABEL}.`
+          : 'Draft saved. It won\u2019t go live until you hit Publish.',
+      );
       refreshSavedSheets(refs.clubId);
       refreshPrevWeek(refs.clubId, match.grade, refs.fixtureId);
     } catch (err: any) {
@@ -596,6 +605,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       );
     }
   }
+
+  const saveDraft = () => persist(false);
+  const publishLive = () => {
+    if (!window.confirm(`Publish this team live to ${PUBLISH_TARGET_LABEL}?`)) return;
+    persist(true);
+  };
 
   function addPlayer(number: string, name: string) {
     // Manual add = a record this app owns. Reusable across future line-ups.
@@ -811,7 +826,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   // freezes computed styles, so clip-paths, container units and color-mix all
   // export exactly as rendered.
   const captureRef = useRef<HTMLDivElement>(null);
+  const previewWrapRef = useRef<HTMLDivElement>(null);
   const [downloading, setDownloading] = useState(false);
+  // Mobile editing: let the coach collapse the big preview to reach the editor.
+  const [previewOpen, setPreviewOpen] = useState(true);
 
   function slugify(s: string) {
     return s.trim().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
@@ -822,6 +840,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     if (!node) return;
     setDownloading(true);
     node.classList.add('sw1-exporting');
+    // If the preview is collapsed on mobile, force it open just for the capture.
+    const wrap = previewWrapRef.current;
+    const wasCollapsed = !!wrap?.classList.contains('is-collapsed');
+    if (wasCollapsed) wrap!.classList.add('is-capturing');
     try {
       const dataUrl = await toPng(node, {
         pixelRatio: 2, // crisp on retina / good for socials
@@ -842,6 +864,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       alert('Could not export the image here. As a fallback, take a screenshot of the graphic.');
     } finally {
       node.classList.remove('sw1-exporting');
+      if (wasCollapsed) wrap?.classList.remove('is-capturing');
       setDownloading(false);
     }
   }
@@ -872,13 +895,24 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             Share
           </button>
           {isSupabaseConfigured && (
-            <button
-              className="sw1-btn sw1-btn--primary"
-              onClick={saveToDatabase}
-              disabled={dbState === 'saving' || dbState === 'loading'}
-            >
-              {dbState === 'saving' ? 'Saving…' : 'Save team'}
-            </button>
+            <>
+              <button
+                className="sw1-btn"
+                onClick={saveDraft}
+                disabled={dbState === 'saving' || dbState === 'loading'}
+                title="Save your work without going live"
+              >
+                {dbState === 'saving' ? 'Saving…' : 'Save draft'}
+              </button>
+              <button
+                className="sw1-btn sw1-btn--publish"
+                onClick={publishLive}
+                disabled={dbState === 'saving' || dbState === 'loading'}
+                title={`Make this team live on ${PUBLISH_TARGET_LABEL}`}
+              >
+                Publish
+              </button>
+            </>
           )}
           <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
             {downloading ? 'Preparing…' : 'Download graphic'}
@@ -941,6 +975,22 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           />
         </div>
       )}
+
+      <div
+        className={`sw1-previewwrap ${admin && !previewOpen ? 'is-collapsed' : ''}`}
+        ref={previewWrapRef}
+      >
+        {admin && (
+          <button
+            type="button"
+            className="sw1-previewtoggle"
+            onClick={() => setPreviewOpen((o) => !o)}
+            aria-expanded={previewOpen}
+          >
+            <span>{previewOpen ? 'Hide preview' : 'Show preview'}</span>
+            <span className="sw1-previewtoggle__chev" aria-hidden>{previewOpen ? '▲' : '▼'}</span>
+          </button>
+        )}
 
       <div className="sw1-frame" ref={captureRef}>
         <MatchHeader club={club} match={match} />
@@ -1089,6 +1139,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         <footer className="sw1-footer">
           Powered by <strong>SportsWeb One</strong>
         </footer>
+      </div>
       </div>
       </div>
     </div>
