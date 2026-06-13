@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from 'react';
 import type { Player, PlayerStatus, PositionKey } from '../types';
 import type { SlotDef } from '../lib/field';
+import { removeHeadshotBackground } from '../lib/removeBg';
 
 const REASONS: { value: PlayerStatus; label: string }[] = [
   { value: 'injured', label: 'Injured' },
@@ -64,6 +65,7 @@ export default function SquadList({
   const [editId, setEditId] = useState<string | null>(null);
   const [editNo, setEditNo] = useState('');
   const [editName, setEditName] = useState('');
+  const [bgBusy, setBgBusy] = useState(false);
 
   const numOf = (s: string) => {
     const n = parseInt(s, 10);
@@ -110,9 +112,27 @@ export default function SquadList({
     const reason = reasonOf(p);
 
     if (editId === p.id) {
-      const readImg = (kind: 'headshot' | 'jumper') => (e: ChangeEvent<HTMLInputElement>) => {
+      const readImg = (kind: 'headshot' | 'jumper') => async (e: ChangeEvent<HTMLInputElement>) => {
         const f = e.target.files?.[0];
+        e.target.value = ''; // allow re-selecting the same file
         if (!f) return;
+        if (kind === 'headshot') {
+          // Auto-remove the background client-side. If anything fails (e.g. offline,
+          // or the model can't load), fall back to the original image so the upload
+          // never silently breaks.
+          setBgBusy(true);
+          try {
+            const cutout = await removeHeadshotBackground(f);
+            onSetPlayerImage(p.id, 'headshot', cutout);
+          } catch {
+            const r = new FileReader();
+            r.onload = () => onSetPlayerImage(p.id, 'headshot', String(r.result));
+            r.readAsDataURL(f);
+          } finally {
+            setBgBusy(false);
+          }
+          return;
+        }
         const r = new FileReader();
         r.onload = () => onSetPlayerImage(p.id, kind, String(r.result));
         r.readAsDataURL(f);
@@ -140,15 +160,20 @@ export default function SquadList({
           </div>
           <div className="sw1-squad__imgrow">
             <label className="sw1-squad__imgbtn">
-              {p.headshotUrl ? 'Headshot ✓' : 'Add headshot'}
-              <input type="file" accept="image/*" onChange={readImg('headshot')} />
+              {bgBusy ? 'Removing background…' : p.headshotUrl ? 'Headshot ✓' : 'Add headshot'}
+              <input type="file" accept="image/*" disabled={bgBusy} onChange={readImg('headshot')} />
             </label>
-            {p.headshotUrl && (
+            {p.headshotUrl && !bgBusy && (
               <button className="sw1-squad__imgclear" onClick={() => onSetPlayerImage(p.id, 'headshot', null)}>
                 Clear
               </button>
             )}
           </div>
+          <p className="sw1-squad__imgnote">
+            Background is removed automatically. For the sharpest cut-out, upload a headshot that's
+            already on a transparent or clean background — or have it done at the source.{' '}
+            <strong>Media days with Click Sports Media include professionally cut-out headshots.</strong>
+          </p>
         </div>
       );
     }

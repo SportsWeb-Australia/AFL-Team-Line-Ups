@@ -96,8 +96,20 @@
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
 }
 @media (max-width: 520px) {
-  .sw1-stage__complogos { gap: 7px; top: 8px; right: 8px; max-width: 54%; }
-  .sw1-stage__complogo { height: 60px; }
+  /* On phones the oval fills the width, so two logos stacked top-right run over the
+     back line. Span full width and split them to opposite top corners (the empty
+     space outside the oval); a single logo still sits top-right. */
+  .sw1-stage__complogos {
+    left: 8px;
+    right: 8px;
+    top: 6px;
+    max-width: none;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .sw1-stage__complogo { height: 50px; }
+  .sw1-stage__complogo:only-child { margin-left: auto; }
 }
 
 .sw1-header__crests {
@@ -298,7 +310,12 @@
   overflow: hidden;
 }
 @media (max-width: 600px) {
-  .sw1-banner { height: 92px; }
+  /* On phones, show the banner at its natural height across the full width so the
+     whole ad is visible and as large as the screen allows — no side-cropping, no
+     wasted letterbox. Capped so an oversized/near-square banner can't dominate. */
+  .sw1-banner { height: auto; min-height: 56px; max-height: 150px; }
+  .sw1-banner__slide, .sw1-banner__slide a { height: auto; }
+  .sw1-banner__img { width: 100%; height: auto; max-height: 150px; object-fit: contain; }
 }
 .sw1-banner__slide {
   display: block;
@@ -700,7 +717,7 @@
   height: clamp(13px, 3.4cqw, 18px);
 }
 .sw1-slot .sw1-plate__art { width: clamp(40px, 11cqw, 58px); height: clamp(40px, 11cqw, 58px); }
-.sw1-slot .sw1-plate--headshot .sw1-plate__art { width: clamp(42px, 11.5cqw, 62px); height: clamp(52px, 14.5cqw, 74px); }
+.sw1-slot .sw1-plate--headshot .sw1-plate__art { width: clamp(46px, 12.5cqw, 70px); height: clamp(60px, 16.5cqw, 88px); }
 
 .sw1-slot__empty {
   width: clamp(64px, 17cqw, 96px);
@@ -737,9 +754,9 @@
 /* headshots are transparent cut-outs that stand above the name plate, like a
    real team graphic. A taller, narrower box suits head-and-shoulders portraits. */
 .sw1-plate--headshot .sw1-plate__art {
-  width: 64px;
-  height: 74px;
-  margin-bottom: -12px;
+  width: 72px;
+  height: 88px;
+  margin-bottom: -2px;
 }
 .sw1-plate--headshot .sw1-plate__art img { object-fit: contain; object-position: bottom; }
 
@@ -777,27 +794,27 @@
   text-overflow: ellipsis;
 }
 .sw1-plate__badges {
-  position: absolute;
-  top: -7px;
-  right: -7px;
-  z-index: 5;
-  display: flex;
+  display: inline-flex;
+  align-items: center;
   gap: 3px;
+  flex-shrink: 0;
+  padding-right: 7px;
+  margin-left: -2px;
 }
 .sw1-plate__badge {
-  min-width: 18px;
-  height: 18px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
-  border-radius: 6px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 900;
-  color: var(--club-primary);
-  background: var(--club-secondary);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+  color: var(--club-on-primary);
+  background: var(--club-primary);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .sw1-plate--compact .sw1-plate__name { font-size: 11px; }
 .sw1-plate--compact .sw1-plate__no { font-size: 11px; min-width: 30px; }
@@ -2364,6 +2381,17 @@
   cursor: pointer;
 }
 .sw1-squad__imgbtn input { display: none; }
+.sw1-squad__imgbtn:has(input:disabled) {
+  opacity: 0.65;
+  cursor: progress;
+}
+.sw1-squad__imgnote {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+}
+.sw1-squad__imgnote strong { color: #0c2340; }
 .sw1-squad__imgclear {
   border: 0;
   background: none;
