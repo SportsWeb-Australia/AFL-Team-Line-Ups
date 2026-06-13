@@ -72,33 +72,33 @@
 .sw1-header__ghost--l { left: -90px; }
 .sw1-header__ghost--r { right: -90px; transform: translateY(-50%) scaleX(-1); }
 
-/* Competition / extra logos — top-right of the header. Frosted backing so any
-   logo (light or dark) stays legible on the club-coloured header. */
-.sw1-header__complogos {
+/* Competition / extra logos — top-right of the oval (over the stage). Frosted
+   backing so any logo (light or dark) stays legible on the tinted ground. */
+.sw1-stage__complogos {
   position: absolute;
-  top: clamp(12px, 2vw, 20px);
-  right: clamp(12px, 2vw, 22px);
-  z-index: 3;
+  top: clamp(10px, 1.6cqw, 20px);
+  right: clamp(10px, 1.6cqw, 22px);
+  z-index: 4;
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: 42%;
+  max-width: 40%;
 }
-.sw1-header__complogo {
-  height: clamp(32px, 4.6vw, 52px);
+.sw1-stage__complogo {
+  height: clamp(34px, 5cqw, 64px);
   width: auto;
-  max-width: 130px;
+  max-width: 150px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.92);
-  border-radius: 8px;
-  padding: 4px 7px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+  background: rgba(255, 255, 255, 0.94);
+  border-radius: 9px;
+  padding: 5px 8px;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
 }
 @media (max-width: 520px) {
-  .sw1-header__complogos { gap: 5px; top: 8px; right: 8px; max-width: 40%; }
-  .sw1-header__complogo { height: 26px; padding: 3px 5px; border-radius: 6px; }
+  .sw1-stage__complogos { gap: 5px; top: 8px; right: 8px; max-width: 46%; }
+  .sw1-stage__complogo { height: 30px; padding: 3px 6px; border-radius: 7px; }
 }
 
 .sw1-header__crests {
@@ -1486,6 +1486,24 @@
 
 /* ── Collapsible admin sections — big, on-brand, full-width tap targets ──── */
 .sw1-section { margin-bottom: 12px; }
+/* "Start here" tag straddling the top edge of the New & Saved teams button. */
+.sw1-section--start { position: relative; margin-top: 16px; }
+.sw1-starthere {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  z-index: 2;
+  background: #e1342e;
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(225, 52, 46, 0.4);
+  pointer-events: none;
+}
 .sw1-section > summary {
   cursor: pointer;
   list-style: none;

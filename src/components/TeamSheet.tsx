@@ -1330,7 +1330,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} vsStyle={vsStyle} competitionLogos={competitionLogos} />
+        <MatchHeader club={club} match={match} vsStyle={vsStyle} />
 
         <RotatingBanner
           sponsors={sponsors?.rotating}
@@ -1339,6 +1339,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         />
 
         <div className="sw1-stage">
+          {competitionLogos.length > 0 && (
+            <div className="sw1-stage__complogos" aria-hidden>
+              {competitionLogos.map((src, i) => (
+                <img key={i} className="sw1-stage__complogo" src={src} alt="" />
+              ))}
+            </div>
+          )}
           {data.watermark && (
             <div className={`sw1-stage-watermark ${wmIsLogo && wmLogo ? 'is-logo' : ''}`} aria-hidden>
               {Array.from({ length: 16 }).map((_, r) => (
