@@ -260,11 +260,17 @@
 /* ── Rotating sponsor banner — fixed 8:1 ratio so it never dominates ──────── */
 .sw1-banner {
   position: relative;
-  aspect-ratio: 8 / 1;
+  /* Readable on every screen: a fixed, comfortable strip height rather than an
+     extreme 8:1 ratio that shrinks to unreadable on phones. Recommend banners at
+     1200×300 (4:1). object-fit: contain always shows the whole banner. */
+  height: clamp(96px, 13vw, 150px);
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--hair);
   overflow: hidden;
+}
+@media (max-width: 600px) {
+  .sw1-banner { height: 92px; }
 }
 .sw1-banner__slide {
   display: block;
@@ -444,6 +450,21 @@
   .sw1-fixture { margin-top: 14px; }
   .sw1-adminbar { max-width: none; }
   .sw1-stage { padding: 8px; }
+}
+@media (max-width: 520px) {
+  /* Stop the match header feeling squashed on phones: tighter padding, smaller
+     crests/VS, hide the faint background crests that crowd a narrow screen. */
+  .sw1-header { padding: 16px 12px 18px; }
+  .sw1-header__ghost { display: none; }
+  .sw1-header__crests { gap: 6px; margin-bottom: 12px; }
+  .sw1-crest__badge { height: 74px; }
+  .sw1-crest__name { font-size: 13px; margin-top: 6px; }
+  .sw1-header__v { min-width: 50px; padding: 0 4px; }
+  .sw1-header__vs { font-size: 30px; }
+  .sw1-fixture { margin-top: 10px; padding: 4px 6px; }
+  .sw1-fixture__round { font-size: 13px; padding: 5px 18px; margin-bottom: 9px; }
+  .sw1-fixture__grade { font-size: clamp(26px, 8.4vw, 40px); }
+  .sw1-fixture__when { font-size: 13px; margin-top: 9px; }
 }
 
 /* ── Stage (admin panel + pitch) ────────────────────────────────────────── */
@@ -1794,7 +1815,7 @@
 /* On a wide PUBLIC/embedded graphic, float Interchange into the right corner and
    Emergencies into the left corner of the ground, with Followers centred between.
    Uses a container query (not viewport) so it also holds in the fixed-width PNG export. */
-@container sw1stage (min-width: 900px) {
+@container sw1stage (min-width: 700px) {
   .sw1-root:not(.sw1-root--admin) .sw1-interchange:not(.sw1-zone--stack),
   .sw1-root:not(.sw1-root--admin) .sw1-emergencies:not(.sw1-zone--stack) {
     position: absolute;

@@ -16,7 +16,7 @@ const SPORTSWEB_UPGRADE = 'https://sportsweb.com.au/premium-websites';
 
 /** Click Sports Media — media days, sports photography & banner artwork. */
 const CLICK_SPORTS_MEDIA_URL = 'https://clicksportsmedia.com/media-days';
-const CLICK_SPORTS_MEDIA_BANNERS_URL = 'https://clicksportsmedia.com/banners';
+const SPORTSWEB_BANNERS_URL = 'https://sportsweb.com.au/contact';
 /** In-app how-to guides (update to the live URLs when published). */
 const HEADSHOT_GUIDE_URL = 'https://clicksportsmedia.com/guides/headshots';
 const BULK_IMPORT_GUIDE_URL = 'https://clicksportsmedia.com/guides/bulk-import';
@@ -316,7 +316,7 @@ export default function AdminPanel({
             <li><strong>Add your squad</strong> — type players in, or use <em>Bulk import</em> (one per line: <em>number, name</em>, and an optional photo URL on the end).</li>
             <li><strong>Pick the side</strong> — tap a player, then tap a spot on the ground (or use <em>Add to position</em>). Fill the 15 field spots, the 3 Followers, then Interchange and Emergencies.</li>
             <li><strong>Roles &amp; availability</strong> — use the C / VC / Debut / Milestone chips, and the availability dropdown for ins, outs and injuries.</li>
-            <li><strong>Sponsors (optional)</strong> — add rotating sponsor banners (design them wide, around 1200×150) and paste each sponsor's link. They rotate above the ground — real exposure you can sell.</li>
+            <li><strong>Sponsors (optional)</strong> — add rotating sponsor banners (design them at 4:1, around 1200×300 so they read on phones) and paste each sponsor's link. They rotate above the ground — real exposure you can sell.</li>
             <li><strong>Save or Publish</strong> — <em>Save draft</em> keeps it private; <em>Publish</em> makes it live on your website. Each round is saved on its own.</li>
             <li><strong>Share it everywhere</strong> — <em>Download graphic</em> or the <em>Instagram</em> image for socials, copy the <em>auto-updating</em> embed onto your club site, <em>Print</em> an A3 for the rooms (with a QR), or cast the public link to club TV screens.</li>
           </ol>
@@ -531,10 +531,10 @@ export default function AdminPanel({
           </div>
 
           <p className="sw1-admin__hint sw1-admin__hint--links">
-            Design banners at an <strong>8:1 ratio</strong> — e.g. <strong>1200 × 150&nbsp;px</strong> in
-            Canva — so they sit neatly above the ground.{' '}
-            <a href={CLICK_SPORTS_MEDIA_BANNERS_URL} target="_blank" rel="noopener noreferrer">
-              Want one done professionally? Click Sports Media banners from $25 →
+            Design banners at a <strong>4:1 ratio</strong> — e.g. <strong>1200 × 300&nbsp;px</strong> in
+            Canva — so they read clearly on phones <em>and</em> desktop above the ground.{' '}
+            <a href={SPORTSWEB_BANNERS_URL} target="_blank" rel="noopener noreferrer">
+              Want one done professionally? SportsWeb Australia banners from $25 →
             </a>
           </p>
 

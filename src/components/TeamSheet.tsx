@@ -321,6 +321,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   // ── SportsWeb One database (Supabase) ─────────────────────────────────────
   const [dbState, setDbState] = useState<'idle' | 'loading' | 'saving' | 'ok' | 'error'>('idle');
+  // Public/embed views shouldn't flash the bundled sample before the real team
+  // loads — hold rendering until the first DB load settles.
+  const gateRender = autoLoad && mode !== 'admin';
+  const [booted, setBooted] = useState(!gateRender);
   const [dbMsg, setDbMsg] = useState('');
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
@@ -421,6 +425,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       console.error('Database load failed', err);
       setDbState('error');
       setDbMsg(err?.message ?? 'Could not reach the database.');
+    } finally {
+      setBooted(true);
     }
   }
 
@@ -1128,6 +1134,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } finally {
       setDownloading(false);
     }
+  }
+
+  // Hold the public/embed render until the first DB load settles (no sample flash).
+  if (!booted) {
+    return <div className={`sw1-root ${embed ? 'sw1-root--embed' : ''}`} style={themeVars} aria-busy="true" />;
   }
 
   return (

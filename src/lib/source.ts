@@ -143,26 +143,29 @@ export async function loadTeamSheet(
     }
   }
 
-  // Full club roster — every saved player stays selectable after reload, not
-  // just those already placed in this line-up. This is what makes manually
-  // created (standalone) players reusable across future line-ups.
+  // Squad for THIS team (grade) — every player who has appeared in any of this
+  // team's line-ups stays selectable across rounds, but players from OTHER teams
+  // at the same club are NOT merged in. (When all teams share one club, a club-wide
+  // merge polluted each team's squad with everyone — the "squad doesn't match the
+  // field / adds to the previous team" bug.)
   //
   // [FUTURE — SportsWeb One linked clubs] When a club is SW1-linked, this is
   // where we'd merge players synced from the SportsWeb One club/team database
   // (sourceType 'sportsweb_one'), keyed by their SW1 external id so we never
   // create duplicates. SW1 remains the source of truth for those records.
-  //
-  // [FUTURE — Fantasy AFL] A separate read-only public AFL player DB would be
-  // queried here for fantasy users (sourceType 'fantasy_afl'); never club data.
   try {
     const { data: roster } = await supabase
-      .from('players')
-      .select('id, number, first_name, last_name, display_name, headshot_url, jumper_image_url')
-      .eq('club_id', club.id)
-      .order('number');
+      .from('lineup_positions')
+      .select(
+        `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url ),
+         lineup:lineups!inner ( fixture:fixtures!inner ( team_id ) )`,
+      )
+      .eq('lineup.fixture.team_id', team.id);
     const have = new Set(players.map((p) => p.id));
-    for (const p of (roster as any[]) ?? []) {
-      if (have.has(p.id)) continue;
+    for (const row of (roster as any[]) ?? []) {
+      const p = row.player;
+      if (!p || have.has(p.id)) continue;
+      have.add(p.id);
       players.push({
         id: p.id,
         dbId: p.id,
@@ -280,11 +283,23 @@ export async function loadLatestForClubGrade(
   const { data, error } = await q;
   if (error) throw error;
   if (!data || data.length === 0) return null;
+  let firstLoaded: LoadedSheet | null = null;
   for (const row of data as any[]) {
     const sheet = await loadTeamSheet(row.id, opts);
-    if (sheet) return sheet;
+    if (!sheet) continue;
+    if (!firstLoaded) firstLoaded = sheet;
+    // Prefer the newest fixture that genuinely has a published line-up with
+    // players on it — otherwise the embed falls back to an empty/default graphic
+    // (no jumpers, club-name watermark) for a fixture that was never published.
+    const hasTeam =
+      !!sheet.refs.lineupId &&
+      (Object.keys(sheet.data.lineup.positions).length > 0 ||
+        sheet.data.lineup.followers.length > 0 ||
+        sheet.data.lineup.interchange.length > 0);
+    if (hasTeam) return sheet;
   }
-  return null;
+  // Nothing fully published yet — show the newest we could load rather than nothing.
+  return firstLoaded;
 }
 
 /** A saved team in the recall list (one per fixture = round/date/grade). */
