@@ -84,20 +84,20 @@
   gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: 48%;
+  max-width: 56%;
 }
 .sw1-stage__complogo {
-  height: clamp(54px, 9cqw, 108px);
+  height: clamp(74px, 12.5cqw, 150px);
   width: auto;
-  max-width: 220px;
+  max-width: 290px;
   object-fit: contain;
   /* Transparent — let the logo sit straight on the ground; a soft shadow keeps it
      legible whether the logo is light or dark. */
   filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
 }
 @media (max-width: 520px) {
-  .sw1-stage__complogos { gap: 6px; top: 8px; right: 8px; max-width: 50%; }
-  .sw1-stage__complogo { height: 46px; }
+  .sw1-stage__complogos { gap: 7px; top: 8px; right: 8px; max-width: 54%; }
+  .sw1-stage__complogo { height: 60px; }
 }
 
 .sw1-header__crests {

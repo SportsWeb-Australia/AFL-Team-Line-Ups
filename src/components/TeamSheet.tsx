@@ -278,10 +278,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
    */
   function startNewTeam() {
     if (
-      lineupFilledCount() > 0 &&
-      !window.confirm('Start a new team? This clears the current selections and the match round so you can build the next one — your squad and club branding stay.')
+      (lineupFilledCount() > 0 || players.length > 0) &&
+      !window.confirm('Start a new team? This clears the current squad, selections and match round so you can build the next one from scratch — your club branding stays. (Saved teams in the database are not touched.)')
     )
       return;
+    setPlayers([]);
     setPositions({});
     setFollowers([]);
     setInterchange([]);
