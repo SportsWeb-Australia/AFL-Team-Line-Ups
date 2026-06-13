@@ -72,6 +72,35 @@
 .sw1-header__ghost--l { left: -90px; }
 .sw1-header__ghost--r { right: -90px; transform: translateY(-50%) scaleX(-1); }
 
+/* Competition / extra logos — top-right of the header. Frosted backing so any
+   logo (light or dark) stays legible on the club-coloured header. */
+.sw1-header__complogos {
+  position: absolute;
+  top: clamp(12px, 2vw, 20px);
+  right: clamp(12px, 2vw, 22px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 42%;
+}
+.sw1-header__complogo {
+  height: clamp(32px, 4.6vw, 52px);
+  width: auto;
+  max-width: 130px;
+  object-fit: contain;
+  background: rgba(255, 255, 255, 0.92);
+  border-radius: 8px;
+  padding: 4px 7px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.18);
+}
+@media (max-width: 520px) {
+  .sw1-header__complogos { gap: 5px; top: 8px; right: 8px; max-width: 40%; }
+  .sw1-header__complogo { height: 26px; padding: 3px 5px; border-radius: 6px; }
+}
+
 .sw1-header__crests {
   position: relative;
   z-index: 1;
@@ -1241,6 +1270,40 @@
 }
 .sw1-brand__logos input[type='file'] { font-size: 11px; }
 
+/* Competition / extra logos uploader (admin) */
+.sw1-complogos { margin: 4px 0 10px; }
+.sw1-complogos__add { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
+.sw1-complogos__add input[type='file'] { font-size: 11px; font-weight: 400; }
+.sw1-complogos__list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sw1-complogos__item { position: relative; }
+.sw1-complogos__item img {
+  height: 46px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+.sw1-complogos__del {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: #e1342e;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 .sw1-footer {
   text-align: center;
@@ -1261,25 +1324,29 @@
 
 @media print {
   @page { size: A3; margin: 12mm; }
-  /* Isolate the print sheet (the captured PUBLIC graphic) — hide everything else
-     so the editor never prints and the whole team fits on one page. */
-  body * { visibility: hidden !important; }
-  .sw1-printsheet, .sw1-printsheet * { visibility: visible !important; }
+  /* The print sheet is portalled to <body>, so we can fully REMOVE the app from
+     layout (display:none) rather than just hide it — that's what stops the editor
+     padding out blank extra pages behind the sheet. */
+  body > *:not(.sw1-printsheet) { display: none !important; }
   .sw1-printsheet {
-    position: fixed;
-    inset: 0;
     display: flex !important;
     flex-direction: column;
     align-items: center;
     justify-content: flex-start;
     gap: 14px;
     background: #fff;
+    width: 100%;
   }
   .sw1-printsheet__img {
     max-width: 100%;
-    max-height: 84vh;
+    max-height: 78vh;
+    width: auto;
+    height: auto;
     object-fit: contain;
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
+  .sw1-printsheet__foot { page-break-inside: avoid; break-inside: avoid; }
   .sw1-install { display: none !important; }
   * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
@@ -1869,22 +1936,22 @@
 .sw1-exporting .sw1-interchange:not(.sw1-zone--stack),
 .sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) {
   position: absolute;
-  bottom: 22px;
+  bottom: 19px;
   width: 220px;
   max-width: 220px;
   margin: 0;
   z-index: 3;
 }
-.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) { left: 24px; }
-.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) { right: 24px; }
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) { left: 16px; }
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) { right: 16px; }
 .sw1-exporting .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
 .sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
   grid-template-columns: 1fr;
   gap: 5px;
 }
 .sw1-exporting .sw1-followers-wrap {
-  padding-left: 280px;
-  padding-right: 280px;
+  padding-left: 300px;
+  padding-right: 300px;
 }
 .sw1-unavailable-wrap .sw1-bench__grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

@@ -27,3 +27,9 @@ alter table lineups
 
 alter table lineups
   add column if not exists watermark_logo_url text;
+
+-- competition_logos: JSON array of logo image URLs/data-URLs shown top-right of
+-- the header (league/competition logos, or an extra sponsor). Added later — run
+-- this if your DB predates the competition-logos feature.
+alter table lineups
+  add column if not exists competition_logos text;

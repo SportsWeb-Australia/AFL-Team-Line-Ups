@@ -134,4 +134,7 @@ export interface TeamSheetData {
   jumperImageUrl?: string;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
   vsStyle?: 'chrome' | 'split';
+  /** Logos shown top-right of the header — competition/league logos or an extra
+   *  sponsor. Any number; rendered in a row. Persisted so embeds match the editor. */
+  competitionLogos?: string[];
 }

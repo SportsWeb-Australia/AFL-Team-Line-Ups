@@ -69,6 +69,10 @@ interface Props {
   onTeamJumper?: (dataUrl: string) => void;
   vsStyle?: 'chrome' | 'split';
   onVsStyle?: (s: 'chrome' | 'split') => void;
+  /** Competition / extra logos shown top-right of the header (any number). */
+  competitionLogos?: string[];
+  onAddCompetitionLogo?: (dataUrl: string) => void;
+  onRemoveCompetitionLogo?: (index: number) => void;
   onSelect: (id: string) => void;
   onAddPlayer: (number: string, name: string) => void;
   onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
@@ -141,6 +145,9 @@ export default function AdminPanel({
   onTeamJumper,
   vsStyle,
   onVsStyle,
+  competitionLogos = [],
+  onAddCompetitionLogo,
+  onRemoveCompetitionLogo,
   onSelect,
   onAddPlayer,
   onImport,
@@ -267,6 +274,11 @@ export default function AdminPanel({
   const uploadSponsor = (index: number) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) onSponsorLogo(index, await readAsDataUrl(file));
+  };
+  const uploadCompetitionLogos = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? []);
+    for (const file of files) onAddCompetitionLogo?.(await readAsDataUrl(file));
+    e.target.value = ''; // allow re-selecting the same file
   };
 
   const rotating = sponsors?.rotating ?? [];
@@ -521,7 +533,33 @@ export default function AdminPanel({
           </label>
         </div>
 
-        {/* Sponsor banner rotation — a SportsWeb One revenue surface */}
+        {/* Competition / extra logos — top-right of the header. Any number; a club
+            can also use this space for an additional sponsor logo. */}
+        <div className="sw1-complogos">
+          <label className="sw1-complogos__add">
+            Competition / extra logos (top-right)
+            <input type="file" accept="image/*" multiple onChange={uploadCompetitionLogos} />
+            <span className="sw1-admin__hint">Add your league/competition logo — or pop another sponsor's logo up here. Add as many as you like; they sit top-right of the header.</span>
+          </label>
+          {competitionLogos.length > 0 && (
+            <div className="sw1-complogos__list">
+              {competitionLogos.map((src, i) => (
+                <div key={i} className="sw1-complogos__item">
+                  <img src={src} alt="" />
+                  <button
+                    type="button"
+                    className="sw1-complogos__del"
+                    onClick={() => onRemoveCompetitionLogo?.(i)}
+                    aria-label="Remove logo"
+                  >
+                    ✕
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
         <div className="sw1-sponsorpanel">
           <div className="sw1-sponsorpanel__head">
             <div>

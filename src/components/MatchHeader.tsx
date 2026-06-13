@@ -24,15 +24,24 @@ interface Props {
   club: Club;
   match: MatchInfo;
   vsStyle?: 'chrome' | 'split';
+  competitionLogos?: string[];
 }
 
-export default function MatchHeader({ club, match, vsStyle = 'chrome' }: Props) {
+export default function MatchHeader({ club, match, vsStyle = 'chrome', competitionLogos = [] }: Props) {
   return (
     <header className="sw1-header">
       {/* faint crests bleeding off each side */}
       {club.logoUrl && <img className="sw1-header__ghost sw1-header__ghost--l" src={club.logoUrl} alt="" />}
       {match.opponentLogoUrl && (
         <img className="sw1-header__ghost sw1-header__ghost--r" src={match.opponentLogoUrl} alt="" />
+      )}
+
+      {competitionLogos.length > 0 && (
+        <div className="sw1-header__complogos">
+          {competitionLogos.map((src, i) => (
+            <img key={i} className="sw1-header__complogo" src={src} alt="" />
+          ))}
+        </div>
       )}
 
       <div className="sw1-header__crests">

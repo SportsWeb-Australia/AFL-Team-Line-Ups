@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
 import type {
   BenchArea,
@@ -114,6 +115,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [match, setMatch] = useState(data.match);
   const [sponsors, setSponsors] = useState(data.sponsors);
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
+  const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
   const [printImage, setPrintImage] = useState<string | null>(null);
 
@@ -373,6 +375,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setWmSponsorName(d.watermarkText ?? '');
     setWmSponsorLogo(d.watermarkLogoUrl ?? null);
     setJumperImageUrl(d.jumperImageUrl);
+    setCompetitionLogos(d.competitionLogos ?? []);
     if (d.vsStyle) setVsStyle(d.vsStyle);
     setSelectedPlayerId(null);
   }
@@ -391,6 +394,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       vsStyle,
+      competitionLogos,
     };
   }
 
@@ -919,6 +923,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setJumperImageUrl(url || undefined);
   }
 
+  function addCompetitionLogo(dataUrl: string) {
+    if (dataUrl) setCompetitionLogos((list) => [...list, dataUrl]);
+  }
+  function removeCompetitionLogo(index: number) {
+    setCompetitionLogos((list) => list.filter((_, i) => i !== index));
+  }
+
   function setSponsorLogo(index: number, dataUrl: string) {
     setSponsors((s) => {
       const rotating = [...(s?.rotating ?? [])];
@@ -1025,7 +1036,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const wrap = previewWrapRef.current;
     const wasCollapsed = !!wrap?.classList.contains('is-collapsed');
     if (wasCollapsed) wrap!.classList.add('is-capturing');
-    const EXPORT_WIDTH = 1080;
+    const EXPORT_WIDTH = 1180;
     const prevWidth = node.style.width;
     const prevMax = node.style.maxWidth;
     node.style.width = `${EXPORT_WIDTH}px`;
@@ -1239,6 +1250,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             selectedPlayerId={selectedPlayerId}
             onVisualMode={setVisualMode}
             teamJumperUrl={jumperImageUrl}
+            competitionLogos={competitionLogos}
+            onAddCompetitionLogo={addCompetitionLogo}
+            onRemoveCompetitionLogo={removeCompetitionLogo}
             onTeamJumper={setTeamJumper}
             vsStyle={vsStyle}
             onVsStyle={setVsStyle}
@@ -1316,7 +1330,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} vsStyle={vsStyle} />
+        <MatchHeader club={club} match={match} vsStyle={vsStyle} competitionLogos={competitionLogos} />
 
         <RotatingBanner
           sponsors={sponsors?.rotating}
@@ -1476,18 +1490,20 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
       {/* Print sheet — the captured PUBLIC graphic on a single A3 page, plus a QR
           and a note about screens / posters. Only visible while printing. */}
-      {printImage && (
-        <div className="sw1-printsheet" aria-hidden="true">
-          <img className="sw1-printsheet__img" src={printImage} alt="" />
-          <div className="sw1-printsheet__foot">
-            <img className="sw1-printsheet__qr" src={qrSrc(printUrl)} alt="" />
-            <div className="sw1-printsheet__cap">
-              <strong>See the live team online</strong>
-              <span>Scan to view selections, ins &amp; outs and fixtures. Print A3 for the club rooms &amp; change rooms, or cast the link to club screens — great exposure for your sponsors.</span>
+      {printImage &&
+        createPortal(
+          <div className="sw1-printsheet" aria-hidden="true">
+            <img className="sw1-printsheet__img" src={printImage} alt="" />
+            <div className="sw1-printsheet__foot">
+              <img className="sw1-printsheet__qr" src={qrSrc(printUrl)} alt="" />
+              <div className="sw1-printsheet__cap">
+                <strong>See the live team online</strong>
+                <span>Scan to view selections, ins &amp; outs and fixtures. Print A3 for the club rooms &amp; change rooms, or cast the link to club screens — great exposure for your sponsors.</span>
+              </div>
             </div>
-          </div>
-        </div>
-      )}
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }

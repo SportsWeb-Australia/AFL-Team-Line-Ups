@@ -132,6 +132,7 @@ create table if not exists lineups (
   vs_style text,
   watermark_text text,
   watermark_logo_url text,
+  competition_logos text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

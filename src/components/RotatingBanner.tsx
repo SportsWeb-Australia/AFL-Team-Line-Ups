@@ -47,7 +47,10 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
       onLoad={(e) => {
         const im = e.currentTarget;
         if (im.naturalHeight > 0) {
-          setFit(im.naturalWidth / im.naturalHeight >= 5 ? 'cover' : 'contain');
+          // Only switch to cover for ULTRA-wide banners (wider than the strip box
+          // itself). Anything 4:1–~7:1 stays contained so the whole sponsor banner
+          // is visible — cover was cropping the sides of normal wide banners.
+          setFit(im.naturalWidth / im.naturalHeight >= 8 ? 'cover' : 'contain');
         }
       }}
     />

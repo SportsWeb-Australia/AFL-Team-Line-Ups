@@ -54,7 +54,7 @@ export default function App() {
       const h =
         Math.ceil(
           Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, maxBottom),
-        ) + 24;
+        ) + 4;
       window.parent?.postMessage({ type: 'sw1-embed-height', height: h }, '*');
     };
     post();
