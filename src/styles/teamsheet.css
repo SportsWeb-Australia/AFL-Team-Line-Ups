@@ -1516,6 +1516,12 @@
 .sw1-quick__steps strong { color: #0c2340; }
 .sw1-quick__steps em { font-style: normal; font-weight: 700; color: #159a4c; }
 .sw1-quick__chat { font-size: 13px; font-weight: 700; color: #159a4c; text-decoration: none; }
+.sw1-hosting { font-size: 13px; color: #475569; }
+.sw1-hosting p { margin: 0 0 8px; }
+.sw1-hosting ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 7px; }
+.sw1-hosting li { line-height: 1.45; }
+.sw1-hosting strong { color: #0c2340; }
+.sw1-hosting__rooms { padding: 8px 10px; background: #f1f5f9; border-radius: 8px; }
 .sw1-quick__chat:hover { text-decoration: underline; }
 
 /* ── Database intent buttons (equal-size grid) ──────────────────────────── */

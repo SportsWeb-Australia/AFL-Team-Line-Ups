@@ -366,6 +366,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setSponsors(d.sponsors);
     if (d.visualMode) setVisualMode(d.visualMode);
     if (d.watermarkSource) setWmSource(d.watermarkSource);
+    setWmSponsorName(d.watermarkText ?? '');
+    setWmSponsorLogo(d.watermarkLogoUrl ?? null);
     setJumperImageUrl(d.jumperImageUrl);
     if (d.vsStyle) setVsStyle(d.vsStyle);
     setSelectedPlayerId(null);
@@ -381,6 +383,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermark: data.watermark,
       visualMode,
       watermarkSource: wmSource,
+      watermarkText: wmSponsorName || undefined,
+      watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       vsStyle,
     };

@@ -45,7 +45,7 @@ export default function MatchHeader({ club, match, vsStyle = 'chrome' }: Props) 
       </div>
 
       <div className="sw1-fixture">
-        <div className="sw1-fixture__round">{match.round}</div>
+        {match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
         <div className="sw1-fixture__grade">{match.grade}</div>
         <div className="sw1-fixture__when">
           {match.date} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}

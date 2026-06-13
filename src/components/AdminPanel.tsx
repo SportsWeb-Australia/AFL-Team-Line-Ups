@@ -326,6 +326,23 @@ export default function AdminPanel({
         </div>
       </details>
 
+      {/* Hosting & sharing options — where this can live */}
+      <details name="sw1adm" className="sw1-section">
+        <summary>Hosting &amp; sharing options</summary>
+        <div className="sw1-hosting">
+          <p>Three easy ways to get your line-ups in front of members:</p>
+          <ul>
+            <li><strong>Free hosted subdomain</strong> — complimentary with us. We host your teams on a club-branded link you can share anywhere and put on your club screens.</li>
+            <li><strong>Embed on your own site</strong> — paste one auto-updating snippet into your existing website; publish each round and it refreshes itself.</li>
+            <li><strong>Get a site with us</strong> — we'll build and set it all up for you. On the <strong>Premium Website plan the app is included free</strong>.</li>
+          </ul>
+          <p className="sw1-hosting__rooms"><strong>In the rooms:</strong> Print an A3 for the change rooms, or cast the public link to your club TV screens — more eyes on your sponsors.</p>
+          <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
+            Set up hosting with SportsWeb →
+          </a>
+        </div>
+      </details>
+
       {/* Saved teams — load & manage (collapsible). Saving/publishing lives in the top bar. */}
       <details name="sw1adm" className="sw1-section">
         <summary>Saved teams — load, recall &amp; embed</summary>

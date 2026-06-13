@@ -127,6 +127,9 @@ export interface TeamSheetData {
   visualMode?: VisualMode;
   /** What shows in the faint background behind the oval. Persisted so embeds match the editor. */
   watermarkSource?: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
+  /** Custom watermark sponsor name + logo (when watermarkSource is a sponsor one). Persisted. */
+  watermarkText?: string;
+  watermarkLogoUrl?: string;
   /** ONE jumper image used for the whole team when visualMode === 'jumper'. */
   jumperImageUrl?: string;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */

@@ -81,7 +81,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode');
@@ -225,6 +226,8 @@ export async function loadTeamSheet(
     watermarkSource: (lineup && (lineup as any).watermark_source) || undefined,
     jumperImageUrl: (lineup && (lineup as any).jumper_image_url) || undefined,
     vsStyle: (lineup && (lineup as any).vs_style) || undefined,
+    watermarkText: (lineup && (lineup as any).watermark_text) || undefined,
+    watermarkLogoUrl: (lineup && (lineup as any).watermark_logo_url) || undefined,
   };
 
   return {
@@ -331,22 +334,42 @@ export async function saveTeamSheet(
   const publish = opts.publish ?? true;
   if (!supabase) throw new Error('Database is not configured.');
 
-  // 1. club -------------------------------------------------------------------
-  const { data: club, error: e1 } = await supabase
-    .from('clubs')
-    .upsert({
-      ...(refs.clubId ? { id: refs.clubId } : {}),
-      name: d.club.name || 'My Club',
-      short_name: d.club.shortName ?? null,
-      primary_color: d.club.primaryColor,
-      secondary_color: d.club.secondaryColor,
-      ink_color: d.club.inkColor ?? '#0c2340',
-      logo_url: d.club.logoUrl ?? null,
-    })
-    .select('id')
-    .single();
-  if (e1) throw e1;
-  const clubId = (club as any).id as string;
+  // 1. club — find-or-create by NAME so a club's saved teams always live under
+  //    the one club row (across sessions too). Without this, every fresh save
+  //    created a brand-new club, so the recall list only ever showed the last one.
+  const clubFields = {
+    name: d.club.name || 'My Club',
+    short_name: d.club.shortName ?? null,
+    primary_color: d.club.primaryColor,
+    secondary_color: d.club.secondaryColor,
+    ink_color: d.club.inkColor ?? '#0c2340',
+    logo_url: d.club.logoUrl ?? null,
+  };
+  let clubId: string;
+  {
+    let existingId = refs.clubId ?? null;
+    if (!existingId) {
+      const { data: found } = await supabase
+        .from('clubs')
+        .select('id')
+        .eq('name', clubFields.name)
+        .limit(1);
+      if (found && found.length) existingId = (found[0] as any).id;
+    }
+    if (existingId) {
+      const { error: ue } = await supabase.from('clubs').update(clubFields).eq('id', existingId);
+      if (ue) throw ue;
+      clubId = existingId;
+    } else {
+      const { data: c, error: e1 } = await supabase
+        .from('clubs')
+        .insert(clubFields)
+        .select('id')
+        .single();
+      if (e1) throw e1;
+      clubId = (c as any).id as string;
+    }
+  }
 
   // 2. team (find-or-create by club + grade name; the grade IS the identity, so
   //    switching grade targets a different team rather than renaming this one) --
@@ -441,6 +464,8 @@ export async function saveTeamSheet(
     const wmsrc = d.watermarkSource ?? null;
     const jumper = d.jumperImageUrl ?? null;
     const vstyle = d.vsStyle ?? null;
+    const wmtext = d.watermarkText ?? null;
+    const wmlogo = d.watermarkLogoUrl ?? null;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
@@ -450,6 +475,8 @@ export async function saveTeamSheet(
         watermark_source: wmsrc,
         jumper_image_url: jumper,
         vs_style: vstyle,
+        watermark_text: wmtext,
+        watermark_logo_url: wmlogo,
       };
       if (publish) patch.published = true;
       const { error: ue } = await supabase.from('lineups').update(patch).eq('id', lineupId);
@@ -467,6 +494,8 @@ export async function saveTeamSheet(
           watermark_source: wmsrc,
           jumper_image_url: jumper,
           vs_style: vstyle,
+          watermark_text: wmtext,
+          watermark_logo_url: wmlogo,
         })
         .select('id')
         .single();

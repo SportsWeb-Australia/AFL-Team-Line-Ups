@@ -21,3 +21,9 @@ alter table lineups
 
 alter table lineups
   add column if not exists vs_style text;
+
+alter table lineups
+  add column if not exists watermark_text text;
+
+alter table lineups
+  add column if not exists watermark_logo_url text;
