@@ -27,6 +27,15 @@ export default function App() {
   // The editor previews public via state so selections persist across the switch.
   const [mode, setMode] = useState<RenderMode>(isAdminSession ? 'admin' : 'public');
 
+  // Embed background is transparent by default so it blends into any club page.
+  // Optionally pin a solid colour with ?bg=ffffff (or ?bg=transparent).
+  useEffect(() => {
+    if (!isEmbed) return;
+    const bg = params.get('bg');
+    document.body.style.background =
+      bg && bg.toLowerCase() !== 'transparent' ? `#${bg.replace(/^#/, '')}` : 'transparent';
+  }, []);
+
   // Embed auto-height: report our content height to the host page so the iframe
   // can size itself to fit any device (no fixed height / inner scrollbar).
   useEffect(() => {

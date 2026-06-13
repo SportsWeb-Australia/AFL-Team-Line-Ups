@@ -697,10 +697,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setPlayers((prev) => [...prev, { id: uid(), number, name, sourceType: 'standalone' }]);
   }
 
-  function importPlayers(rows: { number: string; name: string }[]) {
+  function importPlayers(rows: { number: string; name: string; headshotUrl?: string }[]) {
     setPlayers((prev) => [
       ...prev,
-      ...rows.map((r) => ({ id: uid(), sourceType: 'standalone' as const, ...r })),
+      ...rows.map((r) => ({
+        id: uid(),
+        sourceType: 'standalone' as const,
+        number: r.number,
+        name: r.name,
+        headshotUrl: r.headshotUrl || undefined,
+      })),
     ]);
   }
 
@@ -1008,7 +1014,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             Print
           </button>
           <button className="sw1-btn" onClick={copyTeamList}>
-            {copyMsg || 'Copy team list'}
+            {copyMsg || 'Copy team list to text'}
           </button>
           <div className="sw1-share">
             <button className="sw1-btn" onClick={() => setShareOpen((o) => !o)} aria-haspopup="true" aria-expanded={shareOpen}>

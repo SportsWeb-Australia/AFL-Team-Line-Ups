@@ -14,6 +14,13 @@ const SPORTSWEB_URL = 'https://sportsweb.com.au';
 const SPORTSWEB_CONTACT = 'https://sportsweb.com.au/contact';
 const SPORTSWEB_UPGRADE = 'https://sportsweb.com.au/premium-websites';
 
+/** Click Sports Media — media days, sports photography & banner artwork. */
+const CLICK_SPORTS_MEDIA_URL = 'https://clicksportsmedia.com/media-days';
+const CLICK_SPORTS_MEDIA_BANNERS_URL = 'https://clicksportsmedia.com/banners';
+/** In-app how-to guides (update to the live URLs when published). */
+const HEADSHOT_GUIDE_URL = 'https://clicksportsmedia.com/guides/headshots';
+const BULK_IMPORT_GUIDE_URL = 'https://clicksportsmedia.com/guides/bulk-import';
+
 /** Quick-start walkthrough video — drop in a real embed URL when available. */
 const QUICKSTART_VIDEO_URL = '';
 
@@ -59,7 +66,7 @@ interface Props {
   onVisualMode: (m: VisualMode) => void;
   onSelect: (id: string) => void;
   onAddPlayer: (number: string, name: string) => void;
-  onImport: (rows: { number: string; name: string }[]) => void;
+  onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
   onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
   onRemovePlayer: (id: string) => void;
@@ -219,8 +226,17 @@ export default function AdminPanel({
       .map((l) => l.trim())
       .filter(Boolean)
       .map((l) => {
-        const [number, ...rest] = l.split(',');
-        return { number: (number || '').trim(), name: rest.join(',').trim() };
+        // Format: number, name[, headshot image URL]
+        const parts = l.split(',').map((s) => s.trim());
+        const number = parts[0] || '';
+        let nameParts = parts.slice(1);
+        let headshotUrl: string | undefined;
+        const last = nameParts[nameParts.length - 1];
+        if (last && /^https?:\/\//i.test(last)) {
+          headshotUrl = last;
+          nameParts = nameParts.slice(0, -1);
+        }
+        return { number, name: nameParts.join(', ').trim(), headshotUrl };
       })
       .filter((r) => r.number && r.name);
     if (rows.length) {
@@ -439,9 +455,17 @@ export default function AdminPanel({
           <div className="sw1-sponsorpanel__head">
             <div>
               <strong>Sponsor banner rotation</strong>
-              <span>Upload sold banner ads (728×90 style) to rotate above the ground</span>
+              <span>Upload sold banner ads to rotate above the ground</span>
             </div>
           </div>
+
+          <p className="sw1-admin__hint sw1-admin__hint--links">
+            Design banners at an <strong>8:1 ratio</strong> — e.g. <strong>1200 × 150&nbsp;px</strong> in
+            Canva — so they sit neatly above the ground.{' '}
+            <a href={CLICK_SPORTS_MEDIA_BANNERS_URL} target="_blank" rel="noopener noreferrer">
+              Want one done professionally? Click Sports Media banners from $25 →
+            </a>
+          </p>
 
           <div className="sw1-brand__logos">
             {rotating.map((s, i) => (
@@ -610,6 +634,19 @@ export default function AdminPanel({
         ))}
       </div>
 
+      {/* Player imagery: pro option + DIY guide. Per-player upload sits in each
+          player's edit row below; this explains how to get great images. */}
+      <a className="sw1-mediaday" href={CLICK_SPORTS_MEDIA_URL} target="_blank" rel="noopener noreferrer">
+        <strong>📸 Get Click Sports Media to run a media day</strong>
+        <span>High-quality headshots &amp; properly rendered jumper images — we operate Australia-wide →</span>
+      </a>
+      <p className="sw1-admin__hint sw1-admin__hint--links">
+        Doing your own?{' '}
+        <a href={HEADSHOT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See our headshot guide</a>{' '}
+        for the right size, framing and background. Add each player's headshot or jumper with the{' '}
+        <strong>✎ Edit</strong> button on their row below.
+      </p>
+
       <p className="sw1-admin__hint">
         Your full squad. Tap a player to pick them up, then tap a field position or bench group (drag works on a computer). Set availability to move someone straight to Unavailable.
       </p>
@@ -636,7 +673,17 @@ export default function AdminPanel({
 
       <details className="sw1-admin__bulk">
         <summary>Bulk import</summary>
-        <textarea value={bulk} onChange={(e) => setBulk(e.target.value)} placeholder={'17, Jack Reardon\n10, Tom Wallis'} />
+        <p className="sw1-admin__hint sw1-admin__hint--links">
+          One player per line as <strong>number, name</strong> — and optionally a headshot image
+          URL as a third column. Paste straight from a spreadsheet (CSV) saved as
+          <em> number, name, headshot URL</em>.{' '}
+          <a href={BULK_IMPORT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See the bulk-import guide →</a>
+        </p>
+        <textarea
+          value={bulk}
+          onChange={(e) => setBulk(e.target.value)}
+          placeholder={'17, Jack Reardon, https://yourclub.com/photos/reardon.jpg\n10, Tom Wallis'}
+        />
         <button className="sw1-btn" onClick={importRows}>Import players</button>
       </details>
 
