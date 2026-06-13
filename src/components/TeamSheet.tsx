@@ -113,6 +113,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [club, setClub] = useState(data.club);
   const [match, setMatch] = useState(data.match);
   const [sponsors, setSponsors] = useState(data.sponsors);
+  const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [printing, setPrinting] = useState(false);
 
   // Background watermark behind the oval (club/sponsor name or logo).
@@ -363,6 +364,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setMatch(d.match);
     setSponsors(d.sponsors);
     if (d.visualMode) setVisualMode(d.visualMode);
+    if (d.watermarkSource) setWmSource(d.watermarkSource);
+    setJumperImageUrl(d.jumperImageUrl);
     setSelectedPlayerId(null);
   }
 
@@ -375,6 +378,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       lineup: { positions, followers, interchange, emergencies, unavailable },
       watermark: data.watermark,
       visualMode,
+      watermarkSource: wmSource,
+      jumperImageUrl,
     };
   }
 
@@ -558,7 +563,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       const names = keys.map((k) => nm(positions[k])).filter(Boolean);
       if (names.length) out.push(`${label}: ${names.join(', ')}`);
     }
-    const foll = followers.map((id) => nm(id)).filter(Boolean);
+    const foll = followers
+      .map((id, idx) => {
+        const n = nm(id);
+        return n ? `${FOLLOWER_LABELS[idx] ?? 'Follower'} ${n}` : null;
+      })
+      .filter(Boolean);
     if (foll.length) out.push(`Followers: ${foll.join(', ')}`);
     const ic = interchange.map((id) => nm(id)).filter(Boolean);
     if (ic.length) out.push(`Interchange: ${ic.join(', ')}`);
@@ -866,6 +876,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         area={area}
         players={ids.map((id) => playerMap.get(id)).filter(Boolean) as Player[]}
         visualMode={visualMode}
+        teamJumperUrl={jumperImageUrl}
         enabled={admin}
         selectedPlayerId={selectedPlayerId}
         onAssign={assignToArea}
@@ -889,6 +900,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function setLogo(target: LogoTarget, dataUrl: string) {
     if (target === 'home') updateClub({ logoUrl: dataUrl });
     else updateMatch({ opponentLogoUrl: dataUrl });
+  }
+
+  function setTeamJumper(url: string) {
+    setJumperImageUrl(url || undefined);
   }
 
   function setSponsorLogo(index: number, dataUrl: string) {
@@ -967,51 +982,117 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     return s.trim().replace(/[^\w]+/g, '-').replace(/^-+|-+$/g, '');
   }
 
-  async function downloadPng() {
+  function downloadDataUrl(dataUrl: string, filename: string) {
+    const a = document.createElement('a');
+    a.download = filename;
+    a.href = dataUrl;
+    a.click();
+  }
+
+  // Capture the public graphic region to a PNG data URL at a fixed, generous
+  // width (so it's consistent regardless of the on-screen editor width).
+  async function captureGraphicPng(): Promise<string | null> {
     const node = captureRef.current;
-    if (!node) return;
-    setDownloading(true);
+    if (!node) return null;
     node.classList.add('sw1-exporting');
-    // If the preview is collapsed on mobile, force it open just for the capture.
     const wrap = previewWrapRef.current;
     const wasCollapsed = !!wrap?.classList.contains('is-collapsed');
     if (wasCollapsed) wrap!.classList.add('is-capturing');
+    const EXPORT_WIDTH = 1080;
+    const prevWidth = node.style.width;
+    const prevMax = node.style.maxWidth;
+    node.style.width = `${EXPORT_WIDTH}px`;
+    node.style.maxWidth = 'none';
+    node.getBoundingClientRect(); // force a synchronous reflow at the export width
     try {
-      // Capture at a fixed, generous width so the downloaded graphic is always a
-      // full, consistent size (not the narrow width of the on-screen editor). The
-      // layout reflows to this width briefly, then we restore it.
-      const EXPORT_WIDTH = 1080;
-      const prevWidth = node.style.width;
-      const prevMax = node.style.maxWidth;
-      node.style.width = `${EXPORT_WIDTH}px`;
-      node.style.maxWidth = 'none';
-      node.getBoundingClientRect(); // force a synchronous reflow at the export width
-      let dataUrl: string;
-      try {
-        dataUrl = await toPng(node, {
-          pixelRatio: 2, // crisp on retina / good for socials
-          backgroundColor: '#eef2f6',
-          cacheBust: true,
-          width: EXPORT_WIDTH,
-          height: Math.ceil(node.scrollHeight),
-          style: { margin: '0', transform: 'none' },
-        });
-      } finally {
-        node.style.width = prevWidth;
-        node.style.maxWidth = prevMax;
-      }
-      const a = document.createElement('a');
-      a.download = `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(
-        match.round,
-      )}.png`;
-      a.href = dataUrl;
-      a.click();
+      return await toPng(node, {
+        pixelRatio: 2,
+        backgroundColor: '#eef2f6',
+        cacheBust: true,
+        width: EXPORT_WIDTH,
+        height: Math.ceil(node.scrollHeight),
+        style: { margin: '0', transform: 'none' },
+      });
+    } finally {
+      node.style.width = prevWidth;
+      node.style.maxWidth = prevMax;
+      node.classList.remove('sw1-exporting');
+      if (wasCollapsed) wrap?.classList.remove('is-capturing');
+    }
+  }
+
+  // Fit a captured graphic onto a fixed-ratio canvas (no cropping) — used to hit
+  // Instagram's accepted ratios exactly (4:5 feed by default).
+  function composeToRatio(src: string, targetW: number, targetH: number, bg: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return reject(new Error('no 2d context'));
+        ctx.fillStyle = bg;
+        ctx.fillRect(0, 0, targetW, targetH);
+        const scale = Math.min(targetW / im.width, targetH / im.height);
+        const w = im.width * scale;
+        const h = im.height * scale;
+        ctx.drawImage(im, (targetW - w) / 2, (targetH - h) / 2, w, h);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      im.onerror = () => reject(new Error('image load failed'));
+      im.src = src;
+    });
+  }
+
+  async function downloadPng() {
+    setDownloading(true);
+    try {
+      const dataUrl = await captureGraphicPng();
+      if (!dataUrl) return;
+      downloadDataUrl(
+        dataUrl,
+        `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(match.round)}.png`,
+      );
     } catch (err) {
       console.error('PNG export failed', err);
       alert('Could not export the image here. As a fallback, take a screenshot of the graphic.');
     } finally {
-      node.classList.remove('sw1-exporting');
-      if (wasCollapsed) wrap?.classList.remove('is-capturing');
+      setDownloading(false);
+    }
+  }
+
+  // Instagram feed-ready: the whole graphic fitted onto a 1080×1350 (4:5) canvas
+  // — Instagram's tallest feed ratio — so nothing is cropped when posted.
+  async function downloadInstagram() {
+    setShareOpen(false);
+    setDownloading(true);
+    try {
+      const shot = await captureGraphicPng();
+      if (!shot) return;
+      const ig = await composeToRatio(shot, 1080, 1350, '#eef2f6');
+      downloadDataUrl(
+        ig,
+        `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(match.round)}-instagram.png`,
+      );
+      // On phones, also offer the native share sheet so they can post straight to IG.
+      const nav = navigator as Navigator & {
+        canShare?: (d: ShareData) => boolean;
+        share?: (d: ShareData) => Promise<void>;
+      };
+      try {
+        const blob = await (await fetch(ig)).blob();
+        const file = new File([blob], 'team-instagram.png', { type: 'image/png' });
+        if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
+          await nav.share({ files: [file], title: shareTitle() });
+        }
+      } catch {
+        /* share sheet unavailable or cancelled — the download already happened */
+      }
+    } catch (err) {
+      console.error('Instagram export failed', err);
+      alert('Could not export the image here. As a fallback, take a screenshot of the graphic.');
+    } finally {
       setDownloading(false);
     }
   }
@@ -1066,7 +1147,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                   <button role="menuitem" onClick={copyShareLink}>Copy public link</button>
                   <div className="sw1-share__sep" />
                   <button role="menuitem" onClick={() => { setShareOpen(false); copyTeamList(); }}>Copy team list (text)</button>
-                  <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download graphic (for Instagram)</button>
+                  <button role="menuitem" onClick={downloadInstagram}>Instagram (1080×1350 image)</button>
+                  <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download full graphic (PNG)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>More / device share…</button>
                 </div>
               </>
@@ -1110,6 +1192,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             visualMode={visualMode}
             selectedPlayerId={selectedPlayerId}
             onVisualMode={setVisualMode}
+            teamJumperUrl={jumperImageUrl}
+            onTeamJumper={setTeamJumper}
             onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
             onAddPlayer={addPlayer}
             onImport={importPlayers}
@@ -1251,7 +1335,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                         draggable={admin}
                         onDragStart={(e) => e.dataTransfer.setData('text/plain', player.id)}
                       >
-                        <PlayerPlate player={player} visualMode={visualMode} compact />
+                        <PlayerPlate player={player} visualMode={visualMode} teamJumperUrl={jumperImageUrl} compact />
                       </div>
                     ) : admin ? (
                       <div className="sw1-slot__empty">{slot.label}</div>
@@ -1295,7 +1379,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                           draggable={admin}
                           onDragStart={(e) => e.dataTransfer.setData('text/plain', player.id)}
                         >
-                          <PlayerPlate player={player} visualMode={visualMode} compact />
+                          <PlayerPlate player={player} visualMode={visualMode} teamJumperUrl={jumperImageUrl} compact />
                         </div>
                       ) : (
                         <div className="sw1-follower__empty">{FOLLOWER_LABELS[idx]}</div>
@@ -1309,16 +1393,17 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             </div>
           )}
 
-          {/* Interchange sits directly under the followers */}
+          {/* Interchange — corner-floats on a wide graphic, but stacks under the
+              followers when it's heavy (>6) so it never rides up over the oval. */}
           {renderBench('interchange') && (
-            <div className={`sw1-interchange ${benchByArea.interchange.length === 0 ? 'sw1-zone--empty' : ''}`}>
+            <div className={`sw1-interchange ${benchByArea.interchange.length === 0 ? 'sw1-zone--empty' : ''} ${benchByArea.interchange.length > 6 ? 'sw1-zone--stack' : ''}`}>
               {renderBench('interchange')}
             </div>
           )}
 
           {/* Emergencies last in the bench order */}
           {renderBench('emergencies') && (
-            <div className={`sw1-emergencies ${benchByArea.emergencies.length === 0 ? 'sw1-zone--empty' : ''}`}>
+            <div className={`sw1-emergencies ${benchByArea.emergencies.length === 0 ? 'sw1-zone--empty' : ''} ${benchByArea.emergencies.length > 6 ? 'sw1-zone--stack' : ''}`}>
               {renderBench('emergencies')}
             </div>
           )}
@@ -1342,7 +1427,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
         <footer className="sw1-footer">
-          Powered by <strong>SportsWeb One</strong>
+          Powered by{' '}
+          <a href="https://sportsweb.com.au" target="_blank" rel="noopener noreferrer">
+            <strong>SportsWeb One</strong>
+          </a>
         </footer>
       </div>
       </div>

@@ -125,4 +125,8 @@ export interface TeamSheetData {
   watermark?: boolean;
   /** How players render on the ground: 'jumper' | 'headshot' | 'none'. Persisted so embeds match the editor. */
   visualMode?: VisualMode;
+  /** What shows in the faint background behind the oval. Persisted so embeds match the editor. */
+  watermarkSource?: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
+  /** ONE jumper image used for the whole team when visualMode === 'jumper'. */
+  jumperImageUrl?: string;
 }

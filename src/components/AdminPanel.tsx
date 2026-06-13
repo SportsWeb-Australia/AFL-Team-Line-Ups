@@ -64,6 +64,9 @@ interface Props {
   visualMode: VisualMode;
   selectedPlayerId: string | null;
   onVisualMode: (m: VisualMode) => void;
+  /** ONE jumper image for the whole team (used in Jumper mode). */
+  teamJumperUrl?: string;
+  onTeamJumper?: (dataUrl: string) => void;
   onSelect: (id: string) => void;
   onAddPlayer: (number: string, name: string) => void;
   onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
@@ -132,6 +135,8 @@ export default function AdminPanel({
   visualMode,
   selectedPlayerId,
   onVisualMode,
+  teamJumperUrl,
+  onTeamJumper,
   onSelect,
   onAddPlayer,
   onImport,
@@ -250,6 +255,10 @@ export default function AdminPanel({
   const uploadLogo = (target: LogoTarget) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) onLogo(target, await readAsDataUrl(file));
+  };
+  const uploadTeamJumper = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onTeamJumper) onTeamJumper(await readAsDataUrl(file));
   };
   const uploadSponsor = (index: number) => async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -662,8 +671,32 @@ export default function AdminPanel({
         ))}
       </div>
 
-      {/* Player imagery: pro option + DIY guide. Per-player upload sits in each
-          player's edit row below; this explains how to get great images. */}
+      {/* Team jumper: ONE image for the whole side (used in Jumper mode). */}
+      {onTeamJumper && (
+        <div className="sw1-teamjumper">
+          <div className="sw1-teamjumper__row">
+            <label className="sw1-btn sw1-teamjumper__btn">
+              {teamJumperUrl ? 'Replace team jumper' : 'Upload team jumper image'}
+              <input type="file" accept="image/*" hidden onChange={uploadTeamJumper} />
+            </label>
+            {teamJumperUrl && (
+              <>
+                <img className="sw1-teamjumper__preview" src={teamJumperUrl} alt="Team jumper" />
+                <button type="button" className="sw1-teamjumper__clear" onClick={() => onTeamJumper('')}>
+                  Clear
+                </button>
+              </>
+            )}
+          </div>
+          <p className="sw1-admin__hint">
+            <strong>One jumper for the whole team</strong> — shown on every player when the mode above is set to
+            <strong> Jumper</strong>. <strong>Headshots are per player</strong> — add them with each player's
+            <strong> ✎ Edit</strong> button below (or bulk import with a photo URL).
+          </p>
+        </div>
+      )}
+
+      {/* Player imagery: pro option + DIY guide. */}
       <a className="sw1-mediaday" href={CLICK_SPORTS_MEDIA_URL} target="_blank" rel="noopener noreferrer">
         <strong>📸 Get Click Sports Media to run a media day</strong>
         <span>High-quality headshots &amp; properly rendered jumper images — we operate Australia-wide →</span>
@@ -671,8 +704,7 @@ export default function AdminPanel({
       <p className="sw1-admin__hint sw1-admin__hint--links">
         Doing your own?{' '}
         <a href={HEADSHOT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See our headshot guide</a>{' '}
-        for the right size, framing and background. Add each player's headshot or jumper with the{' '}
-        <strong>✎ Edit</strong> button on their row below.
+        for the right size, framing and background.
       </p>
 
       <p className="sw1-admin__hint">

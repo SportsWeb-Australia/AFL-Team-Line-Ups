@@ -148,15 +148,6 @@ export default function SquadList({
                 Clear
               </button>
             )}
-            <label className="sw1-squad__imgbtn">
-              {p.jumperImageUrl ? 'Jumper ✓' : 'Add jumper'}
-              <input type="file" accept="image/*" onChange={readImg('jumper')} />
-            </label>
-            {p.jumperImageUrl && (
-              <button className="sw1-squad__imgclear" onClick={() => onSetPlayerImage(p.id, 'jumper', null)}>
-                Clear
-              </button>
-            )}
           </div>
         </div>
       );

@@ -80,8 +80,10 @@ export async function loadTeamSheet(
   };
 
   const fxPromise = fetchFixture();
-  // Try to read the saved display mode; fall back if the column isn't migrated.
-  let lnRes = await lineupQuery('id, visual_mode');
+  // Try to read saved display settings; fall back column-by-column if not migrated.
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id');
   const { data: fx, error: fxErr } = await fxPromise;
   const { data: lineup, error: lnErr } = lnRes as { data: any; error: any };
@@ -219,6 +221,8 @@ export async function loadTeamSheet(
     },
     watermark: true,
     visualMode: (lineup && (lineup as any).visual_mode) || undefined,
+    watermarkSource: (lineup && (lineup as any).watermark_source) || undefined,
+    jumperImageUrl: (lineup && (lineup as any).jumper_image_url) || undefined,
   };
 
   return {
@@ -432,21 +436,23 @@ export async function saveTeamSheet(
     if (le) throw le;
 
     const vmode = d.visualMode ?? 'none';
+    const wmsrc = d.watermarkSource ?? null;
+    const jumper = d.jumperImageUrl ?? null;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
-      // Publish marks it live. A draft save updates the data + display mode and
+      // Publish marks it live. A draft save updates the data + display settings and
       // leaves the live/offline status untouched (re-editing a live team never blanks it).
-      const patch: Record<string, any> = { visual_mode: vmode };
+      const patch: Record<string, any> = { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper };
       if (publish) patch.published = true;
       const { error: ue } = await supabase.from('lineups').update(patch).eq('id', lineupId);
       if (ue && isMissingColumn(ue) && publish) {
-        // visual_mode column not migrated yet — still honour the publish flag.
+        // display-settings columns not migrated yet — still honour the publish flag.
         await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
       }
     } else {
       let ins = await supabase
         .from('lineups')
-        .insert({ fixture_id: fixtureId, published: publish, visual_mode: vmode })
+        .insert({ fixture_id: fixtureId, published: publish, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper })
         .select('id')
         .single();
       if (ins.error && isMissingColumn(ins.error)) {

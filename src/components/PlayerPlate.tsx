@@ -67,6 +67,8 @@ export const HEALTH_STATUS: Partial<
 interface Props {
   player: Player;
   visualMode: VisualMode;
+  /** ONE jumper image shared by the whole team (used when visualMode === 'jumper'). */
+  teamJumperUrl?: string;
   compact?: boolean;
   /** Show the written status label next to the icon (used in the Unavailable list). */
   showStatusLabel?: boolean;
@@ -76,11 +78,11 @@ interface Props {
  * A single player token: optional jumper/headshot artwork above a slanted name
  * plate, with role badges and a colour-coded availability flag.
  */
-export default function PlayerPlate({ player, visualMode, compact = false, showStatusLabel = false }: Props) {
+export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact = false, showStatusLabel = false }: Props) {
   const showArt = visualMode !== 'none';
   let artSrc: string | null = null;
   if (visualMode === 'headshot') artSrc = player.headshotUrl ?? headshotPlaceholder;
-  else if (visualMode === 'jumper') artSrc = player.jumperImageUrl ?? jumperPlaceholder;
+  else if (visualMode === 'jumper') artSrc = teamJumperUrl ?? jumperPlaceholder;
 
   const statuses = player.status ?? [];
   const roles = statuses.filter((s) => s in ROLE_BADGE);
