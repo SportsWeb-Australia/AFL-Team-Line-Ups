@@ -2,7 +2,11 @@ import { useState, useEffect } from 'react';
 import TeamSheet from './components/TeamSheet';
 import Splash from './components/Splash';
 import InstallPrompt from './components/InstallPrompt';
+import LoginGate from './components/LoginGate';
 import { sampleTeam } from './data/sampleTeam';
+import { REQUIRE_AUTH } from './lib/config';
+import { getSession, onAuthChange, signOut, sessionEmail } from './lib/auth';
+import type { Session } from '@supabase/supabase-js';
 import type { RenderMode } from './types';
 
 /**
@@ -26,6 +30,20 @@ const autoLoad = isEmbed || isAdminSession || params.has('fixture') || params.ha
 export default function App() {
   // The editor previews public via state so selections persist across the switch.
   const [mode, setMode] = useState<RenderMode>(isAdminSession ? 'admin' : 'public');
+
+  // Login gate — only enforced for the ?admin editor when REQUIRE_AUTH is on.
+  // `undefined` = still checking the session; `null` = not signed in.
+  const [session, setSession] = useState<Session | null | undefined>(
+    isAdminSession && REQUIRE_AUTH ? undefined : null,
+  );
+  useEffect(() => {
+    if (!isAdminSession || !REQUIRE_AUTH) return;
+    let active = true;
+    getSession().then((s) => {
+      if (active) setSession(s);
+    });
+    return onAuthChange((s) => setSession(s));
+  }, []);
 
   // Embed background is transparent by default so it blends into any club page.
   // Optionally pin a solid colour with ?bg=ffffff (or ?bg=transparent).
@@ -70,6 +88,12 @@ export default function App() {
     };
   }, []);
 
+  // Gate the editor behind login when required.
+  if (isAdminSession && REQUIRE_AUTH) {
+    if (session === undefined) return null; // brief: checking the saved session
+    if (!session) return <LoginGate />;
+  }
+
   return (
     <>
       {!isEmbed && <Splash />}
@@ -78,10 +102,30 @@ export default function App() {
           style={{
             display: 'flex',
             justifyContent: 'flex-end',
+            alignItems: 'center',
+            gap: 10,
             padding: '12px 16px 0',
             fontFamily: 'system-ui, sans-serif',
           }}
         >
+          {REQUIRE_AUTH && session && (
+            <button
+              onClick={() => signOut()}
+              title={sessionEmail(session) ?? undefined}
+              style={{
+                padding: '7px 14px',
+                borderRadius: 999,
+                fontWeight: 700,
+                fontSize: 13,
+                cursor: 'pointer',
+                border: '1px solid #cbd5e1',
+                background: '#fff',
+                color: '#0f172a',
+              }}
+            >
+              Sign out
+            </button>
+          )}
           <button
             onClick={() => setMode((m) => (m === 'admin' ? 'public' : 'admin'))}
             style={{

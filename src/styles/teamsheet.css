@@ -2386,7 +2386,10 @@
 .sw1-squad__edit:hover { background: #eef2f6; }
 .sw1-squad__remove:hover { background: #fde2e2; border-color: #f5b1b1; color: #b91c1c; }
 .sw1-squad__row--edit { flex-direction: column; align-items: stretch; gap: 8px; padding: 7px; }
-.sw1-squad__editline { display: flex; align-items: center; gap: 6px; }
+.sw1-squad__editline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* Photo button + Save/Cancel together, wrapping so they never push off-screen. */
+.sw1-squad__editactions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sw1-squad__editactions-gap { flex: 1 1 auto; }
 .sw1-squad__row--edit input[type="text"],
 .sw1-squad__row--edit .sw1-squad__editno,
 .sw1-squad__row--edit .sw1-squad__editname { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
@@ -2461,28 +2464,11 @@
   visibility: hidden;
   pointer-events: none;
 }
-.sw1-splash__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  padding: 24px;
+.sw1-splash__poster {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   animation: sw1-splash-pop 0.6s ease both;
-}
-.sw1-splash__logo {
-  width: min(62vw, 300px);
-  height: auto;
-  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
-}
-.sw1-splash__tag {
-  color: #7cf7ae;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  font-size: clamp(11px, 2.4vw, 15px);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  opacity: 0.92;
-  text-align: center;
 }
 @keyframes sw1-splash-pop {
   from { transform: scale(0.94); opacity: 0; }
@@ -2631,3 +2617,84 @@
   /* Edge definition so white/light sponsor logos still read on a pale stage. */
   filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
 }
+
+/* ── Login gate + brand-green button ────────────────────────────────────── */
+.sw1-btn--brand {
+  background: linear-gradient(180deg, #2fbf63 0%, #149a4e 100%);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+.sw1-btn--brand:hover { background: linear-gradient(180deg, #34cc6a 0%, #16a554 100%); }
+.sw1-btn--brand:disabled { opacity: 0.6; cursor: default; }
+
+.sw1-login {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(120% 90% at 50% 32%, #0e3a24 0%, #06120c 64%, #04100a 100%);
+}
+.sw1-login__card {
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 28px 24px 22px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.sw1-login__logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  align-self: center;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+}
+.sw1-login__title {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: #0f172a;
+}
+.sw1-login__sub { margin: 0 0 6px; font-size: 13px; color: #64748b; }
+.sw1-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.sw1-login__field input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
+}
+.sw1-login__btn { width: 100%; margin-top: 4px; padding: 12px 16px; }
+.sw1-login__err {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fdeaea;
+  border: 1px solid #f3c2c2;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
+.sw1-login__note { margin: 2px 0 0; font-size: 11px; color: #94a3b8; }

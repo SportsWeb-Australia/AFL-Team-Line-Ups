@@ -151,14 +151,9 @@ export default function SquadList({
               value={editName}
               onChange={(e) => setEditName(e.target.value)}
             />
-            <button className="sw1-squad__ok" onClick={() => saveEdit(p.id)} title="Save">
-              ✓
-            </button>
-            <button className="sw1-squad__x" onClick={() => setEditId(null)} title="Cancel">
-              ✕
-            </button>
           </div>
-          <div className="sw1-squad__imgrow">
+          {/* Photo + confirm live together so there's nothing to scroll across. */}
+          <div className="sw1-squad__editactions">
             <label className="sw1-squad__imgbtn">
               {bgBusy ? 'Removing background…' : p.headshotUrl ? 'Headshot ✓' : 'Add headshot'}
               <input type="file" accept="image/*" disabled={bgBusy} onChange={readImg('headshot')} />
@@ -168,6 +163,13 @@ export default function SquadList({
                 Clear
               </button>
             )}
+            <span className="sw1-squad__editactions-gap" />
+            <button className="sw1-squad__ok" onClick={() => saveEdit(p.id)} title="Save">
+              ✓
+            </button>
+            <button className="sw1-squad__x" onClick={() => setEditId(null)} title="Cancel">
+              ✕
+            </button>
           </div>
           <p className="sw1-squad__imgnote">
             Background is removed automatically. For the sharpest cut-out, upload a headshot that's

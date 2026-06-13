@@ -33,3 +33,12 @@ export const SHOW_EMBED = isSportsWebClient;
 export const PUBLISH_TARGET_LABEL = isAppClient
   ? 'your team page in the app'
   : 'your club website';
+
+/**
+ * Login gate. When true, the editor (?admin) requires a signed-in user before it
+ * will show the controls or save/publish. Pair with supabase/enable-auth.sql,
+ * which makes the database itself reject writes from anyone not logged in.
+ * Default OFF so the demo/dev flow is unchanged until you opt in.
+ * Set per deployment with VITE_REQUIRE_AUTH=true (Vercel env var).
+ */
+export const REQUIRE_AUTH = (import.meta.env.VITE_REQUIRE_AUTH as string | undefined) === 'true';
