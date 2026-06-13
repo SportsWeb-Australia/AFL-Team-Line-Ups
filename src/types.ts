@@ -88,6 +88,9 @@ export interface Sponsor {
 export interface MatchInfo {
   opponent: string;
   opponentLogoUrl?: string | null;
+  /** When the opponent was picked from the clubs store, the club id it links to.
+   *  Null for a free-text/unlisted opponent. Round-tripped through save/load. */
+  opponentClubId?: string | null;
   /** e.g. "Eastern Football Netball League". */
   competition?: string;
   /** e.g. "Seniors", "Reserves", "Under 19s". */

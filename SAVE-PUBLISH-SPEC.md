@@ -63,12 +63,17 @@ The frontend writes `published=true`; these pieces make that *visible* on a site
 A page on the club site (sportsweb) or the team page in the app needs to render the
 **latest published** team for a club + grade. Two options:
 
-1. **Embed iframe (sportsweb, available now).** The Copy-embed code already points at
-   `/?embed=1&fixture=<id>` and the embed loads `publishedOnly`. If the club page
-   embeds by **club+grade** rather than a fixed fixture id, it auto-shows whatever is
-   currently published for that grade — i.e. it updates itself each week with no code
-   change. *Action:* add an embed mode that resolves "latest published for club+grade"
-   (e.g. `/?embed=1&club=<id>&grade=Seniors`) instead of a pinned fixture.
+1. **Embed iframe (sportsweb). ✅ DONE.** Two embed snippets ship from the admin
+   toolbar (both gated to the sportsweb client):
+   - **Pinned** — `/?embed=1&client=sportsweb&fixture=<id>` shows THIS published team only.
+   - **Auto-updating** — `/?embed=1&client=sportsweb&club=<id>&grade=<grade>` resolves
+     the *latest published* team for that club+grade each round, with no weekly code
+     change. `grade` is optional; with club only it shows the club's latest published
+     team across grades.
+   Both wrap an `<iframe>` plus a tiny `postMessage` height listener for auto-sizing.
+   Resolution lives in `loadLatestForClubGrade()` (`src/lib/source.ts`), which walks
+   newest-first and prefers a fixture that genuinely has a published line-up. All embed
+   loads pass `publishedOnly: true`, so drafts never leak to a club page.
 2. **JSON feed (app + sportsweb).** A small read endpoint
    `GET /published?club=<id>&grade=<grade>` returning the latest published sheet, which
    the app subdomain page renders natively. Cleaner for the app client.
@@ -105,9 +110,10 @@ pattern, and (b) making names anchors when a profile URL is present.
 
 ## 6. Suggested order
 
-1. **Embed-by-club+grade** (3a-1) — unlocks the auto-updating sportsweb page with the
-   least work, on top of what's already built.
-2. **Published JSON feed** (3a-2) — needed for the app client's native pages.
+1. ~~**Embed-by-club+grade** (3a-1)~~ — ✅ **DONE.** Auto-updating sportsweb embed ships.
+2. **Published JSON feed** (3a-2) — *next.* A read endpoint
+   `GET /published?club=<id>&grade=<grade>` returning the latest published sheet, so the
+   `app` client can render native team pages instead of an iframe.
 3. **Opponent store + dropdown** (§4) — visible coach-facing win.
 4. **Archive by round** (3c).
 5. **Player profile links** (§5).

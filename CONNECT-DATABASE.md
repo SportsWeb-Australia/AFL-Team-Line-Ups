@@ -28,9 +28,14 @@ this project's `supabase/` folder, paste its contents in, and click **Run**.
    the free-text date column + the player upsert key).
 3. **`supabase/add-status.sql`** — persists the captain / VC / debut / milestone
    badges and injury flags per team.
+4. **`supabase/add-visual-mode.sql`** — persists per-team display settings (jumper /
+   headshot / no-image, and the watermark behind the oval) so the auto-embedded
+   graphic matches exactly what you published.
 
 Each is safe to run more than once. (Optional: `supabase/seed.sql` loads a sample
-team so you can see a recall straight away.)
+team so you can see a recall straight away. Also optional and future-facing:
+`supabase/add-source-type.sql` — tags player ownership for when you start linking
+SportsWeb One clubs; not needed for the standalone app.)
 
 > Heads-up on `enable-writes.sql`: it lets anyone holding the public anon key
 > write to the tables. That's fine for you and trusted club admins while you're

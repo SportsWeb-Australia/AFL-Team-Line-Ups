@@ -118,7 +118,7 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
       )}
 
       <div className="sw1-plate__row">
-        <span className="sw1-plate__no">{player.number || "\u2013"}</span>
+        <span className={`sw1-plate__no${player.number ? '' : ' sw1-plate__no--empty'}`}>{player.number || ''}</span>
         <span className="sw1-plate__name">{player.name}</span>
 
         {/* Role badges (C, VC, etc.) sit INSIDE the plate at the right end, so they

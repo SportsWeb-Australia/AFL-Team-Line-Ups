@@ -307,7 +307,10 @@
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--hair);
-  overflow: hidden;
+  /* Top room so the "Advertise" tab can straddle the top edge instead of
+     covering the sponsor artwork. Clipping moved to __slide (below) so the tab
+     isn't cut off while the banner image stays rounded. */
+  margin-top: 14px;
 }
 @media (max-width: 600px) {
   /* On phones, show the banner at its natural height across the full width so the
@@ -320,6 +323,8 @@
 .sw1-banner__slide {
   display: block;
   height: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
   animation: sw1-fade 0.5s ease;
 }
 .sw1-banner__slide a { display: block; height: 100%; }
@@ -378,20 +383,24 @@
   border-radius: 10px;
 }
 
-/* small SportsWeb One revenue tag on the banner (hidden in the exported PNG) */
+/* small SportsWeb One revenue tag — straddles the banner's TOP edge as a tab so
+   it never covers the sponsor artwork (hidden in the exported PNG) */
 .sw1-banner__advertise {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 0;
+  right: 12px;
+  transform: translateY(-50%);
   z-index: 3;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-decoration: none;
   color: #fff;
-  background: rgba(12, 35, 64, 0.78);
-  padding: 4px 10px;
+  background: rgba(12, 35, 64, 0.92);
+  padding: 4px 11px;
   border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(4px);
 }
 .sw1-exporting .sw1-banner__advertise { display: none; }
@@ -818,6 +827,15 @@
 }
 .sw1-plate--compact .sw1-plate__name { font-size: 11px; }
 .sw1-plate--compact .sw1-plate__no { font-size: 11px; min-width: 30px; }
+/* No guernsey number (common in Masters/Over-55s): drop the "–" placeholder and
+   shrink the chip to a slim club-colour accent wedge, so the plate reads as a
+   clean name bar with a branded tab instead of a row of repeated dashes. */
+.sw1-plate__no--empty,
+.sw1-plate--compact .sw1-plate__no--empty,
+.sw1-slot .sw1-plate__no--empty {
+  min-width: clamp(5px, 1.5cqw, 9px);
+  padding: 0;
+}
 
 /* ── Benches ────────────────────────────────────────────────────────────── */
 .sw1-benches {
@@ -1930,6 +1948,16 @@
 }
 .sw1-emergencies .sw1-bench__empty,
 .sw1-interchange .sw1-bench__empty { color: rgba(255, 255, 255, 0.82); }
+/* Stacked Interchange/Emergencies (mobile + a heavy >6 bench): lay players out
+   side by side, filling 2-up on a phone and 3-up where the panel is wider, rather
+   than a single tall column. The wide corner-float and PNG-export rules further
+   down are more specific, so they still force one-per-column when the bench tucks
+   into the ground corners — this only changes the centred/stacked panel. */
+.sw1-interchange .sw1-bench__grid,
+.sw1-emergencies .sw1-bench__grid {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px 12px;
+}
 /* Followers, Interchange and Emergencies stack as consistent rows beneath the
    oval by default (mobile + the admin editor — avoids any overlap while editing). */
 /* On a wide PUBLIC/embedded graphic, float Interchange into the right corner and

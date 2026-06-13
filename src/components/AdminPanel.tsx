@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
-import type { SavedSheet } from '../lib/source';
+import type { SavedSheet, OpponentClub } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { SHOW_EMBED } from '../lib/config';
@@ -108,6 +108,8 @@ interface Props {
   onDeleteSheet?: (fixtureId: string) => void;
   onCopyEmbed?: () => void;
   onCopyTeamEmbed?: () => void;
+  /** Every other club on file — picking one preloads the opponent name + logo. */
+  opponentClubs?: OpponentClub[];
   onClone?: () => void;
   /** Ins & Outs vs last week (admin reference only). Null until a prior round exists. */
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
@@ -181,6 +183,7 @@ export default function AdminPanel({
   onDeleteSheet,
   onCopyEmbed,
   onCopyTeamEmbed,
+  opponentClubs = [],
   onClone,
   insOuts,
   onRefreshInsOuts,
@@ -456,7 +459,34 @@ export default function AdminPanel({
 
         <div className="sw1-brand__grid">
           <label>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
-          <label>Opponent<input value={match.opponent} onChange={(e) => onMatch({ opponent: e.target.value })} /></label>
+          <label>Opponent
+            {opponentClubs.length > 0 && (
+              <select
+                className="sw1-opponent-pick"
+                value={match.opponentClubId ?? ''}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if (!id) {
+                    // "Type a new opponent" — keep the typed name, drop the store link.
+                    onMatch({ opponentClubId: null });
+                    return;
+                  }
+                  const c = opponentClubs.find((o) => o.id === id);
+                  if (c) onMatch({ opponent: c.name, opponentLogoUrl: c.logoUrl ?? null, opponentClubId: c.id });
+                }}
+              >
+                <option value="">Type a new opponent…</option>
+                {opponentClubs.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            )}
+            <input
+              value={match.opponent}
+              placeholder="Opponent name"
+              onChange={(e) => onMatch({ opponent: e.target.value, opponentClubId: null })}
+            />
+          </label>
           <label>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
           <label>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
           <label>Date<input

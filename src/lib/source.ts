@@ -76,7 +76,7 @@ export async function loadTeamSheet(
     `id, round, match_date,${withDateText ? ' match_date_text,' : ''} match_time,
      team:teams ( id, name, competition, club:clubs (*) ),
      venue:venues ( name ),
-     opponent:clubs!fixtures_opponent_club_id_fkey ( name, logo_url ),
+     opponent:clubs!fixtures_opponent_club_id_fkey ( id, name, logo_url ),
      opponent_name, opponent_logo_url`;
 
   async function fetchFixture() {
@@ -218,6 +218,7 @@ export async function loadTeamSheet(
       opponent: (fx as any).opponent?.name ?? (fx as any).opponent_name ?? 'TBC',
       opponentLogoUrl:
         (fx as any).opponent?.logo_url ?? (fx as any).opponent_logo_url ?? undefined,
+      opponentClubId: (fx as any).opponent?.id ?? null,
       round: (fx as any).round ?? '',
       grade: team.name,
       competition: team.competition ?? undefined,
@@ -324,6 +325,36 @@ export async function loadLatestForClubGrade(
   }
   // Nothing fully published yet — show the newest we could load rather than nothing.
   return firstLoaded;
+}
+
+export interface OpponentClub {
+  id: string;
+  name: string;
+  logoUrl?: string | null;
+}
+
+/**
+ * Every club in the store except the current home club — powers the opponent
+ * dropdown so picking a known club preloads its name + logo. Excludes the home
+ * club by id and (defensively) by name, so a duplicate home-club row never shows
+ * up as a selectable opponent. Returns [] when the DB isn't configured.
+ */
+export async function listOpponentClubs(
+  homeClubId: string | null,
+  homeClubName?: string | null,
+): Promise<OpponentClub[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('clubs')
+    .select('id, name, logo_url')
+    .order('name', { ascending: true });
+  if (error) throw error;
+  const homeLc = (homeClubName ?? '').trim().toLowerCase();
+  return ((data as any[]) ?? [])
+    .filter(
+      (c) => c.id !== homeClubId && (!homeLc || String(c.name ?? '').trim().toLowerCase() !== homeLc),
+    )
+    .map((c) => ({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null }));
 }
 
 /** A saved team in the recall list (one per fixture = round/date/grade). */
@@ -482,7 +513,7 @@ export async function saveTeamSheet(
     venue_id: venueId,
     opponent_name: d.match.opponent ?? null,
     opponent_logo_url: d.match.opponentLogoUrl ?? null,
-    opponent_club_id: null,
+    opponent_club_id: d.match.opponentClubId ?? null,
   };
   let fixtureId: string;
   {

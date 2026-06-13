@@ -32,11 +32,13 @@ import {
   saveTeamSheet,
   deleteTeamSheet,
   loadPreviousSelections,
+  listOpponentClubs,
   EMPTY_REFS,
   type DbRefs,
   type SavedSheet,
   type PrevLineup,
   type PrevSelection,
+  type OpponentClub,
 } from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { SHOW_EMBED, PUBLISH_TARGET_LABEL } from '../lib/config';
@@ -118,6 +120,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
   const [printImage, setPrintImage] = useState<string | null>(null);
+  // Opponent store: every other club on file, for the Match & branding dropdown.
+  const [opponentClubs, setOpponentClubs] = useState<OpponentClub[]>([]);
 
   // Background watermark behind the oval (club/sponsor name or logo).
   type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
@@ -1001,6 +1005,23 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     }
   }
 
+  // Load the opponent store (every other club on file) for the Match dropdown.
+  // Re-runs when the home club identity changes so it never lists the home club.
+  useEffect(() => {
+    if (!isSupabaseConfigured || mode !== 'admin') return;
+    let cancelled = false;
+    listOpponentClubs(dbRefs.clubId, club.name)
+      .then((rows) => {
+        if (!cancelled) setOpponentClubs(rows);
+      })
+      .catch(() => {
+        /* dropdown stays empty; the free-text opponent field still works */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dbRefs.clubId, club.name, mode]);
+
   useEffect(() => {
     const done = () => setPrintImage(null);
     window.addEventListener('afterprint', done);
@@ -1290,6 +1311,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onDeleteSheet={deleteSheet}
             onCopyEmbed={copyEmbedCode}
             onCopyTeamEmbed={copyTeamEmbedCode}
+            opponentClubs={opponentClubs}
             onClone={cloneToNewRound}
             insOuts={insOuts}
             onRefreshInsOuts={() => refreshPrevWeek(dbRefs.clubId, match.grade, dbRefs.fixtureId)}
