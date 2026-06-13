@@ -308,7 +308,7 @@ export default function AdminPanel({
 
       {/* Quick start — guide + walkthrough video (collapsed on mobile) */}
       <details name="sw1adm" className="sw1-section sw1-quick" ref={quickRef}>
-        <summary>Quick start</summary>
+        <summary>Quick Start Guide</summary>
         <div className="sw1-quick__body">
           <div className="sw1-quick__video">
             {QUICKSTART_VIDEO_URL ? (

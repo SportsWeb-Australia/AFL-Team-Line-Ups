@@ -1,5 +1,13 @@
 import type { Club, MatchInfo } from '../types';
 
+/** Show ISO dates (yyyy-mm-dd, what the date picker stores) as dd/mm/yyyy.
+ *  Any other free-typed text is shown exactly as entered. */
+function formatDate(d?: string): string {
+  if (!d) return '';
+  const m = d.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+}
+
 function monogram(name: string) {
   return name
     .split(/\s+/)
@@ -57,7 +65,7 @@ export default function MatchHeader({ club, match, vsStyle = 'chrome', competiti
         {match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
         <div className="sw1-fixture__grade">{match.grade}</div>
         <div className="sw1-fixture__when">
-          {match.date} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
+          {formatDate(match.date)} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
         </div>
         {match.competition && <div className="sw1-fixture__comp">{match.competition}</div>}
       </div>
