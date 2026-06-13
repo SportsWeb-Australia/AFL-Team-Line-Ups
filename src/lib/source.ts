@@ -33,6 +33,11 @@ function isMissingStatusColumn(err: any): boolean {
   );
 }
 
+/** True when an error looks like a not-yet-migrated column (so we can fall back). */
+function isMissingColumn(err: any): boolean {
+  return err?.code === '42703' || err?.code === 'PGRST204';
+}
+
 /** Result of a save: the refs plus app-id -> db-id for every persisted player. */
 export interface SaveResult {
   refs: DbRefs;
@@ -68,13 +73,18 @@ export async function loadTeamSheet(
 
   // Public/embed views only ever show a PUBLISHED line-up; the admin editor
   // loads the latest line-up whether it's a draft or live.
-  let lineupQuery = sb.from('lineups').select('id').eq('fixture_id', fixtureId);
-  if (opts.publishedOnly) lineupQuery = lineupQuery.eq('published', true);
+  const lineupQuery = (cols: string) => {
+    let q = sb.from('lineups').select(cols).eq('fixture_id', fixtureId);
+    if (opts.publishedOnly) q = q.eq('published', true);
+    return q.order('published', { ascending: false }).limit(1).maybeSingle();
+  };
 
-  const [{ data: fx, error: fxErr }, { data: lineup, error: lnErr }] = await Promise.all([
-    fetchFixture(),
-    lineupQuery.order('published', { ascending: false }).limit(1).maybeSingle(),
-  ]);
+  const fxPromise = fetchFixture();
+  // Try to read the saved display mode; fall back if the column isn't migrated.
+  let lnRes = await lineupQuery('id, visual_mode');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id');
+  const { data: fx, error: fxErr } = await fxPromise;
+  const { data: lineup, error: lnErr } = lnRes as { data: any; error: any };
 
   if (fxErr) throw fxErr;
   if (lnErr) throw lnErr;
@@ -208,6 +218,7 @@ export async function loadTeamSheet(
       })),
     },
     watermark: true,
+    visualMode: (lineup && (lineup as any).visual_mode) || undefined,
   };
 
   return {
@@ -419,21 +430,34 @@ export async function saveTeamSheet(
       .eq('fixture_id', fixtureId)
       .limit(1);
     if (le) throw le;
+
+    const vmode = d.visualMode ?? 'none';
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
-      // Publish marks it live. A draft save just updates the data and leaves the
-      // live/offline status untouched (so re-editing a live team never blanks it).
-      if (publish) {
+      // Publish marks it live. A draft save updates the data + display mode and
+      // leaves the live/offline status untouched (re-editing a live team never blanks it).
+      const patch: Record<string, any> = { visual_mode: vmode };
+      if (publish) patch.published = true;
+      const { error: ue } = await supabase.from('lineups').update(patch).eq('id', lineupId);
+      if (ue && isMissingColumn(ue) && publish) {
+        // visual_mode column not migrated yet — still honour the publish flag.
         await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
       }
     } else {
-      const { data: ln, error: e5 } = await supabase
+      let ins = await supabase
         .from('lineups')
-        .insert({ fixture_id: fixtureId, published: publish })
+        .insert({ fixture_id: fixtureId, published: publish, visual_mode: vmode })
         .select('id')
         .single();
-      if (e5) throw e5;
-      lineupId = (ln as any).id;
+      if (ins.error && isMissingColumn(ins.error)) {
+        ins = await supabase
+          .from('lineups')
+          .insert({ fixture_id: fixtureId, published: publish })
+          .select('id')
+          .single();
+      }
+      if (ins.error) throw ins.error;
+      lineupId = (ins.data as any).id;
     }
   }
 

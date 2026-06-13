@@ -123,4 +123,6 @@ export interface TeamSheetData {
   lineup: Lineup;
   /** Repeating club-name watermark behind the oval. */
   watermark?: boolean;
+  /** How players render on the ground: 'jumper' | 'headshot' | 'none'. Persisted so embeds match the editor. */
+  visualMode?: VisualMode;
 }

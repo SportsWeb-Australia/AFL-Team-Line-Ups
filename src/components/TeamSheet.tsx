@@ -361,6 +361,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setClub(d.club);
     setMatch(d.match);
     setSponsors(d.sponsors);
+    if (d.visualMode) setVisualMode(d.visualMode);
     setSelectedPlayerId(null);
   }
 
@@ -372,6 +373,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       players,
       lineup: { positions, followers, interchange, emergencies, unavailable },
       watermark: data.watermark,
+      visualMode,
     };
   }
 
@@ -994,7 +996,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           >
             <img className="sw1-swhead__logo" src={sportswebOneLogo} alt="SportsWeb One" />
             <span className="sw1-swhead__tag">
-              The operating system for grassroots sport — one platform, every club function.
+              The One Operating System for grassroots sport — one platform, every club function.
             </span>
           </a>
           <a
@@ -1120,6 +1122,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               <PlayingList
                 positions={positions}
                 playerMap={playerMap}
+                followers={followers}
+                interchange={interchange}
                 unavailable={players.filter((p) =>
                   (p.status ?? []).some((s) => AVAIL_STATUSES.includes(s)),
                 )}

@@ -126,6 +126,7 @@ create table if not exists lineups (
   id          uuid primary key default gen_random_uuid(),
   fixture_id  uuid not null references fixtures(id) on delete cascade,
   published   boolean not null default false,
+  visual_mode text not null default 'none',
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

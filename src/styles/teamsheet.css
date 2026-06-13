@@ -51,8 +51,12 @@
   padding: clamp(18px, 3vw, 30px);
   color: var(--club-on-primary);
   background:
-    linear-gradient(160deg, var(--club-primary) 0%,
-      color-mix(in srgb, var(--club-primary) 84%, #ffffff) 100%);
+    radial-gradient(130% 120% at 50% -12%,
+      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
+      var(--club-primary) 46%,
+      color-mix(in srgb, var(--club-primary) 72%, #ffffff) 100%);
   box-shadow: var(--shadow-card);
 }
 .sw1-header__ghost {
@@ -806,6 +810,25 @@
 }
 .sw1-mediaday strong { font-size: 13.5px; }
 .sw1-mediaday span { font-size: 12px; color: #c7d6ea; }
+.sw1-logoset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #15803d;
+}
+.sw1-logoset img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--hair);
+}
+.sw1-logoset--empty { color: #94a3b8; }
+.sw1-logoset__tag { font-size: 11px; font-weight: 800; color: #15803d; white-space: nowrap; }
 .sw1-admin__buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 
 /* Save-this-team bar at the top of the Team list section */
@@ -898,9 +921,9 @@
 .sw1-btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
 .sw1-btn--primary {
   background:
-    linear-gradient(var(--club-primary), var(--club-primary)) padding-box,
-    linear-gradient(135deg, #eef1f4, #aab4be 52%, #7e8a96 100%) border-box;
-  color: var(--club-on-primary);
+    linear-gradient(135deg, #16a34a 0%, #0c7a37 100%) padding-box,
+    linear-gradient(135deg, #d9f3e2, #6bbd8a 52%, #2f8f57 100%) border-box;
+  color: #fff;
 }
 .sw1-btn--publish {
   background:
@@ -1014,9 +1037,12 @@
   top: 0;
   z-index: 20;
   padding: 10px 0;
-  background: linear-gradient(180deg, rgba(238, 242, 247, 0.96), rgba(238, 242, 247, 0.82));
-  backdrop-filter: blur(6px);
+  /* Transparent bar: the action buttons are self-contained pills (own bg +
+     shadow), so nothing bleeds through when it scrolls over the header. */
+  background: transparent;
+  pointer-events: none;
 }
+.sw1-toolbar > * { pointer-events: auto; }
 .sw1-share { position: relative; display: inline-block; }
 .sw1-share__backdrop { position: fixed; inset: 0; z-index: 30; }
 .sw1-share__menu {
@@ -1633,9 +1659,29 @@
 .sw1-interchange .sw1-bench {
   background: rgba(255, 255, 255, 0.74);
 }
-/* Followers, Interchange and Emergencies now stack as consistent rows beneath
-   the oval (Followers first, then Interchange, then Emergencies) — matching the
-   field lines above rather than floating in the oval's corners. */
+/* Followers, Interchange and Emergencies stack as consistent rows beneath the
+   oval by default (mobile + the admin editor — avoids any overlap while editing). */
+/* On a wide PUBLIC/embedded graphic, float Interchange into the right corner and
+   Emergencies into the left corner of the ground, with Followers centred between.
+   Uses a container query (not viewport) so it also holds in the fixed-width PNG export. */
+@container sw1stage (min-width: 900px) {
+  .sw1-root:not(.sw1-root--admin) .sw1-interchange,
+  .sw1-root:not(.sw1-root--admin) .sw1-emergencies {
+    position: absolute;
+    bottom: clamp(16px, 3cqw, 44px);
+    width: min(30%, 300px);
+    max-width: 300px;
+    margin: 0;
+    z-index: 3;
+  }
+  .sw1-root:not(.sw1-root--admin) .sw1-emergencies { left: clamp(12px, 2.5cqw, 40px); }
+  .sw1-root:not(.sw1-root--admin) .sw1-interchange { right: clamp(12px, 2.5cqw, 40px); }
+  /* Keep the centred followers clear of the corner cards. */
+  .sw1-root:not(.sw1-root--admin) .sw1-followers-wrap {
+    padding-left: clamp(150px, 28cqw, 340px);
+    padding-right: clamp(150px, 28cqw, 340px);
+  }
+}
 /* Unavailable: full-width strip beneath the field. */
 .sw1-unavailable-wrap { margin-top: 16px; }
 .sw1-unavailable-wrap .sw1-bench__grid {

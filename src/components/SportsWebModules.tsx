@@ -34,6 +34,22 @@ const IconCards = (
     <path d="M15 8.4l1 2 2.2.2-1.7 1.5.5 2.2-2-1.2-2 1.2.5-2.2-1.7-1.5 2.2-.2z" fill="currentColor" />
   </svg>
 );
+const IconPos = (
+  <svg viewBox="0 0 24 24" aria-hidden focusable="false">
+    <rect x="4" y="3" width="16" height="11" rx="2" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M4 10h16" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M9 6.4h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+    <path d="M8 14v4a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-4" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" />
+  </svg>
+);
+const IconIntegrate = (
+  <svg viewBox="0 0 24 24" aria-hidden focusable="false">
+    <circle cx="6" cy="12" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    <circle cx="18" cy="6" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    <circle cx="18" cy="18" r="2.4" fill="none" stroke="currentColor" strokeWidth="1.7" />
+    <path d="M8.1 10.9l7.8-3.8M8.1 13.1l7.8 3.8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
+  </svg>
+);
 
 export interface SwModule {
   key: string;
@@ -44,9 +60,11 @@ export interface SwModule {
 export const SPORTSWEB_MODULES: SwModule[] = [
   { key: 'web', label: 'Premium websites & club apps', icon: IconWeb },
   { key: 'books', label: 'Books — club finance & treasury', icon: IconBooks },
-  { key: 'workplace', label: 'Workplace — docs & office suite (MS & Google)', icon: IconDocs },
-  { key: 'store', label: 'Superstore & point of sale — coming soon', icon: IconCart },
-  { key: 'cards', label: 'Engagement — digital trading cards & more', icon: IconCards },
+  { key: 'workplace', label: 'Workplace — docs & office suite, MS & Google compatible', icon: IconDocs },
+  { key: 'store', label: 'Superstore — low transaction fees, built for local sport, easy to reconcile, stock control & more', icon: IconCart },
+  { key: 'pos', label: 'POS — coming soon', icon: IconPos },
+  { key: 'cards', label: 'Engagement — tools that keep members, players & supporters coming back time after time', icon: IconCards },
+  { key: 'integrate', label: 'Every system integrates seamlessly — no disconnected tools from 10 different suppliers', icon: IconIntegrate },
 ];
 
 /** Seamless horizontal marquee of module chips (used under the top banner). */

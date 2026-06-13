@@ -296,11 +296,12 @@ export default function AdminPanel({
             )}
           </div>
           <ol className="sw1-quick__steps">
-            <li><strong>Set up the match</strong> — open <em>Match &amp; branding</em>, enter round, grade, opponent, date and your club colours.</li>
-            <li><strong>Build your squad</strong> — in <em>Team Squad</em>, add players (or use Bulk import), then place each one fast with the <em>Add to position</em> dropdown — or tap a player and tap a spot on the ground.</li>
-            <li><strong>Mark roles</strong> — use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
-            <li><strong>Save the team</strong> — hit <em>Save this team</em>. Each round/date saves on its own.</li>
-            <li><strong>Publish</strong> — <em>Download graphic</em> for socials, or <em>Copy embed code</em> to drop the live line-up onto your club site.</li>
+            <li><strong>Set up the match</strong> — open <em>Match &amp; branding</em>: round, grade, opponent, date, venue, your club colours and the home/away logos.</li>
+            <li><strong>Build your squad</strong> — in <em>Team Squad</em> add players or use <em>Bulk import</em> (<em>number, name</em>, optionally a photo URL). Pick <em>Jumper</em>, <em>Headshot</em> or <em>No image</em>, and add each photo with the player's <em>✎ Edit</em> button — or book a Click Sports Media media day.</li>
+            <li><strong>Pick the team</strong> — tap a player then tap a spot on the ground (or use the <em>Add to position</em> dropdown). Fill the 15 field spots, the 3 Followers, plus Interchange and Emergencies.</li>
+            <li><strong>Roles &amp; availability</strong> — use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
+            <li><strong>Save or Publish</strong> — <em>Save draft</em> keeps it private; <em>Publish</em> makes it live. Each round/date is saved separately.</li>
+            <li><strong>Share it</strong> — <em>Download graphic</em> for socials, or copy an embed (this team, or the <em>auto-updating</em> grade embed that refreshes each round) onto your club site.</li>
           </ol>
           <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
             Need a hand? Chat with the SportsWeb team →
@@ -371,7 +372,7 @@ export default function AdminPanel({
                   </button>
                 )}
                 {SHOW_EMBED && onCopyTeamEmbed && (
-                  <button type="button" className="sw1-btn sw1-btn--primary sw1-db__embedbtn" onClick={onCopyTeamEmbed}>
+                  <button type="button" className="sw1-btn sw1-db__embedbtn" onClick={onCopyTeamEmbed}>
                     Copy this team's embed code
                   </button>
                 )}
@@ -446,8 +447,22 @@ export default function AdminPanel({
         </div>
 
         <div className="sw1-brand__logos">
-          <label>Home logo<input type="file" accept="image/*" onChange={uploadLogo('home')} /></label>
-          <label>Away logo<input type="file" accept="image/*" onChange={uploadLogo('away')} /></label>
+          <label>Home logo
+            <input type="file" accept="image/*" onChange={uploadLogo('home')} />
+            {club.logoUrl ? (
+              <span className="sw1-logoset"><img src={club.logoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
+            ) : (
+              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
+            )}
+          </label>
+          <label>Away logo
+            <input type="file" accept="image/*" onChange={uploadLogo('away')} />
+            {match.opponentLogoUrl ? (
+              <span className="sw1-logoset"><img src={match.opponentLogoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
+            ) : (
+              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
+            )}
+          </label>
         </div>
 
         {/* Sponsor banner rotation — a SportsWeb One revenue surface */}
@@ -473,6 +488,7 @@ export default function AdminPanel({
                 Banner {i + 1}
                 <span className="sw1-sponsorpanel__row">
                   <input type="file" accept="image/*" onChange={uploadSponsor(i)} />
+                  {s.bannerUrl && <span className="sw1-logoset__tag">✓ set</span>}
                   {rotating.length > 1 && (
                     <button type="button" className="sw1-sponsorpanel__x" onClick={() => onRemoveSponsor(i)}>
                       ✕
