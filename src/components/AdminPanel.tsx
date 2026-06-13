@@ -82,6 +82,7 @@ interface Props {
   onMatch: (patch: Partial<MatchInfo>) => void;
   onLogo: (target: LogoTarget, dataUrl: string) => void;
   onSponsorLogo: (index: number, dataUrl: string) => void;
+  onSponsorHref?: (index: number, href: string) => void;
   onAddSponsor: () => void;
   onRemoveSponsor: (index: number) => void;
   onRotationMs: (ms: number) => void;
@@ -148,6 +149,7 @@ export default function AdminPanel({
   onMatch,
   onLogo,
   onSponsorLogo,
+  onSponsorHref,
   onAddSponsor,
   onRemoveSponsor,
   onRotationMs,
@@ -499,6 +501,16 @@ export default function AdminPanel({
                   <img className="sw1-sponsorpanel__preview" src={s.bannerUrl} alt={`Banner ${i + 1} preview`} />
                 ) : (
                   <span className="sw1-sponsorpanel__preview sw1-sponsorpanel__preview--empty">No banner yet</span>
+                )}
+                {onSponsorHref && (
+                  <input
+                    className="sw1-sponsorpanel__href"
+                    type="url"
+                    inputMode="url"
+                    value={s.href ?? ''}
+                    onChange={(e) => onSponsorHref(i, e.target.value)}
+                    placeholder="Sponsor website (https://…) — banner links here"
+                  />
                 )}
               </label>
             ))}

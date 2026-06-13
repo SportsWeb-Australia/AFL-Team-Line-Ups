@@ -17,16 +17,17 @@ interface Props {
 export default function RotatingBanner({ sponsors, interval = 3800, showAdvertise = true }: Props) {
   const slides = sponsors && sponsors.length > 0 ? sponsors : [{ name: 'Banner 1' }];
   const [i, setI] = useState(0);
+  const [paused, setPaused] = useState(false);
 
   useEffect(() => {
     setI(0);
   }, [slides.length]);
 
   useEffect(() => {
-    if (slides.length < 2) return;
+    if (slides.length < 2 || paused) return;
     const id = setInterval(() => setI((n) => (n + 1) % slides.length), interval);
     return () => clearInterval(id);
-  }, [slides.length, interval]);
+  }, [slides.length, interval, paused]);
 
   const active = slides[i % slides.length];
 
@@ -44,7 +45,11 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
   );
 
   return (
-    <div className="sw1-banner">
+    <div
+      className="sw1-banner"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+    >
       <div className="sw1-banner__slide" key={i}>
         {active.href ? (
           <a href={active.href} target="_blank" rel="noopener noreferrer" aria-label={active.name}>

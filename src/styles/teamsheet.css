@@ -86,45 +86,48 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 0 clamp(6px, 1.4vw, 16px);
-  min-width: clamp(56px, 9vw, 104px);
+  padding: 0 clamp(8px, 1.6vw, 18px);
+  min-width: clamp(72px, 11vw, 132px);
 }
 /* The lightning bolt sits behind the lettering, tilted, in the club's accent. */
 .sw1-header__bolt {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: clamp(34px, 5.4vw, 62px);
-  height: clamp(64px, 11vw, 122px);
+  width: clamp(46px, 7vw, 88px);
+  height: clamp(86px, 14vw, 168px);
   transform: translate(-50%, -50%) rotate(8deg);
   background: linear-gradient(180deg,
-    color-mix(in srgb, var(--club-secondary, #f5b301) 60%, #ffffff),
-    var(--club-secondary, #f5b301) 55%,
-    color-mix(in srgb, var(--club-secondary, #f5b301) 70%, #000000));
+    #ffffff 0%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 70%, #ffffff) 46%,
+    var(--club-secondary, #f5b301) 70%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 72%, #000000) 100%);
   clip-path: polygon(58% 0, 30% 52%, 50% 52%, 40% 100%, 78% 40%, 56% 40%, 76% 0);
-  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--club-secondary, #f5b301) 60%, transparent));
+  filter:
+    drop-shadow(0 0 14px color-mix(in srgb, var(--club-secondary, #f5b301) 75%, transparent))
+    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
   z-index: 0;
 }
 /* "VS" in heavy broadcast chrome. */
 .sw1-header__vs {
   position: relative;
   z-index: 1;
-  font-size: clamp(34px, 6vw, 66px);
+  font-size: clamp(42px, 8vw, 96px);
   font-weight: 900;
   font-style: italic;
   line-height: 1;
-  letter-spacing: -0.04em;
+  letter-spacing: -0.05em;
   background: linear-gradient(180deg, #ffffff 0%, #eef3f9 30%, #b9c6d6 52%, #ffffff 72%, #dfe8f1 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-  -webkit-text-stroke: 1px rgba(8, 18, 36, 0.28);
-  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+  -webkit-text-stroke: 1.4px rgba(8, 18, 36, 0.34);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
 }
 
 .sw1-crest { text-align: center; }
 .sw1-crest__badge {
-  height: clamp(64px, 12vw, 116px);
+  height: clamp(88px, 15vw, 158px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -388,6 +391,15 @@
   background: #fff;
   aspect-ratio: 8 / 1;
   object-fit: contain;
+}
+.sw1-sponsorpanel__href {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  font-size: 12px;
+  font-weight: 600;
 }
 .sw1-sponsorpanel__preview--empty {
   display: flex;
@@ -1140,10 +1152,47 @@
 }
 
 @media print {
+  @page { size: A3; margin: 12mm; }
+  .sw1-swhead,
   .sw1-toolbar,
-  .sw1-admin { display: none !important; }
-  .sw1-root { background: #fff; padding: 0; }
+  .sw1-adminbar,
+  .sw1-admin,
+  .sw1-previewtoggle,
+  .sw1-install { display: none !important; }
+  .sw1-root { background: #fff !important; padding: 0 !important; }
+  .sw1-workspace { display: block !important; }
+  .sw1-workspace .sw1-frame { margin: 0 !important; flex: none !important; }
+  .sw1-frame { width: 100% !important; box-shadow: none !important; }
+  /* Public look: hide editor-only chrome inside the graphic. */
+  .sw1-banner__advertise,
+  .sw1-unavailable-wrap,
+  .sw1-zone--empty,
+  .sw1-bench__empty,
+  .sw1-slot__empty { display: none !important; }
+  /* Print the colours (oval, header) — not just black text. */
+  .sw1-root,
+  .sw1-frame,
+  .sw1-frame * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  .sw1-print-extra { display: flex !important; }
 }
+
+/* Club-room QR strip — only ever shown while printing. */
+.sw1-print-extra {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 2px solid var(--hair);
+}
+.sw1-print-extra__qr { width: 150px; height: 150px; }
+.sw1-print-extra__cap { text-align: left; max-width: 320px; }
+.sw1-print-extra__cap strong { display: block; font-size: 20px; font-weight: 900; color: #0c2340; }
+.sw1-print-extra__cap span { font-size: 14px; color: #475569; font-weight: 600; }
 
 /* ── Admin workspace: panel sits LEFT of the oval on desktop & tablet ───── */
 .sw1-workspace { display: block; }

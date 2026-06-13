@@ -113,6 +113,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [club, setClub] = useState(data.club);
   const [match, setMatch] = useState(data.match);
   const [sponsors, setSponsors] = useState(data.sponsors);
+  const [printing, setPrinting] = useState(false);
 
   // Background watermark behind the oval (club/sponsor name or logo).
   type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
@@ -900,6 +901,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     });
   }
 
+  function setSponsorHref(index: number, href: string) {
+    setSponsors((s) => {
+      const rotating = [...(s?.rotating ?? [])];
+      if (!rotating[index]) rotating[index] = { name: `Banner ${index + 1}` };
+      rotating[index] = { ...rotating[index], href: href.trim() || undefined };
+      return { ...s, rotating };
+    });
+  }
+
   function addSponsorSlot() {
     setSponsors((s) => {
       const rotating = [...(s?.rotating ?? [])];
@@ -919,6 +929,29 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function setRotationMs(ms: number) {
     setSponsors((s) => ({ ...s, rotationMs: ms }));
   }
+
+  // ── Print poster (A3, club-room) ────────────────────────────────────────────
+  // Prints the public-style graphic with a scannable QR to the live line-up.
+  // Works from the editor too (chrome + empty slots are hidden in @media print).
+  const printUrl = dbRefs.fixtureId
+    ? `${window.location.origin}/?fixture=${dbRefs.fixtureId}`
+    : window.location.href;
+  const qrSrc = (url: string) =>
+    `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=${encodeURIComponent(url)}`;
+
+  function printPoster() {
+    // Show the print extras, preload the QR so it's on the page, then print.
+    setPrinting(true);
+    const img = new Image();
+    img.onload = img.onerror = () => window.setTimeout(() => window.print(), 60);
+    img.src = qrSrc(printUrl);
+  }
+
+  useEffect(() => {
+    const done = () => setPrinting(false);
+    window.addEventListener('afterprint', done);
+    return () => window.removeEventListener('afterprint', done);
+  }, []);
 
   // ── PNG export ─────────────────────────────────────────────────────────────
   // Captures the graphic region only (the toolbar sits outside it). html-to-image
@@ -984,7 +1017,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   return (
-    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
+    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''} ${printing ? 'sw1-printing' : ''}`} style={themeVars}>
       {admin && (
         <div className="sw1-swhead">
           <a
@@ -1012,7 +1045,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       )}
       {admin && (
         <div className="sw1-toolbar">
-          <button className="sw1-btn" onClick={() => window.print()}>
+          <button className="sw1-btn" onClick={printPoster}>
             Print
           </button>
           <button className="sw1-btn" onClick={copyTeamList}>
@@ -1094,6 +1127,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onMatch={updateMatch}
             onLogo={setLogo}
             onSponsorLogo={setSponsorLogo}
+            onSponsorHref={setSponsorHref}
             onAddSponsor={addSponsorSlot}
             onRemoveSponsor={removeSponsorSlot}
             onRotationMs={setRotationMs}
@@ -1296,6 +1330,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
         <StatusLegend present={presentStatuses} />
+
+        {printing && (
+          <div className="sw1-print-extra">
+            <img className="sw1-print-extra__qr" src={qrSrc(printUrl)} alt="Scan for the live line-up" />
+            <div className="sw1-print-extra__cap">
+              <strong>Scan for the live line-up</strong>
+              <span>See selections, ins &amp; outs and the rest of the fixtures online.</span>
+            </div>
+          </div>
+        )}
 
         <footer className="sw1-footer">
           Powered by <strong>SportsWeb One</strong>
