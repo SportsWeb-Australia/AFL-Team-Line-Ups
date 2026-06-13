@@ -357,8 +357,7 @@ export default function AdminPanel({
 
       {/* Saved teams — load & manage (collapsible). Saving/publishing lives in the top bar. */}
       <details name="sw1adm" className="sw1-section sw1-section--start">
-        <span className="sw1-starthere">Start here</span>
-        <summary>New &amp; Saved teams — load, recall &amp; embed</summary>
+        <summary><span className="sw1-starthere">Start here</span>New &amp; Saved teams — load, recall &amp; embed</summary>
       <div className={`sw1-db sw1-db--${dbState}`}>
         <div className="sw1-db__row">
           <span className={`sw1-db__dot ${dbConfigured ? 'is-on' : 'is-off'}`} />

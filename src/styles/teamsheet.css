@@ -81,24 +81,23 @@
   z-index: 4;
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   justify-content: flex-end;
-  max-width: 40%;
+  max-width: 48%;
 }
 .sw1-stage__complogo {
-  height: clamp(34px, 5cqw, 64px);
+  height: clamp(54px, 9cqw, 108px);
   width: auto;
-  max-width: 150px;
+  max-width: 220px;
   object-fit: contain;
-  background: rgba(255, 255, 255, 0.94);
-  border-radius: 9px;
-  padding: 5px 8px;
-  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.2);
+  /* Transparent — let the logo sit straight on the ground; a soft shadow keeps it
+     legible whether the logo is light or dark. */
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
 }
 @media (max-width: 520px) {
-  .sw1-stage__complogos { gap: 5px; top: 8px; right: 8px; max-width: 46%; }
-  .sw1-stage__complogo { height: 30px; padding: 3px 6px; border-radius: 7px; }
+  .sw1-stage__complogos { gap: 6px; top: 8px; right: 8px; max-width: 50%; }
+  .sw1-stage__complogo { height: 46px; }
 }
 
 .sw1-header__crests {
@@ -1493,15 +1492,15 @@
   top: -10px;
   left: 16px;
   z-index: 2;
-  background: #e1342e;
-  color: #fff;
+  background: linear-gradient(135deg, #c6ff3a, #8af000);
+  color: #0a2e00;
   font-size: 10.5px;
   font-weight: 900;
   letter-spacing: 0.09em;
   text-transform: uppercase;
   padding: 4px 12px;
   border-radius: 999px;
-  box-shadow: 0 4px 10px rgba(225, 52, 46, 0.4);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(138, 240, 0, 0.55);
   pointer-events: none;
 }
 .sw1-section > summary {
