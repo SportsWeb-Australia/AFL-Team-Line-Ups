@@ -852,10 +852,11 @@
 .sw1-admin__hint--links a:hover { text-decoration: underline; }
 .sw1-mediaday {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
   margin: 6px 0 8px;
-  padding: 11px 14px;
+  padding: 13px 16px;
   border-radius: 12px;
   text-decoration: none;
   border: 1px solid transparent;
@@ -864,8 +865,15 @@
     linear-gradient(135deg, #e6ecf3, #9aa6b2 55%, #4a5560) border-box;
   color: #fff;
 }
-.sw1-mediaday strong { font-size: 13.5px; }
-.sw1-mediaday span { font-size: 12px; color: #c7d6ea; }
+.sw1-mediaday__icon {
+  font-size: 34px;
+  line-height: 1;
+  flex: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+.sw1-mediaday__text { display: flex; flex-direction: column; gap: 3px; }
+.sw1-mediaday__text strong { font-size: 14px; }
+.sw1-mediaday__text span { font-size: 12px; color: #c7d6ea; }
 .sw1-logoset {
   display: inline-flex;
   align-items: center;
@@ -1841,6 +1849,32 @@
 }
 /* Unavailable: full-width strip beneath the field. */
 .sw1-unavailable-wrap { margin-top: 16px; }
+
+/* EXPORT / PRINT: html-to-image captures at a fixed 1080px width. Container queries
+   don't always resolve inside the serialised capture, and the editor capture still
+   carries the admin layout — so force the public corner-float here explicitly. This
+   guarantees the downloaded PNG and the printed A3 float Interchange to the right and
+   Emergencies to the left (Followers centred), exactly like the live public graphic. */
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack),
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) {
+  position: absolute;
+  bottom: 22px;
+  width: 220px;
+  max-width: 220px;
+  margin: 0;
+  z-index: 3;
+}
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) { left: 24px; }
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) { right: 24px; }
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+.sw1-exporting .sw1-followers-wrap {
+  padding-left: 280px;
+  padding-right: 280px;
+}
 .sw1-unavailable-wrap .sw1-bench__grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }

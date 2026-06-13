@@ -743,8 +743,11 @@ export default function AdminPanel({
 
       {/* Player imagery: pro option + DIY guide. */}
       <a className="sw1-mediaday" href={CLICK_SPORTS_MEDIA_URL} target="_blank" rel="noopener noreferrer">
-        <strong>📸 Get Click Sports Media to run a media day</strong>
-        <span>High-quality headshots &amp; properly rendered jumper images — we operate Australia-wide →</span>
+        <span className="sw1-mediaday__icon" aria-hidden="true">📸</span>
+        <span className="sw1-mediaday__text">
+          <strong>Get Click Sports Media to run a media day</strong>
+          <span>High-quality headshots &amp; properly rendered jumper images — we operate Australia-wide →</span>
+        </span>
       </a>
       <p className="sw1-admin__hint sw1-admin__hint--links">
         Doing your own?{' '}

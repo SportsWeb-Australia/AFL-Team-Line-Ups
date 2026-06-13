@@ -485,41 +485,42 @@ export async function saveTeamSheet(
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
       // leaves the live/offline status untouched (re-editing a live team never blanks it).
-      const patch: Record<string, any> = {
-        visual_mode: vmode,
-        watermark_source: wmsrc,
-        jumper_image_url: jumper,
-        vs_style: vstyle,
-        watermark_text: wmtext,
-        watermark_logo_url: wmlogo,
-      };
-      if (publish) patch.published = true;
-      const { error: ue } = await supabase.from('lineups').update(patch).eq('id', lineupId);
-      if (ue && isMissingColumn(ue) && publish) {
-        // display-settings columns not migrated yet — still honour the publish flag.
-        await supabase.from('lineups').update({ published: true }).eq('id', lineupId);
+      const live = publish ? { published: true } : {};
+      // Progressive fallback: keep the CORE display settings (visual mode + jumper)
+      // as long as possible, only shedding the newest optional columns if a column
+      // is genuinely missing. A real failure (RLS, payload) is thrown, not swallowed —
+      // otherwise a failed publish silently leaves the old, jumper-less row live.
+      const patches: Record<string, any>[] = [
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, ...live },
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, ...live },
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, ...live },
+        { visual_mode: vmode, watermark_source: wmsrc, ...live },
+        { visual_mode: vmode, ...live },
+        ...(publish ? [{ published: true }] : []),
+      ];
+      let ue: any = null;
+      for (const p of patches) {
+        const r = await supabase.from('lineups').update(p).eq('id', lineupId);
+        ue = r.error;
+        if (!ue) break;
+        if (!isMissingColumn(ue)) break; // real error — stop and surface it below
       }
+      if (ue) throw ue;
     } else {
-      let ins = await supabase
-        .from('lineups')
-        .insert({
-          fixture_id: fixtureId,
-          published: publish,
-          visual_mode: vmode,
-          watermark_source: wmsrc,
-          jumper_image_url: jumper,
-          vs_style: vstyle,
-          watermark_text: wmtext,
-          watermark_logo_url: wmlogo,
-        })
-        .select('id')
-        .single();
-      if (ins.error && isMissingColumn(ins.error)) {
-        ins = await supabase
-          .from('lineups')
-          .insert({ fixture_id: fixtureId, published: publish })
-          .select('id')
-          .single();
+      const live = { published: publish };
+      const inserts: Record<string, any>[] = [
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo },
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle },
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper },
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc },
+        { fixture_id: fixtureId, ...live, visual_mode: vmode },
+        { fixture_id: fixtureId, ...live },
+      ];
+      let ins: any = null;
+      for (const payload of inserts) {
+        ins = await supabase.from('lineups').insert(payload).select('id').single();
+        if (!ins.error) break;
+        if (!isMissingColumn(ins.error)) break;
       }
       if (ins.error) throw ins.error;
       lineupId = (ins.data as any).id;

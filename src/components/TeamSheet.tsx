@@ -1018,7 +1018,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   // Capture the public graphic region to a PNG data URL at a fixed, generous
   // width (so it's consistent regardless of the on-screen editor width).
-  async function captureGraphicPng(): Promise<string | null> {
+  async function captureGraphicPng(bg?: string): Promise<string | null> {
     const node = captureRef.current;
     if (!node) return null;
     node.classList.add('sw1-exporting');
@@ -1034,7 +1034,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     try {
       return await toPng(node, {
         pixelRatio: 2,
-        backgroundColor: '#eef2f6',
+        ...(bg ? { backgroundColor: bg } : {}),
         cacheBust: true,
         width: EXPORT_WIDTH,
         height: Math.ceil(node.scrollHeight),
@@ -1110,24 +1110,25 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       const shot = await captureGraphicPng();
       if (!shot) return;
       const ig = await composeToRatio(shot, 1080, 1350, '#eef2f6', 'cover');
-      downloadDataUrl(
-        ig,
-        `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(match.round)}-instagram.png`,
-      );
-      // On phones, also offer the native share sheet so they can post straight to IG.
+      const filename = `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(match.round)}-instagram.png`;
+      // On a phone, open the native share sheet first — that's the one-tap path to
+      // Instagram (web pages can't post to IG directly the way Facebook allows).
       const nav = navigator as Navigator & {
         canShare?: (d: ShareData) => boolean;
         share?: (d: ShareData) => Promise<void>;
       };
       try {
         const blob = await (await fetch(ig)).blob();
-        const file = new File([blob], 'team-instagram.png', { type: 'image/png' });
+        const file = new File([blob], filename, { type: 'image/png' });
         if (nav.canShare && nav.canShare({ files: [file] }) && nav.share) {
           await nav.share({ files: [file], title: shareTitle() });
+          return; // shared via the sheet (pick Instagram) — no need to also download
         }
       } catch {
-        /* share sheet unavailable or cancelled — the download already happened */
+        /* share sheet unavailable or cancelled — fall back to a download */
       }
+      // Desktop / no share sheet: save the image to post.
+      downloadDataUrl(ig, filename);
     } catch (err) {
       console.error('Instagram export failed', err);
       alert('Could not export the image here. As a fallback, take a screenshot of the graphic.');
@@ -1191,7 +1192,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                   <button role="menuitem" onClick={copyShareLink}>Copy public link</button>
                   <div className="sw1-share__sep" />
                   <button role="menuitem" onClick={() => { setShareOpen(false); copyTeamList(); }}>Copy team list (text)</button>
-                  <button role="menuitem" onClick={downloadInstagram}>Instagram (1080×1350 image)</button>
+                  <button role="menuitem" onClick={downloadInstagram}>Instagram (share / save 1080×1350)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download full graphic (PNG)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>More / device share…</button>
                   <p className="sw1-share__tip">Tip: <strong>Print</strong> an A3 for the club rooms &amp; change rooms, or cast the public link to club TV screens — more eyes on your sponsors.</p>
