@@ -81,7 +81,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id');
@@ -223,6 +224,7 @@ export async function loadTeamSheet(
     visualMode: (lineup && (lineup as any).visual_mode) || undefined,
     watermarkSource: (lineup && (lineup as any).watermark_source) || undefined,
     jumperImageUrl: (lineup && (lineup as any).jumper_image_url) || undefined,
+    vsStyle: (lineup && (lineup as any).vs_style) || undefined,
   };
 
   return {
@@ -438,11 +440,17 @@ export async function saveTeamSheet(
     const vmode = d.visualMode ?? 'none';
     const wmsrc = d.watermarkSource ?? null;
     const jumper = d.jumperImageUrl ?? null;
+    const vstyle = d.vsStyle ?? null;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
       // leaves the live/offline status untouched (re-editing a live team never blanks it).
-      const patch: Record<string, any> = { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper };
+      const patch: Record<string, any> = {
+        visual_mode: vmode,
+        watermark_source: wmsrc,
+        jumper_image_url: jumper,
+        vs_style: vstyle,
+      };
       if (publish) patch.published = true;
       const { error: ue } = await supabase.from('lineups').update(patch).eq('id', lineupId);
       if (ue && isMissingColumn(ue) && publish) {
@@ -452,7 +460,14 @@ export async function saveTeamSheet(
     } else {
       let ins = await supabase
         .from('lineups')
-        .insert({ fixture_id: fixtureId, published: publish, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper })
+        .insert({
+          fixture_id: fixtureId,
+          published: publish,
+          visual_mode: vmode,
+          watermark_source: wmsrc,
+          jumper_image_url: jumper,
+          vs_style: vstyle,
+        })
         .select('id')
         .single();
       if (ins.error && isMissingColumn(ins.error)) {

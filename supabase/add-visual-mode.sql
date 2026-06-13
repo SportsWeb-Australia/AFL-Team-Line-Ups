@@ -18,3 +18,6 @@ alter table lineups
 
 alter table lineups
   add column if not exists jumper_image_url text;
+
+alter table lineups
+  add column if not exists vs_style text;

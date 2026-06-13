@@ -114,7 +114,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [match, setMatch] = useState(data.match);
   const [sponsors, setSponsors] = useState(data.sponsors);
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
-  const [printing, setPrinting] = useState(false);
+  const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
+  const [printImage, setPrintImage] = useState<string | null>(null);
 
   // Background watermark behind the oval (club/sponsor name or logo).
   type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
@@ -366,6 +367,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     if (d.visualMode) setVisualMode(d.visualMode);
     if (d.watermarkSource) setWmSource(d.watermarkSource);
     setJumperImageUrl(d.jumperImageUrl);
+    if (d.vsStyle) setVsStyle(d.vsStyle);
     setSelectedPlayerId(null);
   }
 
@@ -380,6 +382,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       visualMode,
       watermarkSource: wmSource,
       jumperImageUrl,
+      vsStyle,
     };
   }
 
@@ -946,24 +949,38 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   // ── Print poster (A3, club-room) ────────────────────────────────────────────
-  // Prints the public-style graphic with a scannable QR to the live line-up.
-  // Works from the editor too (chrome + empty slots are hidden in @media print).
+  // Prints the PUBLIC graphic (captured as an image) so the editor chrome never
+  // shows, and the whole team sheet fits on a single A3 page with a scannable QR.
   const printUrl = dbRefs.fixtureId
     ? `${window.location.origin}/?fixture=${dbRefs.fixtureId}`
     : window.location.href;
   const qrSrc = (url: string) =>
     `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=${encodeURIComponent(url)}`;
 
-  function printPoster() {
-    // Show the print extras, preload the QR so it's on the page, then print.
-    setPrinting(true);
-    const img = new Image();
-    img.onload = img.onerror = () => window.setTimeout(() => window.print(), 60);
-    img.src = qrSrc(printUrl);
+  async function printPoster() {
+    setDownloading(true);
+    try {
+      const shot = await captureGraphicPng();
+      if (!shot) return;
+      // Preload the QR so it's painted before the print dialog opens.
+      await new Promise<void>((resolve) => {
+        const q = new Image();
+        q.onload = q.onerror = () => resolve();
+        q.src = qrSrc(printUrl);
+      });
+      setPrintImage(shot);
+      // Let React paint the print sheet, then open the dialog.
+      window.setTimeout(() => window.print(), 80);
+    } catch (err) {
+      console.error('Print failed', err);
+      alert('Could not prepare the print here. As a fallback, take a screenshot of the graphic.');
+    } finally {
+      setDownloading(false);
+    }
   }
 
   useEffect(() => {
-    const done = () => setPrinting(false);
+    const done = () => setPrintImage(null);
     window.addEventListener('afterprint', done);
     return () => window.removeEventListener('afterprint', done);
   }, []);
@@ -1021,9 +1038,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     }
   }
 
-  // Fit a captured graphic onto a fixed-ratio canvas (no cropping) — used to hit
-  // Instagram's accepted ratios exactly (4:5 feed by default).
-  function composeToRatio(src: string, targetW: number, targetH: number, bg: string): Promise<string> {
+  // Fit a captured graphic onto a fixed-ratio canvas — 'contain' letterboxes the
+  // whole graphic; 'cover' fills the frame and crops the overflow (top/bottom).
+  function composeToRatio(
+    src: string,
+    targetW: number,
+    targetH: number,
+    bg: string,
+    mode: 'contain' | 'cover' = 'contain',
+  ): Promise<string> {
     return new Promise((resolve, reject) => {
       const im = new Image();
       im.onload = () => {
@@ -1034,10 +1057,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         if (!ctx) return reject(new Error('no 2d context'));
         ctx.fillStyle = bg;
         ctx.fillRect(0, 0, targetW, targetH);
-        const scale = Math.min(targetW / im.width, targetH / im.height);
+        const scale =
+          mode === 'cover'
+            ? Math.max(targetW / im.width, targetH / im.height)
+            : Math.min(targetW / im.width, targetH / im.height);
         const w = im.width * scale;
         const h = im.height * scale;
-        ctx.drawImage(im, (targetW - w) / 2, (targetH - h) / 2, w, h);
+        // Cover: anchor to the top so the header/crests are always kept; trims the
+        // bottom of a tall sheet rather than slicing the match graphic.
+        const y = mode === 'cover' ? 0 : (targetH - h) / 2;
+        ctx.drawImage(im, (targetW - w) / 2, y, w, h);
         resolve(canvas.toDataURL('image/png'));
       };
       im.onerror = () => reject(new Error('image load failed'));
@@ -1070,7 +1099,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     try {
       const shot = await captureGraphicPng();
       if (!shot) return;
-      const ig = await composeToRatio(shot, 1080, 1350, '#eef2f6');
+      const ig = await composeToRatio(shot, 1080, 1350, '#eef2f6', 'cover');
       downloadDataUrl(
         ig,
         `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(match.round)}-instagram.png`,
@@ -1098,7 +1127,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   return (
-    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''} ${printing ? 'sw1-printing' : ''}`} style={themeVars}>
+    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
       {admin && (
         <div className="sw1-swhead">
           <a
@@ -1150,6 +1179,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                   <button role="menuitem" onClick={downloadInstagram}>Instagram (1080×1350 image)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download full graphic (PNG)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>More / device share…</button>
+                  <p className="sw1-share__tip">Tip: <strong>Print</strong> an A3 for the club rooms &amp; change rooms, or cast the public link to club TV screens — more eyes on your sponsors.</p>
                 </div>
               </>
             )}
@@ -1194,6 +1224,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onVisualMode={setVisualMode}
             teamJumperUrl={jumperImageUrl}
             onTeamJumper={setTeamJumper}
+            vsStyle={vsStyle}
+            onVsStyle={setVsStyle}
             onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
             onAddPlayer={addPlayer}
             onImport={importPlayers}
@@ -1268,7 +1300,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} />
+        <MatchHeader club={club} match={match} vsStyle={vsStyle} />
 
         <RotatingBanner
           sponsors={sponsors?.rotating}
@@ -1416,16 +1448,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
         <StatusLegend present={presentStatuses} />
 
-        {printing && (
-          <div className="sw1-print-extra">
-            <img className="sw1-print-extra__qr" src={qrSrc(printUrl)} alt="Scan for the live line-up" />
-            <div className="sw1-print-extra__cap">
-              <strong>Scan for the live line-up</strong>
-              <span>See selections, ins &amp; outs and the rest of the fixtures online.</span>
-            </div>
-          </div>
-        )}
-
         <footer className="sw1-footer">
           Powered by{' '}
           <a href="https://sportsweb.com.au" target="_blank" rel="noopener noreferrer">
@@ -1435,6 +1457,21 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       </div>
       </div>
       </div>
+
+      {/* Print sheet — the captured PUBLIC graphic on a single A3 page, plus a QR
+          and a note about screens / posters. Only visible while printing. */}
+      {printImage && (
+        <div className="sw1-printsheet" aria-hidden="true">
+          <img className="sw1-printsheet__img" src={printImage} alt="" />
+          <div className="sw1-printsheet__foot">
+            <img className="sw1-printsheet__qr" src={qrSrc(printUrl)} alt="" />
+            <div className="sw1-printsheet__cap">
+              <strong>See the live team online</strong>
+              <span>Scan to view selections, ins &amp; outs and fixtures. Print A3 for the club rooms &amp; change rooms, or cast the link to club screens — great exposure for your sponsors.</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

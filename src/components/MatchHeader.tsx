@@ -23,9 +23,10 @@ function Crest({ name, logoUrl, color }: { name: string; logoUrl?: string | null
 interface Props {
   club: Club;
   match: MatchInfo;
+  vsStyle?: 'chrome' | 'split';
 }
 
-export default function MatchHeader({ club, match }: Props) {
+export default function MatchHeader({ club, match, vsStyle = 'chrome' }: Props) {
   return (
     <header className="sw1-header">
       {/* faint crests bleeding off each side */}
@@ -36,7 +37,7 @@ export default function MatchHeader({ club, match }: Props) {
 
       <div className="sw1-header__crests">
         <Crest name={club.name} logoUrl={club.logoUrl} color={club.secondaryColor} />
-        <div className="sw1-header__v" aria-hidden>
+        <div className={`sw1-header__v sw1-header__v--${vsStyle}`} aria-hidden>
           <span className="sw1-header__bolt" />
           <span className="sw1-header__vs">VS</span>
         </div>

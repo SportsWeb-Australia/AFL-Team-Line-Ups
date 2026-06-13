@@ -129,6 +129,7 @@ create table if not exists lineups (
   visual_mode text not null default 'none',
   watermark_source text,
   jumper_image_url text,
+  vs_style text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

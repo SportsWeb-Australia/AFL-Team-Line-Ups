@@ -87,7 +87,8 @@
   align-items: center;
   justify-content: center;
   padding: 0 clamp(8px, 1.6vw, 18px);
-  min-width: clamp(72px, 11vw, 132px);
+  min-width: clamp(78px, 11.5vw, 140px);
+  overflow: visible;
 }
 /* The lightning bolt sits behind the lettering, tilted, in the club's accent. */
 .sw1-header__bolt {
@@ -116,13 +117,35 @@
   font-weight: 900;
   font-style: italic;
   line-height: 1;
-  letter-spacing: -0.05em;
+  letter-spacing: -0.03em;
+  /* The italic glyphs overhang their box — pad so the "S" never clips, and keep
+     overflow visible for the stroke + drop-shadow. */
+  padding: 0.06em 0.16em 0.06em 0.04em;
+  overflow: visible;
   background: linear-gradient(180deg, #ffffff 0%, #eef3f9 30%, #b9c6d6 52%, #ffffff 72%, #dfe8f1 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
   -webkit-text-stroke: 1.4px rgba(8, 18, 36, 0.34);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+/* Split style: bold two-tone "VS" (left white, right club accent) + brighter bolt. */
+.sw1-header__v--split .sw1-header__vs {
+  background: linear-gradient(
+    100deg,
+    #ffffff 0 48%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 88%, #ffffff) 52% 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 2px rgba(8, 18, 36, 0.42);
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.65));
+}
+.sw1-header__v--split .sw1-header__bolt {
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 40%, color-mix(in srgb, var(--club-secondary, #f5b301) 60%, #ffffff) 100%);
+  filter:
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 10px color-mix(in srgb, var(--club-secondary, #f5b301) 80%, transparent));
 }
 
 .sw1-crest { text-align: center; }
@@ -861,6 +884,16 @@
   cursor: pointer;
   padding: 4px 6px;
 }
+.sw1-vsstyle { margin: 10px 0 2px; }
+.sw1-vsstyle__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
 .sw1-admin__buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 
 /* Save-this-team bar at the top of the Team list section */
@@ -984,29 +1017,44 @@
 /* ── Toolbar (sticky, primary actions always reachable) ─────────────────── */
 .sw1-swhead {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
   width: 100%;
   max-width: 1180px;
-  margin: 0 auto 12px;
-  padding: 14px 20px 12px;
-  border-radius: 14px;
+  margin: 0 auto 10px;
+  padding: 7px 16px;
+  border-radius: 12px;
   border: 1px solid transparent;
   background:
-    radial-gradient(120% 220% at 50% 0%, #0b1c33 0%, #05080d 75%) padding-box,
+    radial-gradient(140% 320% at 50% 0%, #0b1c33 0%, #05080d 78%) padding-box,
     linear-gradient(135deg, #e6ecf3, #9aa6b2 45%, #4a5560 70%, #cdd6df) border-box;
   overflow: hidden;
 }
 .sw1-swhead__brand {
   display: flex;
   align-items: center;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px 18px;
+  gap: 12px;
+  flex: none;
   text-decoration: none;
 }
-.sw1-swhead__logo { height: 30px; width: auto; display: block; }
-.sw1-swhead__tag { font-size: 12.5px; font-weight: 700; color: #9fc2f0; text-align: center; }
+.sw1-swhead__logo { height: 26px; width: auto; display: block; }
+.sw1-swhead__tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fc2f0;
+  text-align: left;
+  line-height: 1.2;
+  padding-left: 12px;
+  border-left: 1px solid rgba(159, 194, 240, 0.28);
+  max-width: 30ch;
+}
+.sw1-swhead__marquee { display: block; text-decoration: none; cursor: pointer; flex: 1 1 auto; min-width: 0; }
+@media (max-width: 760px) {
+  .sw1-swhead { flex-wrap: wrap; gap: 8px 14px; padding: 8px 14px; }
+  .sw1-swhead__tag { border-left: 0; padding-left: 0; max-width: none; flex: 1 1 60%; }
+  .sw1-swhead__marquee { flex-basis: 100%; }
+}
 
 /* Scrolling module marquee */
 .sw1-marquee { position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
@@ -1104,6 +1152,15 @@
 }
 .sw1-share__menu button:hover { background: #f1f5f9; }
 .sw1-share__sep { height: 1px; background: #e2e8f0; margin: 5px 6px; }
+.sw1-share__tip {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #64748b;
+  padding: 8px 10px 4px;
+  margin: 4px 2px 0;
+  border-top: 1px solid #eef1f5;
+}
+.sw1-share__tip strong { color: #0c2340; }
 
 /* ── Admin: match & branding ────────────────────────────────────────────── */
 .sw1-brand {
@@ -1175,46 +1232,44 @@
 
 @media print {
   @page { size: A3; margin: 12mm; }
-  .sw1-swhead,
-  .sw1-toolbar,
-  .sw1-adminbar,
-  .sw1-admin,
-  .sw1-previewtoggle,
-  .sw1-install { display: none !important; }
-  .sw1-root { background: #fff !important; padding: 0 !important; }
-  .sw1-workspace { display: block !important; }
-  .sw1-workspace .sw1-frame { margin: 0 !important; flex: none !important; }
-  .sw1-frame { width: 100% !important; box-shadow: none !important; }
-  /* Public look: hide editor-only chrome inside the graphic. */
-  .sw1-banner__advertise,
-  .sw1-unavailable-wrap,
-  .sw1-zone--empty,
-  .sw1-bench__empty,
-  .sw1-slot__empty { display: none !important; }
-  /* Print the colours (oval, header) — not just black text. */
-  .sw1-root,
-  .sw1-frame,
-  .sw1-frame * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
+  /* Isolate the print sheet (the captured PUBLIC graphic) — hide everything else
+     so the editor never prints and the whole team fits on one page. */
+  body * { visibility: hidden !important; }
+  .sw1-printsheet, .sw1-printsheet * { visibility: visible !important; }
+  .sw1-printsheet {
+    position: fixed;
+    inset: 0;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    background: #fff;
   }
-  .sw1-print-extra { display: flex !important; }
+  .sw1-printsheet__img {
+    max-width: 100%;
+    max-height: 84vh;
+    object-fit: contain;
+  }
+  .sw1-install { display: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
 
-/* Club-room QR strip — only ever shown while printing. */
-.sw1-print-extra {
-  display: none;
+/* The print sheet is built only at print time and hidden on screen. */
+.sw1-printsheet { display: none; }
+.sw1-printsheet__foot {
+  display: flex;
   align-items: center;
   justify-content: center;
   gap: 22px;
-  margin-top: 18px;
-  padding-top: 16px;
+  padding-top: 12px;
   border-top: 2px solid var(--hair);
+  max-width: 90%;
 }
-.sw1-print-extra__qr { width: 150px; height: 150px; }
-.sw1-print-extra__cap { text-align: left; max-width: 320px; }
-.sw1-print-extra__cap strong { display: block; font-size: 20px; font-weight: 900; color: #0c2340; }
-.sw1-print-extra__cap span { font-size: 14px; color: #475569; font-weight: 600; }
+.sw1-printsheet__qr { width: 132px; height: 132px; flex: none; }
+.sw1-printsheet__cap { text-align: left; max-width: 360px; }
+.sw1-printsheet__cap strong { display: block; font-size: 19px; font-weight: 900; color: #0c2340; }
+.sw1-printsheet__cap span { font-size: 13.5px; color: #475569; font-weight: 600; line-height: 1.4; }
 
 /* ── Admin workspace: panel sits LEFT of the oval on desktop & tablet ───── */
 .sw1-workspace { display: block; }
@@ -1230,10 +1285,8 @@
     flex: 0 0 clamp(390px, 34vw, 480px);
     max-width: 480px;
     margin: 0;
-    position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
-    overflow: auto;
+    /* No sticky/height cap: a panel taller than the screen would otherwise pin
+       and you could never scroll to its lower sections. Let the page scroll. */
   }
   .sw1-workspace .sw1-frame {
     flex: 1 1 auto;

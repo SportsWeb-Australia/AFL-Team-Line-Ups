@@ -67,6 +67,8 @@ interface Props {
   /** ONE jumper image for the whole team (used in Jumper mode). */
   teamJumperUrl?: string;
   onTeamJumper?: (dataUrl: string) => void;
+  vsStyle?: 'chrome' | 'split';
+  onVsStyle?: (s: 'chrome' | 'split') => void;
   onSelect: (id: string) => void;
   onAddPlayer: (number: string, name: string) => void;
   onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
@@ -137,6 +139,8 @@ export default function AdminPanel({
   onVisualMode,
   teamJumperUrl,
   onTeamJumper,
+  vsStyle,
+  onVsStyle,
   onSelect,
   onAddPlayer,
   onImport,
@@ -291,7 +295,7 @@ export default function AdminPanel({
       </header>
 
       {/* Quick start — guide + walkthrough video (collapsed on mobile) */}
-      <details className="sw1-section sw1-quick" ref={quickRef}>
+      <details name="sw1adm" className="sw1-section sw1-quick" ref={quickRef}>
         <summary>Quick start</summary>
         <div className="sw1-quick__body">
           <div className="sw1-quick__video">
@@ -307,12 +311,14 @@ export default function AdminPanel({
             )}
           </div>
           <ol className="sw1-quick__steps">
-            <li><strong>Set up the match</strong> — open <em>Match &amp; branding</em>: round, grade, opponent, date, venue, your club colours and the home/away logos.</li>
-            <li><strong>Build your squad</strong> — in <em>Team Squad</em> add players or use <em>Bulk import</em> (<em>number, name</em>, optionally a photo URL). Pick <em>Jumper</em>, <em>Headshot</em> or <em>No image</em>, and add each photo with the player's <em>✎ Edit</em> button — or book a Click Sports Media media day.</li>
-            <li><strong>Pick the team</strong> — tap a player then tap a spot on the ground (or use the <em>Add to position</em> dropdown). Fill the 15 field spots, the 3 Followers, plus Interchange and Emergencies.</li>
-            <li><strong>Roles &amp; availability</strong> — use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
-            <li><strong>Save or Publish</strong> — <em>Save draft</em> keeps it private; <em>Publish</em> makes it live. Each round/date is saved separately.</li>
-            <li><strong>Share it</strong> — <em>Download graphic</em> for socials, or copy an embed (this team, or the <em>auto-updating</em> grade embed that refreshes each round) onto your club site.</li>
+            <li><strong>Match &amp; branding</strong> — open that section and fill in the round, grade, opponent, date and venue. Set your club colours, upload your home &amp; away logos, and pick your <em>VS style</em> (Chrome or Two-tone).</li>
+            <li><strong>Pick the team's look</strong> — in <em>Team Squad</em>, choose <em>Jumper</em>, <em>Headshot</em> or <em>No image</em>. For Jumper, upload one team jumper image. For Headshots, add them per player (<em>✎ Edit</em>) or in bulk — or book a Click Sports Media media day.</li>
+            <li><strong>Add your squad</strong> — type players in, or use <em>Bulk import</em> (one per line: <em>number, name</em>, and an optional photo URL on the end).</li>
+            <li><strong>Pick the side</strong> — tap a player, then tap a spot on the ground (or use <em>Add to position</em>). Fill the 15 field spots, the 3 Followers, then Interchange and Emergencies.</li>
+            <li><strong>Roles &amp; availability</strong> — use the C / VC / Debut / Milestone chips, and the availability dropdown for ins, outs and injuries.</li>
+            <li><strong>Sponsors (optional)</strong> — add rotating sponsor banners (design them wide, around 1200×150) and paste each sponsor's link. They rotate above the ground — real exposure you can sell.</li>
+            <li><strong>Save or Publish</strong> — <em>Save draft</em> keeps it private; <em>Publish</em> makes it live on your website. Each round is saved on its own.</li>
+            <li><strong>Share it everywhere</strong> — <em>Download graphic</em> or the <em>Instagram</em> image for socials, copy the <em>auto-updating</em> embed onto your club site, <em>Print</em> an A3 for the rooms (with a QR), or cast the public link to club TV screens.</li>
           </ol>
           <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
             Need a hand? Chat with the SportsWeb team →
@@ -321,7 +327,7 @@ export default function AdminPanel({
       </details>
 
       {/* Saved teams — load & manage (collapsible). Saving/publishing lives in the top bar. */}
-      <details className="sw1-section">
+      <details name="sw1adm" className="sw1-section">
         <summary>Saved teams — load, recall &amp; embed</summary>
       <div className={`sw1-db sw1-db--${dbState}`}>
         <div className="sw1-db__row">
@@ -416,7 +422,7 @@ export default function AdminPanel({
       </details>
 
       {/* Match & branding */}
-      <details className="sw1-brand sw1-section">
+      <details name="sw1adm" className="sw1-brand sw1-section">
         <summary>Match &amp; branding</summary>
 
         <div className="sw1-brand__grid">
@@ -456,6 +462,28 @@ export default function AdminPanel({
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
         </div>
+
+        {onVsStyle && (
+          <div className="sw1-vsstyle">
+            <span className="sw1-vsstyle__label">Centre "VS" style</span>
+            <div className="sw1-admin__modes">
+              <button
+                type="button"
+                className={`sw1-chip ${(vsStyle ?? 'chrome') === 'chrome' ? 'is-active' : ''}`}
+                onClick={() => onVsStyle('chrome')}
+              >
+                Chrome ⚡
+              </button>
+              <button
+                type="button"
+                className={`sw1-chip ${vsStyle === 'split' ? 'is-active' : ''}`}
+                onClick={() => onVsStyle('split')}
+              >
+                Two-tone split
+              </button>
+            </div>
+          </div>
+        )}
 
         <div className="sw1-brand__logos">
           <label>Home logo
@@ -589,13 +617,13 @@ export default function AdminPanel({
       </details>
 
       {/* Playing list — read-only summary of the on-field selections */}
-      <details className="sw1-section">
+      <details name="sw1adm" className="sw1-section">
         <summary>Playing list</summary>
         {playingList}
       </details>
 
       {/* Ins & Outs vs last week — admin reference only (never on the public graphic) */}
-      <details className="sw1-section">
+      <details name="sw1adm" className="sw1-section">
         <summary>Ins &amp; Outs vs last week</summary>
         {!dbConfigured ? (
           <p className="sw1-admin__hint">
@@ -660,7 +688,7 @@ export default function AdminPanel({
       </details>
 
       {/* Team Squad */}
-      <details className="sw1-section">
+      <details name="sw1adm" className="sw1-section">
         <summary>Team Squad</summary>
 
       <div className="sw1-admin__modes">
@@ -731,7 +759,7 @@ export default function AdminPanel({
         <p className={`sw1-addmsg ${addMsg.ok ? 'is-ok' : 'is-err'}`}>{addMsg.text}</p>
       )}
 
-      <details className="sw1-admin__bulk">
+      <details name="sw1adm" className="sw1-admin__bulk">
         <summary>Bulk import</summary>
         <p className="sw1-admin__hint sw1-admin__hint--links">
           One player per line as <strong>number, name</strong> — and optionally a headshot image

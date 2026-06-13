@@ -129,4 +129,6 @@ export interface TeamSheetData {
   watermarkSource?: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
   /** ONE jumper image used for the whole team when visualMode === 'jumper'. */
   jumperImageUrl?: string;
+  /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
+  vsStyle?: 'chrome' | 'split';
 }
