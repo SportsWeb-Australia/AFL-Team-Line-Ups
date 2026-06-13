@@ -1814,10 +1814,21 @@
   margin: 14px auto 0;
 }
 /* Cards inside the stage read cleanly on the tinted background. */
+/* Interchange & Emergencies boxes carry the SAME branded gradient as the match
+   header, so they read as part of the team graphic rather than plain white panels. */
 .sw1-emergencies .sw1-bench,
 .sw1-interchange .sw1-bench {
-  background: rgba(255, 255, 255, 0.74);
+  background:
+    radial-gradient(130% 120% at 50% -12%,
+      color-mix(in srgb, var(--club-primary) 60%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
+      var(--club-primary) 46%,
+      color-mix(in srgb, var(--club-primary) 74%, #ffffff) 100%);
+  box-shadow: 0 12px 26px -14px rgba(0, 0, 0, 0.45);
 }
+.sw1-emergencies .sw1-bench__empty,
+.sw1-interchange .sw1-bench__empty { color: rgba(255, 255, 255, 0.82); }
 /* Followers, Interchange and Emergencies stack as consistent rows beneath the
    oval by default (mobile + the admin editor — avoids any overlap while editing). */
 /* On a wide PUBLIC/embedded graphic, float Interchange into the right corner and

@@ -41,16 +41,32 @@ export default function App() {
   useEffect(() => {
     if (!isEmbed) return;
     const post = () => {
-      const h = Math.ceil(document.documentElement.scrollHeight);
+      // The corner-floated Interchange/Emergencies are absolutely positioned, so
+      // they can sit outside documentElement.scrollHeight. Measure the lowest point
+      // of the actual content and add a small buffer so nothing is clipped.
+      let maxBottom = 0;
+      document
+        .querySelectorAll('.sw1-frame, .sw1-interchange, .sw1-emergencies, .sw1-stage')
+        .forEach((el) => {
+          const b = el.getBoundingClientRect().bottom + window.scrollY;
+          if (b > maxBottom) maxBottom = b;
+        });
+      const h =
+        Math.ceil(
+          Math.max(document.documentElement.scrollHeight, document.body.scrollHeight, maxBottom),
+        ) + 24;
       window.parent?.postMessage({ type: 'sw1-embed-height', height: h }, '*');
     };
     post();
     const ro = new ResizeObserver(post);
     ro.observe(document.body);
     window.addEventListener('load', post);
+    // Re-post after late layout settles (web-font swap, jumper images decoding).
+    const timers = [setTimeout(post, 400), setTimeout(post, 1200)];
     return () => {
       ro.disconnect();
       window.removeEventListener('load', post);
+      timers.forEach(clearTimeout);
     };
   }, []);
 
