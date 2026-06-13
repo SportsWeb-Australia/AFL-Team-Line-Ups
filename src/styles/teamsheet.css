@@ -79,30 +79,43 @@
 }
 .sw1-header__v {
   position: relative;
-  font-size: clamp(38px, 6.5vw, 74px);
-  font-weight: 900;
-  font-style: italic;
-  line-height: 1;
-  letter-spacing: -0.03em;
-  padding: 0 clamp(6px, 1.4vw, 14px);
-  background: linear-gradient(180deg, #ffffff 0%, #e4ebf3 34%, #aebccd 52%, #f4f8fc 70%, #ffffff 100%);
-  -webkit-background-clip: text;
-  background-clip: text;
-  color: transparent;
-  filter: drop-shadow(0 2px 7px rgba(0, 0, 0, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(6px, 1.4vw, 16px);
+  min-width: clamp(56px, 9vw, 104px);
 }
-.sw1-header__v::before {
-  content: "";
+/* The lightning bolt sits behind the lettering, tilted, in the club's accent. */
+.sw1-header__bolt {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: 150%;
-  height: clamp(3px, 0.5vw, 5px);
-  transform: translate(-50%, -50%) skewX(-24deg);
-  background: linear-gradient(90deg, transparent, var(--club-secondary, #f5c518) 45%, var(--club-secondary, #f5c518) 55%, transparent);
-  opacity: 0.55;
-  z-index: -1;
-  border-radius: 2px;
+  width: clamp(34px, 5.4vw, 62px);
+  height: clamp(64px, 11vw, 122px);
+  transform: translate(-50%, -50%) rotate(8deg);
+  background: linear-gradient(180deg,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 60%, #ffffff),
+    var(--club-secondary, #f5b301) 55%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 70%, #000000));
+  clip-path: polygon(58% 0, 30% 52%, 50% 52%, 40% 100%, 78% 40%, 56% 40%, 76% 0);
+  filter: drop-shadow(0 0 10px color-mix(in srgb, var(--club-secondary, #f5b301) 60%, transparent));
+  z-index: 0;
+}
+/* "VS" in heavy broadcast chrome. */
+.sw1-header__vs {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(34px, 6vw, 66px);
+  font-weight: 900;
+  font-style: italic;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3f9 30%, #b9c6d6 52%, #ffffff 72%, #dfe8f1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(8, 18, 36, 0.28);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
 }
 
 .sw1-crest { text-align: center; }
@@ -385,7 +398,7 @@
 @media (max-width: 760px) {
   .sw1-frame { overflow: hidden; }
   .sw1-header__crests { gap: 8px; }
-  .sw1-header__v { font-size: 34px; }
+  .sw1-header__vs { font-size: 34px; }
   .sw1-fixture { margin-top: 14px; }
   .sw1-adminbar { max-width: none; }
   .sw1-stage { padding: 8px; }
@@ -921,7 +934,11 @@
 
 /* Scrolling module marquee */
 .sw1-marquee { position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.sw1-swhead__marquee { display: block; text-decoration: none; cursor: pointer; }
 .sw1-marquee__track { display: inline-flex; align-items: center; gap: 26px; white-space: nowrap; animation: sw1-marquee 26s linear infinite; }
+/* Pause the scroll on hover so you can read — and click through to the platform. */
+.sw1-swhead__marquee:hover .sw1-marquee__track,
+.sw1-marquee:hover .sw1-marquee__track { animation-play-state: paused; }
 .sw1-marquee__item { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: #b9d4f5; }
 .sw1-marquee__icon { display: inline-flex; }
 .sw1-marquee__icon svg { width: 16px; height: 16px; color: #4f9bff; }
@@ -979,6 +996,35 @@
   background: linear-gradient(180deg, rgba(238, 242, 247, 0.96), rgba(238, 242, 247, 0.82));
   backdrop-filter: blur(6px);
 }
+.sw1-share { position: relative; display: inline-block; }
+.sw1-share__backdrop { position: fixed; inset: 0; z-index: 30; }
+.sw1-share__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 31;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+}
+.sw1-share__menu button {
+  text-align: left;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  color: #0c2340;
+  cursor: pointer;
+}
+.sw1-share__menu button:hover { background: #f1f5f9; }
+.sw1-share__sep { height: 1px; background: #e2e8f0; margin: 5px 6px; }
 
 /* ── Admin: match & branding ────────────────────────────────────────────── */
 .sw1-brand {
@@ -1558,31 +1604,17 @@
 .sw1-interchange {
   position: relative;
   z-index: 2;
-  max-width: 360px;
-  margin: 16px auto 0;
+  max-width: 460px;
+  margin: 14px auto 0;
 }
 /* Cards inside the stage read cleanly on the tinted background. */
 .sw1-emergencies .sw1-bench,
 .sw1-interchange .sw1-bench {
   background: rgba(255, 255, 255, 0.74);
 }
-/* Desktop: the two benches float at the bottom corners of the oval — but only on
-   the full-width public/preview/embed graphic. In the admin editor the preview is
-   narrowed by the sidebar, so they stay stacked to avoid colliding with Followers. */
-@media (min-width: 1240px) {
-  .sw1-root:not(.sw1-root--admin) .sw1-emergencies,
-  .sw1-root:not(.sw1-root--admin) .sw1-interchange {
-    position: absolute;
-    bottom: 14px;
-    width: 190px;
-    max-width: none;
-    margin: 0;
-  }
-  .sw1-root:not(.sw1-root--admin) .sw1-emergencies { left: 14px; }
-  .sw1-root:not(.sw1-root--admin) .sw1-interchange { right: 14px; }
-  .sw1-root:not(.sw1-root--admin) .sw1-emergencies .sw1-bench__grid,
-  .sw1-root:not(.sw1-root--admin) .sw1-interchange .sw1-bench__grid { grid-template-columns: 1fr; }
-}
+/* Followers, Interchange and Emergencies now stack as consistent rows beneath
+   the oval (Followers first, then Interchange, then Emergencies) — matching the
+   field lines above rather than floating in the oval's corners. */
 /* Unavailable: full-width strip beneath the field. */
 .sw1-unavailable-wrap { margin-top: 16px; }
 .sw1-unavailable-wrap .sw1-bench__grid {
@@ -1955,10 +1987,39 @@
 }
 .sw1-squad__edit:hover { background: #eef2f6; }
 .sw1-squad__remove:hover { background: #fde2e2; border-color: #f5b1b1; color: #b91c1c; }
-.sw1-squad__row--edit { flex-direction: row; align-items: center; gap: 6px; padding: 5px; }
-.sw1-squad__row--edit input { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
+.sw1-squad__row--edit { flex-direction: column; align-items: stretch; gap: 8px; padding: 7px; }
+.sw1-squad__editline { display: flex; align-items: center; gap: 6px; }
+.sw1-squad__row--edit input[type="text"],
+.sw1-squad__row--edit .sw1-squad__editno,
+.sw1-squad__row--edit .sw1-squad__editname { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
 .sw1-squad__editno { width: 50px; flex: 0 0 auto; }
 .sw1-squad__editname { flex: 1; min-width: 0; }
+.sw1-squad__imgrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sw1-squad__imgbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background:
+    linear-gradient(#fff, #f5f8fb) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 55%, #5c6670) border-box;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0c2340;
+  cursor: pointer;
+}
+.sw1-squad__imgbtn input { display: none; }
+.sw1-squad__imgclear {
+  border: 0;
+  background: none;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 2px;
+}
 .sw1-squad__ok,
 .sw1-squad__x {
   width: 30px;

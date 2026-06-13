@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import type { Player, PlayerStatus, PositionKey } from '../types';
 import type { SlotDef } from '../lib/field';
 
@@ -44,6 +44,7 @@ interface Props {
   onQuickPlace: (id: string, target: QuickTarget) => void;
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
+  onSetPlayerImage: (id: string, kind: 'headshot' | 'jumper', dataUrl: string | null) => void;
 }
 
 export default function SquadList({
@@ -58,6 +59,7 @@ export default function SquadList({
   onQuickPlace,
   onRemovePlayer,
   onUpdatePlayer,
+  onSetPlayerImage,
 }: Props) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editNo, setEditNo] = useState('');
@@ -108,25 +110,54 @@ export default function SquadList({
     const reason = reasonOf(p);
 
     if (editId === p.id) {
+      const readImg = (kind: 'headshot' | 'jumper') => (e: ChangeEvent<HTMLInputElement>) => {
+        const f = e.target.files?.[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = () => onSetPlayerImage(p.id, kind, String(r.result));
+        r.readAsDataURL(f);
+      };
       return (
         <div key={p.id} className="sw1-squad__row sw1-squad__row--edit">
-          <input
-            className="sw1-squad__editno"
-            value={editNo}
-            inputMode="numeric"
-            onChange={(e) => setEditNo(e.target.value)}
-          />
-          <input
-            className="sw1-squad__editname"
-            value={editName}
-            onChange={(e) => setEditName(e.target.value)}
-          />
-          <button className="sw1-squad__ok" onClick={() => saveEdit(p.id)} title="Save">
-            ✓
-          </button>
-          <button className="sw1-squad__x" onClick={() => setEditId(null)} title="Cancel">
-            ✕
-          </button>
+          <div className="sw1-squad__editline">
+            <input
+              className="sw1-squad__editno"
+              value={editNo}
+              inputMode="numeric"
+              onChange={(e) => setEditNo(e.target.value)}
+            />
+            <input
+              className="sw1-squad__editname"
+              value={editName}
+              onChange={(e) => setEditName(e.target.value)}
+            />
+            <button className="sw1-squad__ok" onClick={() => saveEdit(p.id)} title="Save">
+              ✓
+            </button>
+            <button className="sw1-squad__x" onClick={() => setEditId(null)} title="Cancel">
+              ✕
+            </button>
+          </div>
+          <div className="sw1-squad__imgrow">
+            <label className="sw1-squad__imgbtn">
+              {p.headshotUrl ? 'Headshot ✓' : 'Add headshot'}
+              <input type="file" accept="image/*" onChange={readImg('headshot')} />
+            </label>
+            {p.headshotUrl && (
+              <button className="sw1-squad__imgclear" onClick={() => onSetPlayerImage(p.id, 'headshot', null)}>
+                Clear
+              </button>
+            )}
+            <label className="sw1-squad__imgbtn">
+              {p.jumperImageUrl ? 'Jumper ✓' : 'Add jumper'}
+              <input type="file" accept="image/*" onChange={readImg('jumper')} />
+            </label>
+            {p.jumperImageUrl && (
+              <button className="sw1-squad__imgclear" onClick={() => onSetPlayerImage(p.id, 'jumper', null)}>
+                Clear
+              </button>
+            )}
+          </div>
         </div>
       );
     }

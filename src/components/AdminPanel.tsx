@@ -63,6 +63,7 @@ interface Props {
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
   onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
   onRemovePlayer: (id: string) => void;
+  onSetPlayerImage: (id: string, kind: 'headshot' | 'jumper', dataUrl: string | null) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
   onLoadBlank: () => void;
   onLoadDemo: () => void;
@@ -129,6 +130,7 @@ export default function AdminPanel({
   onSetAvailability,
   onSetRole,
   onRemovePlayer,
+  onSetPlayerImage,
   onUpdatePlayer,
   onLoadBlank,
   onLoadDemo,
@@ -649,6 +651,7 @@ export default function AdminPanel({
         onSetRole={onSetRole}
         onQuickPlace={onQuickPlace}
         onRemovePlayer={onRemovePlayer}
+        onSetPlayerImage={onSetPlayerImage}
         onUpdatePlayer={onUpdatePlayer}
       />
       </details>
@@ -676,7 +679,7 @@ export default function AdminPanel({
 
         <a className="sw1-upgrade" href={SPORTSWEB_UPGRADE} target="_blank" rel="noopener noreferrer">
           <strong>Upgrade to a premium SportsWeb One website</strong>
-          <span>Match your team apps — and get this app free →</span>
+          <span>One home for your whole club — site, team apps &amp; this tool, included free →</span>
         </a>
 
         <a className="sw1-swfoot__link" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">

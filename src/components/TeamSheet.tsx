@@ -322,6 +322,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
   const [copyMsg, setCopyMsg] = useState('');
+  const [shareOpen, setShareOpen] = useState(false);
   // "Ins & Outs vs last week" — a snapshot of the previous round's named side.
   // The live diff against the current selections is computed in a useMemo below.
   const [prevWeek, setPrevWeek] = useState<PrevLineup | null>(null);
@@ -600,6 +601,49 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     copyTeamList(); // desktop without Web Share → copy the list instead
   }
 
+  /** The public, shareable URL for this team (once it's been saved/published). */
+  function shareUrl(): string | null {
+    return dbRefs.fixtureId ? `${window.location.origin}/?fixture=${dbRefs.fixtureId}` : null;
+  }
+  function shareTitle(): string {
+    return [club.name, match.opponent && `v ${match.opponent}`, match.round]
+      .filter(Boolean)
+      .join(' ') || 'Team line-up';
+  }
+  function openShare(target: 'facebook' | 'x' | 'whatsapp' | 'email') {
+    const url = shareUrl();
+    const title = shareTitle();
+    if (!url) {
+      setDbMsg('Publish this team first to get a shareable link for socials.');
+      setShareOpen(false);
+      return;
+    }
+    const u = encodeURIComponent(url);
+    const t = encodeURIComponent(title);
+    let href = '';
+    if (target === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
+    else if (target === 'x') href = `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
+    else if (target === 'whatsapp') href = `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`;
+    else if (target === 'email')
+      href = `mailto:?subject=${t}&body=${encodeURIComponent(buildTeamListText() + '\n\n' + url)}`;
+    if (target === 'email') window.location.href = href;
+    else window.open(href, '_blank', 'noopener,noreferrer,width=620,height=640');
+    setShareOpen(false);
+  }
+  function copyShareLink() {
+    const url = shareUrl();
+    if (!url) {
+      setDbMsg('Publish this team first to get a shareable link.');
+      setShareOpen(false);
+      return;
+    }
+    navigator.clipboard?.writeText(url).then(
+      () => setDbMsg('Public link copied — paste it anywhere.'),
+      () => window.prompt('Copy this link:', url),
+    );
+    setShareOpen(false);
+  }
+
   // Embeds / deep links pull the published sheet from the DB on first paint.
   useEffect(() => {
     if (autoLoad) loadFromDatabase();
@@ -669,6 +713,17 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function updatePlayer(id: string, fields: { number?: string; name?: string }) {
     setPlayers((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...fields } : p)),
+    );
+  }
+
+  /** Set or clear a player's headshot / jumper image (data URL, or null to clear). */
+  function setPlayerImage(id: string, kind: 'headshot' | 'jumper', dataUrl: string | null) {
+    setPlayers((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? { ...p, [kind === 'headshot' ? 'headshotUrl' : 'jumperImageUrl']: dataUrl }
+          : p,
+      ),
     );
   }
 
@@ -881,14 +936,29 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const wasCollapsed = !!wrap?.classList.contains('is-collapsed');
     if (wasCollapsed) wrap!.classList.add('is-capturing');
     try {
-      const dataUrl = await toPng(node, {
-        pixelRatio: 2, // crisp on retina / good for socials
-        backgroundColor: '#eef2f6',
-        cacheBust: true,
-        width: Math.ceil(node.scrollWidth),
-        height: Math.ceil(node.scrollHeight),
-        style: { margin: '0', transform: 'none' },
-      });
+      // Capture at a fixed, generous width so the downloaded graphic is always a
+      // full, consistent size (not the narrow width of the on-screen editor). The
+      // layout reflows to this width briefly, then we restore it.
+      const EXPORT_WIDTH = 1080;
+      const prevWidth = node.style.width;
+      const prevMax = node.style.maxWidth;
+      node.style.width = `${EXPORT_WIDTH}px`;
+      node.style.maxWidth = 'none';
+      node.getBoundingClientRect(); // force a synchronous reflow at the export width
+      let dataUrl: string;
+      try {
+        dataUrl = await toPng(node, {
+          pixelRatio: 2, // crisp on retina / good for socials
+          backgroundColor: '#eef2f6',
+          cacheBust: true,
+          width: EXPORT_WIDTH,
+          height: Math.ceil(node.scrollHeight),
+          style: { margin: '0', transform: 'none' },
+        });
+      } finally {
+        node.style.width = prevWidth;
+        node.style.maxWidth = prevMax;
+      }
       const a = document.createElement('a');
       a.download = `${slugify(club.name)}-v-${slugify(match.opponent)}-${slugify(
         match.round,
@@ -921,7 +991,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               The operating system for grassroots sport — one platform, every club function.
             </span>
           </a>
-          <ModuleMarquee />
+          <a
+            className="sw1-swhead__marquee"
+            href="https://sportsweb.com.au"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="Explore the SportsWeb One platform"
+          >
+            <ModuleMarquee />
+          </a>
         </div>
       )}
       {admin && (
@@ -932,9 +1010,27 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <button className="sw1-btn" onClick={copyTeamList}>
             {copyMsg || 'Copy team list'}
           </button>
-          <button className="sw1-btn" onClick={shareTeam}>
-            Share
-          </button>
+          <div className="sw1-share">
+            <button className="sw1-btn" onClick={() => setShareOpen((o) => !o)} aria-haspopup="true" aria-expanded={shareOpen}>
+              Share ▾
+            </button>
+            {shareOpen && (
+              <>
+                <div className="sw1-share__backdrop" onClick={() => setShareOpen(false)} />
+                <div className="sw1-share__menu" role="menu">
+                  <button role="menuitem" onClick={() => openShare('facebook')}>Facebook</button>
+                  <button role="menuitem" onClick={() => openShare('x')}>X / Twitter</button>
+                  <button role="menuitem" onClick={() => openShare('whatsapp')}>WhatsApp</button>
+                  <button role="menuitem" onClick={() => openShare('email')}>Email</button>
+                  <button role="menuitem" onClick={copyShareLink}>Copy public link</button>
+                  <div className="sw1-share__sep" />
+                  <button role="menuitem" onClick={() => { setShareOpen(false); copyTeamList(); }}>Copy team list (text)</button>
+                  <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download graphic (for Instagram)</button>
+                  <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>More / device share…</button>
+                </div>
+              </>
+            )}
+          </div>
           {isSupabaseConfigured && (
             <>
               <button
@@ -979,6 +1075,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onSetAvailability={setAvailability}
             onSetRole={setRole}
             onRemovePlayer={removePlayer}
+            onSetPlayerImage={setPlayerImage}
             onUpdatePlayer={updatePlayer}
             onLoadBlank={loadBlank}
             onLoadDemo={loadDemo}
@@ -1168,17 +1265,17 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             </div>
           )}
 
-          {/* Emergencies sit centred under the followers, with a clear gap */}
-          {renderBench('emergencies') && (
-            <div className={`sw1-emergencies ${benchByArea.emergencies.length === 0 ? 'sw1-zone--empty' : ''}`}>
-              {renderBench('emergencies')}
-            </div>
-          )}
-
-          {/* Interchange sits bottom-right of the oval on desktop, stacks on mobile */}
+          {/* Interchange sits directly under the followers */}
           {renderBench('interchange') && (
             <div className={`sw1-interchange ${benchByArea.interchange.length === 0 ? 'sw1-zone--empty' : ''}`}>
               {renderBench('interchange')}
+            </div>
+          )}
+
+          {/* Emergencies last in the bench order */}
+          {renderBench('emergencies') && (
+            <div className={`sw1-emergencies ${benchByArea.emergencies.length === 0 ? 'sw1-zone--empty' : ''}`}>
+              {renderBench('emergencies')}
             </div>
           )}
         </div>

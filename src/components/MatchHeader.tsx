@@ -36,7 +36,10 @@ export default function MatchHeader({ club, match }: Props) {
 
       <div className="sw1-header__crests">
         <Crest name={club.name} logoUrl={club.logoUrl} color={club.secondaryColor} />
-        <div className="sw1-header__v">V</div>
+        <div className="sw1-header__v" aria-hidden>
+          <span className="sw1-header__bolt" />
+          <span className="sw1-header__vs">VS</span>
+        </div>
         <Crest name={match.opponent} logoUrl={match.opponentLogoUrl} color="#64748b" />
       </div>
 
