@@ -273,12 +273,17 @@ export async function loadLatestForClubGrade(
   opts: { publishedOnly?: boolean } = {},
 ): Promise<LoadedSheet | null> {
   if (!supabase) throw new Error('Database is not configured.');
-  let q = supabase
+  const sb = supabase;
+  // Match by club NAME so the embed still resolves the grade even if the team ended
+  // up under a duplicate club row. Falls back to the club id if the name can't be read.
+  const { data: clubRow } = await sb.from('clubs').select('name').eq('id', clubId).maybeSingle();
+  const clubName = (clubRow as any)?.name as string | undefined;
+  let q = sb
     .from('fixtures')
-    .select('id, created_at, team:teams!inner ( name, club_id )')
-    .eq('team.club_id', clubId)
+    .select('id, created_at, team:teams!inner ( name, club:clubs!inner ( name, id ) )')
     .order('created_at', { ascending: false })
     .limit(20);
+  q = clubName ? q.eq('team.club.name', clubName) : q.eq('team.club_id', clubId);
   if (grade) q = q.eq('team.name', grade);
   const { data, error } = await q;
   if (error) throw error;
@@ -318,19 +323,36 @@ export interface SavedSheet {
  */
 export async function listSavedSheets(clubId: string | null): Promise<SavedSheet[]> {
   if (!supabase || !clubId) return [];
-  const { data, error } = await supabase
-    .from('fixtures')
-    .select('id, round, match_date_text, opponent_name, created_at, team:teams!inner ( name, club_id )')
-    .eq('team.club_id', clubId)
-    .order('created_at', { ascending: false });
-  if (error) return [];
-  return ((data as any[]) ?? []).map((f) => ({
+  const sb = supabase;
+  // Resolve the club's NAME and match by name, so teams that ended up under a
+  // duplicate club row (e.g. the name was typed slightly differently when the
+  // grade was first set up) still appear in the recall list rather than going
+  // missing. Same-named clubs are treated as one here.
+  const { data: club } = await sb.from('clubs').select('name').eq('id', clubId).maybeSingle();
+  const clubName = (club as any)?.name as string | undefined;
+
+  const run = (withDateText: boolean, byName: boolean) => {
+    const cols = `id, round,${withDateText ? ' match_date_text,' : ''} opponent_name, created_at, team:teams!inner ( name, club:clubs!inner ( name ) )`;
+    let q = sb.from('fixtures').select(cols);
+    q = byName && clubName ? q.eq('team.club.name', clubName) : q.eq('team.club_id', clubId);
+    return q.order('created_at', { ascending: false });
+  };
+
+  let res = await run(true, !!clubName);
+  if (res.error && /match_date_text/i.test(res.error.message)) res = await run(false, !!clubName);
+  // If the name-based query somehow fails, fall back to the original club-id query.
+  if (res.error) res = await run(true, false);
+  if (res.error && /match_date_text/i.test(res.error.message)) res = await run(false, false);
+  if (res.error) return [];
+
+  const rows = ((res.data as any[]) ?? []).map((f) => ({
     fixtureId: f.id as string,
     round: f.round ?? null,
     dateText: f.match_date_text ?? null,
     grade: f.team?.name ?? null,
     opponent: f.opponent_name ?? null,
   }));
+  return rows;
 }
 
 /**
