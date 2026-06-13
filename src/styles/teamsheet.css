@@ -299,6 +299,10 @@
 }
 .sw1-exporting .sw1-banner__advertise { display: none; }
 .sw1-exporting .sw1-unavailable-wrap { display: none !important; }
+/* Keep the exported graphic clean: no empty Emergencies/Interchange boxes and no
+   "Tap a player, then tap here" editor prompts leaking into the downloaded image. */
+.sw1-exporting .sw1-zone--empty { display: none !important; }
+.sw1-exporting .sw1-bench__empty { display: none !important; }
 
 /* admin: sponsor banner rotation manager */
 .sw1-sponsorpanel {
@@ -400,6 +404,9 @@
   padding: clamp(12px, 2vw, 20px);
   box-shadow: var(--shadow-card);
   display: block;
+  /* Query container so the line labels can tell a full-width graphic (use full
+     "HALF FORWARDS" banners) from the narrow admin preview (use B/HB/C/HF/F). */
+  container: sw1stage / inline-size;
 }
 /* Admin controls now sit ABOVE the graphic (outside the exported frame),
    so the field renders full-width exactly like the public embed.
@@ -486,9 +493,11 @@
   width: 4cqw;
   background: var(--club-secondary);
 }
-/* Below ~1080px the side gutter can't hold the full banner, so we switch to
-   short abbreviation pills (B / HB / C / HF / F) at the oval edge. */
-@media (max-width: 1080px) {
+/* When the GRAPHIC is narrow (admin preview, mobile, narrow embed) the side
+   gutter can't hold the full banner, so we switch to short abbreviation pills
+   (B / HB / C / HF / F) at the oval edge. Querying the stage (not the pitch)
+   distinguishes the full-width export/public graphic from the narrow editor. */
+@container sw1stage (max-width: 1000px) {
   .sw1-lines__label {
     left: -1cqw;
     width: auto;
@@ -1071,7 +1080,9 @@
 /* In the editor the big hanging line labels are hidden (empty slots already
    name each position, and the panel occupies the left gutter). They return
    in the public / preview view. */
-.sw1-root--admin .sw1-lines { display: none; }
+/* Labels now show in admin + export too (they sit in the left gutter, clear of
+   the slots). The pitch-width container query below swaps full banners for short
+   B/HB/C/HF/F pills whenever the graphic is narrow (admin preview, mobile). */
 
 /* ── Followers (ruck division) centred directly under the oval ──────────── */
 .sw1-followers-wrap {

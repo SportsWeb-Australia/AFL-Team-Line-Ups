@@ -1170,12 +1170,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
           {/* Emergencies sit centred under the followers, with a clear gap */}
           {renderBench('emergencies') && (
-            <div className="sw1-emergencies">{renderBench('emergencies')}</div>
+            <div className={`sw1-emergencies ${benchByArea.emergencies.length === 0 ? 'sw1-zone--empty' : ''}`}>
+              {renderBench('emergencies')}
+            </div>
           )}
 
           {/* Interchange sits bottom-right of the oval on desktop, stacks on mobile */}
           {renderBench('interchange') && (
-            <div className="sw1-interchange">{renderBench('interchange')}</div>
+            <div className={`sw1-interchange ${benchByArea.interchange.length === 0 ? 'sw1-zone--empty' : ''}`}>
+              {renderBench('interchange')}
+            </div>
           )}
         </div>
 
