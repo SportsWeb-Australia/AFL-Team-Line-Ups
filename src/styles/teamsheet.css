@@ -11,7 +11,7 @@
   --ink: #0f172a;
   --muted: #64748b;
   --surface: #ffffff;
-  --bg: #e7eaee;
+  --bg: #ffffff;
   --hair: #dfe3ea;
   --radius: 14px;
   --shadow-card: 0 4px 14px rgba(16, 24, 40, 0.08);
@@ -524,15 +524,11 @@
 /* ── Stage (admin panel + pitch) ────────────────────────────────────────── */
 .sw1-stage {
   position: relative;
-  border-radius: 16px;
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, var(--club-primary) 14%, #eef2f6),
-      color-mix(in srgb, var(--club-primary) 6%, #eef2f6)
-    );
-  padding: clamp(12px, 2vw, 20px);
-  box-shadow: var(--shadow-card);
+  --stage-pad: clamp(12px, 2vw, 20px);
+  border-radius: 0;
+  background: #ffffff;
+  padding: var(--stage-pad);
+  box-shadow: none;
   display: block;
   /* Query container so the line labels can tell a full-width graphic (use full
      "HALF FORWARDS" banners) from the narrow admin preview (use B/HB/C/HF/F). */
@@ -558,6 +554,8 @@
   z-index: 1;
   display: flex;
   justify-content: center;
+  /* break out of the stage padding so the oval fills the full width */
+  margin-inline: calc(-1 * var(--stage-pad));
 }
 
 /* "HAWKS" (club name) tiled across the ground panel AROUND the oval — sits on
@@ -588,68 +586,37 @@
 }
 .sw1-lines__label {
   position: absolute;
-  left: -27cqw;
-  width: 27cqw;
-  height: 6.4cqw;
+  left: 1px;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  padding: 0 2.2cqw 0 4.6cqw;
-  background: linear-gradient(
-    90deg,
-    var(--club-primary),
-    color-mix(in srgb, var(--club-primary) 72%, #ffffff)
-  );
-  color: var(--club-on-primary);
+  justify-content: center;
+  height: clamp(16px, 5cqw, 30px);
+  min-width: clamp(16px, 5cqw, 30px);
+  padding: 0 clamp(4px, 1.3cqw, 8px);
+  background: #767c86;
+  color: #ffffff;
   font-weight: 900;
-  font-size: 2.0cqw;
-  letter-spacing: -0.01em;
+  font-size: clamp(10px, 3cqw, 16px);
+  letter-spacing: 0;
   text-transform: uppercase;
   line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  clip-path: polygon(0 0, 98% 0, 94% 100%, 0 100%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .sw1-lines__label span { position: relative; z-index: 2; }
-.sw1-lines__abbr { display: none; }
-.sw1-lines__label::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4cqw;
-  background: var(--club-secondary);
-}
-/* When the GRAPHIC is narrow (admin preview, mobile, narrow embed) the side
-   gutter can't hold the full banner, so we switch to short abbreviation pills
-   (B / HB / C / HF / F) at the oval edge. Querying the stage (not the pitch)
-   distinguishes the full-width export/public graphic from the narrow editor. */
-@container sw1stage (max-width: 1000px) {
-  .sw1-lines__label {
-    left: -1cqw;
-    width: auto;
-    min-width: 0;
-    height: 8.5cqw;
-    padding: 0 3.2cqw;
-    font-size: 5cqw;
-    border-radius: 7px;
-    clip-path: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
-  }
-  .sw1-lines__label::before { display: none; }
-  .sw1-lines__full { display: none; }
-  .sw1-lines__abbr { display: inline; }
-}
+.sw1-lines__full { display: none; }
+.sw1-lines__abbr { display: inline; }
+/* (Position chips are grey abbreviation pills at every width now — handled by
+   the base .sw1-lines__label rule above, so no width-specific swap is needed.) */
 
 .sw1-pitch {
   position: relative;
   width: 100%;
   max-width: 700px;
   flex: 0 1 700px;
-  aspect-ratio: 1000 / 1230; /* matches the cropped field PNG */
+  aspect-ratio: 1000 / 1230; /* matches the field PNG */
   container-type: inline-size; /* on-field plates size in cqw against this */
 }
 .sw1-oval-img {
@@ -662,7 +629,7 @@
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-  filter: drop-shadow(0 12px 26px rgba(16, 24, 40, 0.22));
+  filter: drop-shadow(0 6px 14px rgba(16, 24, 40, 0.14));
 }
 
 /* Sits on top of the green (between the posts), so it reads as a ground
@@ -710,15 +677,17 @@
    at a wide "social card" size is preserved at every width — phones included.
    Bounded by clamp() so they never get unreadably small or oversized.
    Bench/admin plates are unaffected (they live outside .sw1-pitch). */
-.sw1-slot .sw1-plate__row { max-width: clamp(96px, 28cqw, 182px); }
+.sw1-slot .sw1-plate__row { max-width: clamp(100px, 28cqw, 196px); border-radius: 9px; border-color: #e3e8ef; }
 .sw1-slot .sw1-plate__no {
-  font-size: clamp(8px, 2.5cqw, 15px);
-  min-width: clamp(20px, 5cqw, 34px);
-  padding: 0 clamp(5px, 1.6cqw, 10px);
+  font-size: clamp(9px, 2.7cqw, 15px);
+  min-width: clamp(18px, 4.6cqw, 30px);
+  padding: 0 clamp(5px, 1.5cqw, 9px);
 }
-.sw1-slot .sw1-plate__name {
-  font-size: clamp(8px, 2.45cqw, 14px);
-  padding: clamp(3px, 1cqw, 6px) clamp(6px, 2cqw, 12px) clamp(3px, 1cqw, 6px) clamp(4px, 1.4cqw, 8px);
+/* Field names: extra specificity (…--compact…) so they beat the generic compact
+   11px rule below; sized up now that smaller chips freed the gutter. */
+.sw1-slot .sw1-plate--compact .sw1-plate__name {
+  font-size: clamp(9.5px, 2.85cqw, 14.5px);
+  padding: clamp(3px, 1cqw, 6px) clamp(5px, 1.7cqw, 10px) clamp(3px, 1cqw, 6px) clamp(4px, 1.3cqw, 7px);
 }
 .sw1-slot .sw1-plate__badge {
   font-size: clamp(7px, 1.9cqw, 10px);
@@ -773,7 +742,7 @@
   position: relative;
   z-index: 2;
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
   background: #fff;
   border-radius: 11px;
   overflow: hidden;
@@ -785,13 +754,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
   min-width: 34px;
   padding: 0 9px;
   font-weight: 900;
   font-size: 12px;
-  color: var(--club-on-primary);
+  color: var(--club-number, var(--club-on-primary));
   background: var(--club-primary);
-  clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%);
 }
 .sw1-plate__name {
   padding: 6px 12px 6px 8px;

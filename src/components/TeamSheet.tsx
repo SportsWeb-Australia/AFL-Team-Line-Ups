@@ -81,6 +81,37 @@ function readableOn(hex?: string | null): string {
   return L > 0.45 ? '#0b1220' : '#ffffff';
 }
 
+/** Relative luminance of a hex colour (or null if unparseable). */
+function luminance(hex?: string | null): number | null {
+  if (!hex) return null;
+  let h = hex.trim().replace('#', '');
+  if (h.length === 3) h = h.split('').map((c) => c + c).join('');
+  if (h.length !== 6 || /[^0-9a-fA-F]/.test(h)) return null;
+  const ch = (i: number) => {
+    const c = parseInt(h.slice(i, i + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+  };
+  return 0.2126 * ch(0) + 0.7152 * ch(2) + 0.0722 * ch(4);
+}
+/** WCAG contrast ratio between two hex colours (1 when either can't be parsed). */
+function contrast(a?: string | null, b?: string | null): number {
+  const la = luminance(a);
+  const lb = luminance(b);
+  if (la == null || lb == null) return 1;
+  const hi = Math.max(la, lb) + 0.05;
+  const lo = Math.min(la, lb) + 0.05;
+  return hi / lo;
+}
+/**
+ * Colour for the guernsey number, which sits on the primary-filled number tab.
+ * Uses the club's SECONDARY accent (e.g. Richmond yellow on black) when it reads
+ * clearly on the primary; otherwise falls back to the guaranteed-readable colour,
+ * so clubs whose secondary is close to their primary still get a legible number.
+ */
+function numberOn(primary?: string | null, secondary?: string | null): string {
+  return contrast(primary, secondary) >= 2.4 ? secondary || readableOn(primary) : readableOn(primary);
+}
+
 /** Level lines on desktop/tablet, staggered on phones. */
 function useIsNarrow(bp = 760) {
   const [narrow, setNarrow] = useState(
@@ -876,6 +907,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // (buttons, number tabs, follower pills). Derived from the fill's luminance
     // so it works even when a club's ink colour matches its primary (e.g. navy).
     '--club-on-primary': readableOn(club.primaryColor),
+    // Number colour on the (primary-filled) tab — secondary accent when legible.
+    '--club-number': numberOn(club.primaryColor, club.secondaryColor),
   } as React.CSSProperties;
 
   const fieldName = club.shortName ?? club.name;
