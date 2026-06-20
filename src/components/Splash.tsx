@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react';
-import poster from '../assets/splash-poster.png';
+import logo from '../assets/app-logo.png';
 
 /**
- * Branded launch screen — the AFL Team Line Ups poster, full-bleed on a dark
- * stadium wash, then fades away. Skipped inside club embeds.
+ * Branded launch screen — shows the AFL Team Line Ups crest on a dark
+ * stadium-green wash, then fades away. Skipped inside club embeds.
  */
 export default function Splash() {
   const [hide, setHide] = useState(false);
   const [gone, setGone] = useState(false);
 
   useEffect(() => {
-    const t1 = setTimeout(() => setHide(true), 2500);
-    const t2 = setTimeout(() => setGone(true), 3050);
+    const t1 = setTimeout(() => setHide(true), 1500);
+    const t2 = setTimeout(() => setGone(true), 2050);
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
@@ -22,7 +22,10 @@ export default function Splash() {
 
   return (
     <div className={`sw1-splash ${hide ? 'is-hidden' : ''}`} aria-hidden="true">
-      <img src={poster} alt="AFL Team Line Ups" className="sw1-splash__poster" />
+      <div className="sw1-splash__inner">
+        <img src={logo} alt="AFL Team Line Ups" className="sw1-splash__logo" />
+        <div className="sw1-splash__tag">Built for fans. Made for game day.</div>
+      </div>
     </div>
   );
 }

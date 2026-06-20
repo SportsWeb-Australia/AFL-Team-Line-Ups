@@ -88,9 +88,6 @@ export interface Sponsor {
 export interface MatchInfo {
   opponent: string;
   opponentLogoUrl?: string | null;
-  /** When the opponent was picked from the clubs store, the club id it links to.
-   *  Null for a free-text/unlisted opponent. Round-tripped through save/load. */
-  opponentClubId?: string | null;
   /** e.g. "Eastern Football Netball League". */
   competition?: string;
   /** e.g. "Seniors", "Reserves", "Under 19s". */
@@ -126,18 +123,4 @@ export interface TeamSheetData {
   lineup: Lineup;
   /** Repeating club-name watermark behind the oval. */
   watermark?: boolean;
-  /** How players render on the ground: 'jumper' | 'headshot' | 'none'. Persisted so embeds match the editor. */
-  visualMode?: VisualMode;
-  /** What shows in the faint background behind the oval. Persisted so embeds match the editor. */
-  watermarkSource?: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
-  /** Custom watermark sponsor name + logo (when watermarkSource is a sponsor one). Persisted. */
-  watermarkText?: string;
-  watermarkLogoUrl?: string;
-  /** ONE jumper image used for the whole team when visualMode === 'jumper'. */
-  jumperImageUrl?: string;
-  /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
-  vsStyle?: 'chrome' | 'split';
-  /** Logos shown top-right of the header — competition/league logos or an extra
-   *  sponsor. Any number; rendered in a row. Persisted so embeds match the editor. */
-  competitionLogos?: string[];
 }

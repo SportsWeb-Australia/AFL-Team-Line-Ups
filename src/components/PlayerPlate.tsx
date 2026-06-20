@@ -67,8 +67,6 @@ export const HEALTH_STATUS: Partial<
 interface Props {
   player: Player;
   visualMode: VisualMode;
-  /** ONE jumper image shared by the whole team (used when visualMode === 'jumper'). */
-  teamJumperUrl?: string;
   compact?: boolean;
   /** Show the written status label next to the icon (used in the Unavailable list). */
   showStatusLabel?: boolean;
@@ -78,11 +76,11 @@ interface Props {
  * A single player token: optional jumper/headshot artwork above a slanted name
  * plate, with role badges and a colour-coded availability flag.
  */
-export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact = false, showStatusLabel = false }: Props) {
+export default function PlayerPlate({ player, visualMode, compact = false, showStatusLabel = false }: Props) {
   const showArt = visualMode !== 'none';
   let artSrc: string | null = null;
   if (visualMode === 'headshot') artSrc = player.headshotUrl ?? headshotPlaceholder;
-  else if (visualMode === 'jumper') artSrc = teamJumperUrl ?? jumperPlaceholder;
+  else if (visualMode === 'jumper') artSrc = player.jumperImageUrl ?? jumperPlaceholder;
 
   const statuses = player.status ?? [];
   const roles = statuses.filter((s) => s in ROLE_BADGE);
@@ -118,23 +116,17 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
       )}
 
       <div className="sw1-plate__row">
-        <span className={`sw1-plate__no${player.number ? '' : ' sw1-plate__no--empty'}`}>{player.number || ''}</span>
+        <span className="sw1-plate__no">{player.number || "\u2013"}</span>
         <span className="sw1-plate__name">{player.name}</span>
 
-        {/* Role badges (C, VC, etc.) sit INSIDE the plate at the right end, so they
-            never float out over neighbouring players or the top-right logos. */}
-        {roles.length > 0 && (
-          <span className="sw1-plate__badges">
-            {roles.map((r) => {
-              const b = ROLE_BADGE[r]!;
-              return (
-                <span key={r} className={`sw1-plate__badge ${b.cls}`} title={b.title}>
-                  {b.short}
-                </span>
-              );
-            })}
-          </span>
-        )}
+        {roles.map((r) => {
+          const b = ROLE_BADGE[r]!;
+          return (
+            <span key={r} className={`sw1-plate__badge ${b.cls}`} title={b.title}>
+              {b.short}
+            </span>
+          );
+        })}
 
         {/* On-field / bench: small icon chip inline */}
         {health && !showStatusLabel && (

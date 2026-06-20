@@ -6,8 +6,6 @@ interface Props {
   area: BenchArea;
   players: Player[];
   visualMode: VisualMode;
-  /** ONE jumper image shared by the whole team (jumper mode). */
-  teamJumperUrl?: string;
   /** Admin only. */
   enabled?: boolean;
   selectedPlayerId?: string | null;
@@ -23,7 +21,6 @@ export default function BenchZone({
   area,
   players,
   visualMode,
-  teamJumperUrl,
   enabled = false,
   selectedPlayerId = null,
   onAssign,
@@ -95,7 +92,6 @@ export default function BenchZone({
               <PlayerPlate
                 player={p}
                 visualMode={visualMode}
-                teamJumperUrl={teamJumperUrl}
                 compact
                 showStatusLabel={area === 'unavailable'}
               />
