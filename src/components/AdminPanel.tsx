@@ -47,6 +47,7 @@ interface Props {
   onAddPlayer: (number: string, name: string) => void;
   onImport: (rows: { number: string; name: string }[]) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
+  onToggleRole?: (id: string, role: PlayerStatus) => void;
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
   onLoadBlank: () => void;
@@ -105,6 +106,7 @@ export default function AdminPanel({
   onAddPlayer,
   onImport,
   onSetAvailability,
+  onToggleRole,
   onRemovePlayer,
   onUpdatePlayer,
   onLoadBlank,
@@ -410,8 +412,49 @@ export default function AdminPanel({
         {playingList}
       </details>
 
+      {/* Captains & milestones — quick-set role badges on selected players */}
+      <details className="sw1-section" open={!isNarrow}>
+        <summary>Captains &amp; milestones</summary>
+        {(() => {
+          const placed = players.filter((p) => {
+            const loc = squadLocation.get(p.id);
+            return loc && loc !== 'Unavail';
+          });
+          if (placed.length === 0)
+            return <p className="sw1-help">Place players in your side first, then flag them here.</p>;
+          const ROLES: { value: PlayerStatus; short: string; title: string }[] = [
+            { value: 'captain', short: 'C', title: 'Captain' },
+            { value: 'vice-captain', short: 'VC', title: 'Vice-captain' },
+            { value: 'milestone', short: '\u25C6', title: 'Milestone' },
+            { value: 'debut', short: '\u2605', title: 'Debut' },
+          ];
+          return (
+            <div className="sw1-roles">
+              {placed.map((p) => (
+                <div key={p.id} className="sw1-roles__row">
+                  <span className="sw1-roles__name">{p.name}</span>
+                  <div className="sw1-roles__chips">
+                    {ROLES.map((r) => (
+                      <button
+                        key={r.value}
+                        type="button"
+                        className={`sw1-rolechip ${(p.status ?? []).includes(r.value) ? 'is-on' : ''}`}
+                        title={r.title}
+                        onClick={() => onToggleRole?.(p.id, r.value)}
+                      >
+                        {r.short}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          );
+        })()}
+      </details>
+
       {/* Team list */}
-      <details className="sw1-section" open>
+      <details className="sw1-section" open={!isNarrow}>
         <summary>Team list</summary>
 
       <div className="sw1-admin__modes">

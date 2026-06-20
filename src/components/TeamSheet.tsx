@@ -520,6 +520,28 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     }
   }
 
+  /**
+   * Toggle a role badge (captain / vice-captain / milestone / debut) on a player.
+   * Captain and vice-captain are single per team, so setting one clears it from
+   * everyone else; milestone/debut can apply to several players.
+   */
+  function toggleRole(id: string, role: PlayerStatus) {
+    setPlayers((prev) => {
+      const target = prev.find((p) => p.id === id);
+      const willHave = !((target?.status ?? []).includes(role));
+      const single = role === 'captain' || role === 'vice-captain';
+      return prev.map((p) => {
+        let s = p.status ?? [];
+        if (p.id === id) {
+          s = willHave ? [...s.filter((x) => x !== role), role] : s.filter((x) => x !== role);
+        } else if (single && willHave) {
+          s = s.filter((x) => x !== role); // only one captain / VC across the team
+        }
+        return { ...p, status: s.length ? s : undefined };
+      });
+    });
+  }
+
   /** Where each player currently sits, for the squad list chips. */
   const playerLocation = useMemo(() => {
     const m = new Map<string, string>();
@@ -692,6 +714,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onAddPlayer={addPlayer}
             onImport={importPlayers}
             onSetAvailability={setAvailability}
+            onToggleRole={toggleRole}
             onRemovePlayer={removePlayer}
             onUpdatePlayer={updatePlayer}
             onLoadBlank={loadBlank}

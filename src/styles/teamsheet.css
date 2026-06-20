@@ -24,7 +24,12 @@
 
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--ink);
-  background: var(--bg);
+  /* Transparent surround: the widget blends into whatever it's embedded on
+     (host club site, or white in standalone) instead of painting a grey panel
+     around the oval. The grey was --bg (#e7eaee) showing through the oval's
+     transparent corners. --bg is kept as a token for any element that still
+     wants the soft grey explicitly. */
+  background: transparent;
   padding: clamp(10px, 2vw, 22px);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -494,7 +499,10 @@
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-  filter: drop-shadow(0 12px 26px rgba(16, 24, 40, 0.22));
+  /* No drop-shadow: with a transparent surround the shadow was the only
+     remaining grey, and it baked into the transparent PNG export as a grey
+     haze. Oval now sits clean on transparency. Re-add a soft shadow here if
+     a lifted look is wanted on a solid host background. */
 }
 
 /* Sits on top of the green (between the posts), so it reads as a ground
@@ -1635,4 +1643,34 @@
 .sw1-stage-watermark.is-logo .sw1-watermark__row img {
   /* Edge definition so white/light sponsor logos still read on a pale stage. */
   filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
+}
+
+/* ── Captains & milestones quick-set ────────────────────────────────────── */
+.sw1-roles { display: flex; flex-direction: column; gap: 6px; }
+.sw1-roles__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 4px;
+  border-bottom: 1px solid #eef2f6;
+}
+.sw1-roles__name { font-weight: 700; font-size: 14px; color: #0f172a; }
+.sw1-roles__chips { display: flex; gap: 6px; flex: 0 0 auto; }
+.sw1-rolechip {
+  min-width: 34px;
+  height: 30px;
+  padding: 0 8px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  color: #475569;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+}
+.sw1-rolechip.is-on {
+  background: var(--club-primary);
+  color: var(--club-on-primary);
+  border-color: var(--club-primary);
 }
