@@ -7,6 +7,21 @@ interface Props {
   interval?: number;
   /** show the small SportsWeb One "advertise" link tag (admin/public, not in export) */
   showAdvertise?: boolean;
+  /** Click-through for the "Advertise with us" tag — an email (auto-mailto'd) or a URL. */
+  advertiseHref?: string;
+}
+
+/** Sensible default if a club hasn't set their own enquiries contact yet. */
+const DEFAULT_ADVERTISE_HREF = 'mailto:president@geelongaflmasters.com.au';
+
+/** Accept either an email address or a full URL and return a usable href. */
+function resolveAdvertiseHref(value?: string): string {
+  const raw = (value ?? '').trim();
+  if (!raw) return DEFAULT_ADVERTISE_HREF;
+  if (/^(https?:\/\/|mailto:)/i.test(raw)) return raw;
+  // looks like a bare email -> mailto
+  if (raw.includes('@') && !/\s/.test(raw)) return `mailto:${raw}`;
+  return raw;
 }
 
 /**
@@ -14,7 +29,7 @@ interface Props {
  * The "Advertise with us" call-to-action is a small corner tag (a SportsWeb One
  * revenue hook) — NOT one of the rotating banners.
  */
-export default function RotatingBanner({ sponsors, interval = 3800, showAdvertise = true }: Props) {
+export default function RotatingBanner({ sponsors, interval = 3800, showAdvertise = true, advertiseHref }: Props) {
   const slides = sponsors && sponsors.length > 0 ? sponsors : [{ name: 'Banner 1' }];
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
@@ -92,7 +107,7 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
       {showAdvertise && (
         <a
           className="sw1-banner__advertise"
-          href="https://sportsweb.com.au"
+          href={resolveAdvertiseHref(advertiseHref)}
           target="_blank"
           rel="noopener noreferrer"
         >

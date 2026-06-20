@@ -7,6 +7,9 @@ export interface DbRefs {
   teamId: string | null;
   fixtureId: string | null;
   lineupId: string | null;
+  /** Whether the loaded line-up is the published (live) one. Lets the editor
+   *  flag "unpublished changes" so the embed never silently lags the draft. */
+  published?: boolean;
 }
 
 export interface LoadedSheet {
@@ -14,7 +17,7 @@ export interface LoadedSheet {
   refs: DbRefs;
 }
 
-export const EMPTY_REFS: DbRefs = { clubId: null, teamId: null, fixtureId: null, lineupId: null };
+export const EMPTY_REFS: DbRefs = { clubId: null, teamId: null, fixtureId: null, lineupId: null, published: false };
 
 /**
  * True when an error is "the lineup_positions.status column isn't there yet" —
@@ -91,7 +94,7 @@ export async function loadTeamSheet(
   // Public/embed views only ever show a PUBLISHED line-up; the admin editor
   // loads the latest line-up whether it's a draft or live.
   const lineupQuery = (cols: string) => {
-    let q = sb.from('lineups').select(cols).eq('fixture_id', fixtureId);
+    let q = sb.from('lineups').select(cols + ', published').eq('fixture_id', fixtureId);
     if (opts.publishedOnly) q = q.eq('published', true);
     return q.order('published', { ascending: false }).limit(1).maybeSingle();
   };
@@ -260,6 +263,7 @@ export async function loadTeamSheet(
       teamId: team.id,
       fixtureId: (fx as any).id,
       lineupId: lineup ? (lineup as any).id : null,
+      published: lineup ? !!(lineup as any).published : false,
     },
   };
 }

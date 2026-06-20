@@ -95,6 +95,10 @@ interface Props {
   onAddSponsor: () => void;
   onRemoveSponsor: (index: number) => void;
   onRotationMs: (ms: number) => void;
+  advertiseHref?: string;
+  onAdvertiseHref?: (href: string) => void;
+  advertiseEnabled?: boolean;
+  onAdvertiseEnabled?: (on: boolean) => void;
   rotationMs?: number;
   // database (SportsWeb One / Supabase)
   dbConfigured: boolean;
@@ -172,6 +176,10 @@ export default function AdminPanel({
   onRemoveSponsor,
   onRotationMs,
   rotationMs = 3800,
+  advertiseHref,
+  onAdvertiseHref,
+  advertiseEnabled = true,
+  onAdvertiseEnabled,
   dbConfigured,
   dbState,
   dbMsg,
@@ -651,6 +659,35 @@ export default function AdminPanel({
                 <option value={8000}>8s</option>
               </select>
             </label>
+          </div>
+
+          <div className="sw1-advertise">
+            <label className="sw1-advertise__toggle">
+              <input
+                type="checkbox"
+                checked={advertiseEnabled}
+                onChange={(e) => onAdvertiseEnabled?.(e.target.checked)}
+              />
+              Show the &ldquo;Advertise with us&rdquo; tag on the banner
+            </label>
+            <label className="sw1-advertise__label">
+              &ldquo;Advertise with us&rdquo; link
+              <input
+                className="sw1-sponsorpanel__href"
+                type="text"
+                inputMode="email"
+                value={advertiseHref ?? ''}
+                onChange={(e) => onAdvertiseHref?.(e.target.value)}
+                placeholder="president@geelongaflmasters.com.au"
+                disabled={!advertiseEnabled}
+              />
+            </label>
+            <span className="sw1-admin__hint">
+              When on, the small &ldquo;Advertise with us&nbsp;&rarr;&rdquo; tag shows on the banner
+              (public &amp; embed views) and links here. Enter an email (we&rsquo;ll turn it into a
+              mailto: link) or a full URL. Leave blank to use the default club enquiries email.
+              Turn the toggle off to hide the tag entirely.
+            </span>
           </div>
         </div>
 

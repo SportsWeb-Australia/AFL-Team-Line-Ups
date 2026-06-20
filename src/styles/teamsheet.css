@@ -484,6 +484,33 @@
   font-size: 12px;
   font-weight: 600;
 }
+.sw1-advertise {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--hair);
+}
+.sw1-advertise__label {
+  display: block;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+.sw1-advertise__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  cursor: pointer;
+}
+.sw1-advertise__toggle input {
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  cursor: pointer;
+}
 .sw1-sponsorpanel__preview--empty {
   display: flex;
   align-items: center;
@@ -1056,6 +1083,28 @@
     linear-gradient(135deg, #16a34a 0%, #0c7a37 100%) padding-box,
     linear-gradient(135deg, #d9f3e2, #6bbd8a 52%, #2f8f57 100%) border-box;
   color: #fff;
+}
+.sw1-pubflag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+  color: #8a5800;
+  background: #fff6e5;
+  border: 1px solid #f1d49a;
+}
+.sw1-pubflag::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  flex: 0 0 auto;
 }
 .sw1-chip {
   border: 1px solid transparent;

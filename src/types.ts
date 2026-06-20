@@ -121,6 +121,14 @@ export interface TeamSheetData {
     rotating?: Sponsor[];
     /** Milliseconds each banner is shown before rotating. */
     rotationMs?: number;
+    /** Click-through for the "Advertise with us" banner tag. An email address
+     *  (auto-prefixed with mailto:) or a full URL. Falls back to the club's
+     *  enquiries email when unset. */
+    advertiseHref?: string;
+    /** Show the small "Advertise with us" tag on the banner (public/embed views).
+     *  Defaults to true when unset; set false to hide it for clubs that don't
+     *  sell banner space. Persisted so embeds match the editor. */
+    advertiseEnabled?: boolean;
   };
   players: Player[];
   lineup: Lineup;

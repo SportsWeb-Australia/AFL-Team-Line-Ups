@@ -125,6 +125,42 @@ function useIsNarrow(bp = 760) {
   return narrow;
 }
 
+/**
+ * A stable signature of just the embed-relevant content (line-up, roster,
+ * match, sponsors, advertise tag). Compared against the last *published*
+ * signature so the editor can warn when the draft is ahead of what the public
+ * embed shows. Keys are sorted so equal content always yields an equal string.
+ */
+function buildSig(p: {
+  positions: Record<string, string | undefined>;
+  followers: string[];
+  interchange: string[];
+  emergencies: string[];
+  unavailable: string[];
+  players: Player[];
+  clubName?: string;
+  match?: { opponent?: string; grade?: string; round?: string };
+  sponsors?: TeamSheetData['sponsors'];
+}): string {
+  const pos = p.positions || {};
+  const posStr = Object.keys(pos).sort().map((k) => `${k}=${pos[k] ?? ''}`).join(',');
+  const bench = [
+    `f:${(p.followers || []).join('|')}`,
+    `i:${(p.interchange || []).join('|')}`,
+    `e:${(p.emergencies || []).join('|')}`,
+    `u:${(p.unavailable || []).join('|')}`,
+  ].join(';');
+  const roster = (p.players || [])
+    .map((pl) => `${pl.id}:${pl.number}:${pl.name}`)
+    .sort()
+    .join(',');
+  const match = `${p.match?.opponent ?? ''}|${p.match?.grade ?? ''}|${p.match?.round ?? ''}`;
+  const sp = p.sponsors || {};
+  const adv = `${sp.advertiseEnabled !== false}|${sp.advertiseHref ?? ''}`;
+  const rotating = JSON.stringify(sp.rotating ?? []);
+  return [posStr, bench, roster, p.clubName ?? '', match, adv, rotating].join('##');
+}
+
 export default function TeamSheet({ data, mode = 'public', embed = false, autoLoad = false }: TeamSheetProps) {
   const admin = mode === 'admin';
   const isNarrow = useIsNarrow();
@@ -365,6 +401,34 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [booted, setBooted] = useState(!gateRender);
   const [dbMsg, setDbMsg] = useState('');
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
+  // Signature of the currently *published* team; null = nothing published yet.
+  const [publishedSig, setPublishedSig] = useState<string | null>(null);
+  // Live signature of the editor's embed-relevant content (updates as you edit).
+  const currentSig = useMemo(
+    () =>
+      buildSig({
+        positions,
+        followers,
+        interchange,
+        emergencies,
+        unavailable,
+        players,
+        clubName: club?.name,
+        match,
+        sponsors,
+      }),
+    [positions, followers, interchange, emergencies, unavailable, players, club, match, sponsors],
+  );
+  // Draft-vs-live status for the toolbar flag. 'none' = nothing to publish to.
+  const publishStatus: 'none' | 'never' | 'stale' | 'live' = !(
+    isSupabaseConfigured && !!dbRefs.fixtureId
+  )
+    ? 'none'
+    : publishedSig === null
+    ? 'never'
+    : currentSig !== publishedSig
+    ? 'stale'
+    : 'live';
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
   const [copyMsg, setCopyMsg] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
@@ -457,6 +521,23 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       applyData(res.data);
       setDbRefs(res.refs);
+      // Baseline the published signature: if the loaded line-up is the live one,
+      // the draft starts in sync; if it's a draft (or none), flag as unpublished.
+      setPublishedSig(
+        res.refs.published
+          ? buildSig({
+              positions: res.data.lineup.positions as Record<string, string | undefined>,
+              followers: res.data.lineup.followers,
+              interchange: res.data.lineup.interchange,
+              emergencies: res.data.lineup.emergencies,
+              unavailable: res.data.lineup.unavailable,
+              players: res.data.players,
+              clubName: res.data.club?.name,
+              match: res.data.match,
+              sponsors: res.data.sponsors,
+            })
+          : null,
+      );
       refreshSavedSheets(res.refs.clubId);
       refreshPrevWeek(res.refs.clubId, res.data.match.grade, res.refs.fixtureId);
       setDbState('ok');
@@ -734,6 +815,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         );
       }
       setDbState('ok');
+      if (publish) setPublishedSig(currentSig);
       setDbMsg(
         publish
           ? `Published — your team is now live on ${PUBLISH_TARGET_LABEL}.`
@@ -1007,6 +1089,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setSponsors((s) => ({ ...s, rotationMs: ms }));
   }
 
+  function setAdvertiseHref(href: string) {
+    setSponsors((s) => ({ ...s, advertiseHref: href }));
+  }
+
+  function setAdvertiseEnabled(on: boolean) {
+    setSponsors((s) => ({ ...s, advertiseEnabled: on }));
+  }
+
   // ── Print poster (A3, club-room) ────────────────────────────────────────────
   // Prints the PUBLIC graphic (captured as an image) so the editor chrome never
   // shows, and the whole team sheet fits on a single A3 page with a scannable QR.
@@ -1268,6 +1358,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           </div>
           {isSupabaseConfigured && (
             <>
+              {(publishStatus === 'stale' || publishStatus === 'never') && (
+                <span
+                  className="sw1-pubflag"
+                  title="Your draft is ahead of the public embed — Publish to update it."
+                >
+                  {publishStatus === 'never'
+                    ? 'Not published yet'
+                    : 'Unpublished changes'}
+                </span>
+              )}
               <button
                 className="sw1-btn"
                 onClick={saveDraft}
@@ -1333,6 +1433,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onRemoveSponsor={removeSponsorSlot}
             onRotationMs={setRotationMs}
             rotationMs={sponsors?.rotationMs ?? 3800}
+            advertiseHref={sponsors?.advertiseHref}
+            onAdvertiseHref={setAdvertiseHref}
+            advertiseEnabled={sponsors?.advertiseEnabled !== false}
+            onAdvertiseEnabled={setAdvertiseEnabled}
             dbConfigured={isSupabaseConfigured}
             dbState={dbState}
             dbMsg={dbMsg}
@@ -1391,7 +1495,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         <RotatingBanner
           sponsors={sponsors?.rotating}
           interval={sponsors?.rotationMs ?? 3800}
-          showAdvertise={!admin}
+          showAdvertise={!admin && sponsors?.advertiseEnabled !== false}
+          advertiseHref={sponsors?.advertiseHref}
         />
 
         <div className="sw1-stage">
