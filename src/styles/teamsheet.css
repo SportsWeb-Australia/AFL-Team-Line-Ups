@@ -11,10 +11,10 @@
   --ink: #0f172a;
   --muted: #64748b;
   --surface: #ffffff;
-  --bg: #e7eaee;
+  --bg: #ffffff;
   --hair: #dfe3ea;
-  --radius: 22px;
-  --shadow-card: 0 10px 28px rgba(16, 24, 40, 0.12);
+  --radius: 14px;
+  --shadow-card: 0 4px 14px rgba(16, 24, 40, 0.08);
   --shadow-plate: 0 2px 8px rgba(12, 20, 40, 0.18);
 
   /* sensible fallbacks if a club forgets to set colours */
@@ -24,12 +24,7 @@
 
   font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   color: var(--ink);
-  /* Transparent surround: the widget blends into whatever it's embedded on
-     (host club site, or white in standalone) instead of painting a grey panel
-     around the oval. The grey was --bg (#e7eaee) showing through the oval's
-     transparent corners. --bg is kept as a token for any element that still
-     wants the soft grey explicitly. */
-  background: transparent;
+  background: var(--bg);
   padding: clamp(10px, 2vw, 22px);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -40,6 +35,7 @@
 .sw1-root *::after { box-sizing: border-box; }
 
 .sw1-frame {
+  width: 100%;
   max-width: 1180px;
   margin: 0 auto;
   display: flex;
@@ -51,12 +47,16 @@
 .sw1-header {
   position: relative;
   overflow: hidden;
-  border-radius: 28px;
+  border-radius: 16px;
   padding: clamp(18px, 3vw, 30px);
   color: var(--club-on-primary);
   background:
-    linear-gradient(135deg, var(--club-primary) 0%,
-      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 100%);
+    radial-gradient(130% 120% at 50% -12%,
+      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
+      var(--club-primary) 46%,
+      color-mix(in srgb, var(--club-primary) 72%, #ffffff) 100%);
   box-shadow: var(--shadow-card);
 }
 .sw1-header__ghost {
@@ -72,6 +72,46 @@
 .sw1-header__ghost--l { left: -90px; }
 .sw1-header__ghost--r { right: -90px; transform: translateY(-50%) scaleX(-1); }
 
+/* Competition / extra logos — top-right of the oval (over the stage). Frosted
+   backing so any logo (light or dark) stays legible on the tinted ground. */
+.sw1-stage__complogos {
+  position: absolute;
+  top: clamp(10px, 1.6cqw, 20px);
+  right: clamp(10px, 1.6cqw, 22px);
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 56%;
+}
+.sw1-stage__complogo {
+  height: clamp(74px, 12.5cqw, 150px);
+  width: auto;
+  max-width: 290px;
+  object-fit: contain;
+  /* Transparent — let the logo sit straight on the ground; a soft shadow keeps it
+     legible whether the logo is light or dark. */
+  filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.35));
+}
+@media (max-width: 520px) {
+  /* On phones the oval fills the width, so two logos stacked top-right run over the
+     back line. Span full width and split them to opposite top corners (the empty
+     space outside the oval); a single logo still sits top-right. */
+  .sw1-stage__complogos {
+    left: 8px;
+    right: 8px;
+    top: 6px;
+    max-width: none;
+    flex-wrap: nowrap;
+    gap: 6px;
+    justify-content: space-between;
+  }
+  .sw1-stage__complogo { height: 50px; }
+  .sw1-stage__complogo:only-child { margin-left: auto; }
+}
+
 .sw1-header__crests {
   position: relative;
   z-index: 1;
@@ -82,15 +122,75 @@
   margin-bottom: clamp(16px, 2.4vw, 26px);
 }
 .sw1-header__v {
-  font-size: clamp(34px, 6vw, 68px);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 clamp(8px, 1.6vw, 18px);
+  min-width: clamp(78px, 11.5vw, 140px);
+  overflow: visible;
+}
+/* The lightning bolt sits behind the lettering, tilted, in the club's accent. */
+.sw1-header__bolt {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: clamp(46px, 7vw, 88px);
+  height: clamp(86px, 14vw, 168px);
+  transform: translate(-50%, -50%) rotate(8deg);
+  background: linear-gradient(180deg,
+    #ffffff 0%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 70%, #ffffff) 46%,
+    var(--club-secondary, #f5b301) 70%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 72%, #000000) 100%);
+  clip-path: polygon(58% 0, 30% 52%, 50% 52%, 40% 100%, 78% 40%, 56% 40%, 76% 0);
+  filter:
+    drop-shadow(0 0 14px color-mix(in srgb, var(--club-secondary, #f5b301) 75%, transparent))
+    drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+  z-index: 0;
+}
+/* "VS" in heavy broadcast chrome. */
+.sw1-header__vs {
+  position: relative;
+  z-index: 1;
+  font-size: clamp(42px, 8vw, 96px);
   font-weight: 900;
+  font-style: italic;
   line-height: 1;
-  opacity: 0.85;
+  letter-spacing: -0.03em;
+  /* The italic glyphs overhang their box — pad so the "S" never clips, and keep
+     overflow visible for the stroke + drop-shadow. */
+  padding: 0.06em 0.16em 0.06em 0.04em;
+  overflow: visible;
+  background: linear-gradient(180deg, #ffffff 0%, #eef3f9 30%, #b9c6d6 52%, #ffffff 72%, #dfe8f1 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1.4px rgba(8, 18, 36, 0.34);
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
+}
+/* Split style: bold two-tone "VS" (left white, right club accent) + brighter bolt. */
+.sw1-header__v--split .sw1-header__vs {
+  background: linear-gradient(
+    100deg,
+    #ffffff 0 48%,
+    color-mix(in srgb, var(--club-secondary, #f5b301) 88%, #ffffff) 52% 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-stroke: 2px rgba(8, 18, 36, 0.42);
+  filter: drop-shadow(0 4px 9px rgba(0, 0, 0, 0.65));
+}
+.sw1-header__v--split .sw1-header__bolt {
+  background: linear-gradient(180deg, #ffffff 0%, #ffffff 40%, color-mix(in srgb, var(--club-secondary, #f5b301) 60%, #ffffff) 100%);
+  filter:
+    drop-shadow(0 0 18px rgba(255, 255, 255, 0.55))
+    drop-shadow(0 0 10px color-mix(in srgb, var(--club-secondary, #f5b301) 80%, transparent));
 }
 
 .sw1-crest { text-align: center; }
 .sw1-crest__badge {
-  height: clamp(64px, 12vw, 116px);
+  height: clamp(88px, 15vw, 158px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -130,12 +230,12 @@
   position: relative;
   z-index: 1;
   max-width: 620px;
-  margin: clamp(16px, 2.4vw, 26px) auto 0;
+  margin: clamp(12px, 2vw, 20px) auto 0;
   text-align: center;
-  border-radius: 22px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.10);
-  padding: clamp(16px, 2.4vw, 26px) clamp(14px, 2vw, 24px);
+  border-radius: 10px;
+  border: 0;
+  background: transparent;
+  padding: clamp(8px, 1.4vw, 14px) clamp(12px, 1.8vw, 20px);
 }
 .sw1-fixture__round {
   display: inline-flex;
@@ -184,7 +284,7 @@
   aspect-ratio: 1;
   width: min(100%, 150px);
   margin: 0 auto;
-  border-radius: 20px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.96);
   color: var(--ink);
   display: flex;
@@ -197,26 +297,45 @@
 }
 .sw1-sponsor__box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-/* ── Rotating sponsor banner ────────────────────────────────────────────── */
+/* ── Rotating sponsor banner — fixed 8:1 ratio so it never dominates ──────── */
 .sw1-banner {
   position: relative;
+  /* Readable on every screen: a fixed, comfortable strip height rather than an
+     extreme 8:1 ratio that shrinks to unreadable on phones. Recommend banners at
+     1200×300 (4:1). object-fit: contain always shows the whole banner. */
+  height: clamp(96px, 13vw, 150px);
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--hair);
-  overflow: hidden;
+  /* Top room so the "Advertise" tab can straddle the top edge instead of
+     covering the sponsor artwork. Clipping moved to __slide (below) so the tab
+     isn't cut off while the banner image stays rounded. */
+  margin-top: 14px;
+}
+@media (max-width: 600px) {
+  /* On phones, show the banner at its natural height across the full width so the
+     whole ad is visible and as large as the screen allows — no side-cropping, no
+     wasted letterbox. Capped so an oversized/near-square banner can't dominate. */
+  .sw1-banner { height: auto; min-height: 56px; max-height: 150px; }
+  .sw1-banner__slide, .sw1-banner__slide a { height: auto; }
+  .sw1-banner__img { width: 100%; height: auto; max-height: 150px; object-fit: contain; }
 }
 .sw1-banner__slide {
   display: block;
+  height: 100%;
+  border-radius: var(--radius);
+  overflow: hidden;
   animation: sw1-fade 0.5s ease;
 }
-.sw1-banner__slide a { display: block; }
-.sw1-banner__img { display: block; width: 100%; height: auto; }
+.sw1-banner__slide a { display: block; height: 100%; }
+.sw1-banner__img { display: block; width: 100%; height: 100%; object-fit: contain; }
 @keyframes sw1-fade {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
 }
 .sw1-banner__fallback {
-  min-height: 110px;
+  height: 100%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -264,23 +383,32 @@
   border-radius: 10px;
 }
 
-/* small SportsWeb One revenue tag on the banner (hidden in the exported PNG) */
+/* small SportsWeb One revenue tag — straddles the banner's TOP edge as a tab so
+   it never covers the sponsor artwork (hidden in the exported PNG) */
 .sw1-banner__advertise {
   position: absolute;
-  top: 8px;
-  right: 10px;
+  top: 0;
+  right: 12px;
+  transform: translateY(-50%);
   z-index: 3;
   font-size: 11px;
   font-weight: 800;
   letter-spacing: 0.02em;
   text-decoration: none;
   color: #fff;
-  background: rgba(12, 35, 64, 0.78);
-  padding: 4px 10px;
+  background: rgba(12, 35, 64, 0.92);
+  padding: 4px 11px;
   border-radius: 999px;
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
   backdrop-filter: blur(4px);
 }
 .sw1-exporting .sw1-banner__advertise { display: none; }
+.sw1-exporting .sw1-unavailable-wrap { display: none !important; }
+/* Keep the exported graphic clean: no empty Emergencies/Interchange boxes and no
+   "Tap a player, then tap here" editor prompts leaking into the downloaded image. */
+.sw1-exporting .sw1-zone--empty { display: none !important; }
+.sw1-exporting .sw1-bench__empty { display: none !important; }
 
 /* admin: sponsor banner rotation manager */
 .sw1-sponsorpanel {
@@ -347,6 +475,15 @@
   aspect-ratio: 8 / 1;
   object-fit: contain;
 }
+.sw1-sponsorpanel__href {
+  width: 100%;
+  margin-top: 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--hair);
+  font-size: 12px;
+  font-weight: 600;
+}
 .sw1-sponsorpanel__preview--empty {
   display: flex;
   align-items: center;
@@ -363,19 +500,39 @@
 @media (max-width: 760px) {
   .sw1-frame { overflow: hidden; }
   .sw1-header__crests { gap: 8px; }
-  .sw1-header__v { font-size: 34px; }
+  .sw1-header__vs { font-size: 34px; }
   .sw1-fixture { margin-top: 14px; }
   .sw1-adminbar { max-width: none; }
   .sw1-stage { padding: 8px; }
+}
+@media (max-width: 520px) {
+  /* Stop the match header feeling squashed on phones: tighter padding, smaller
+     crests/VS, hide the faint background crests that crowd a narrow screen. */
+  .sw1-header { padding: 16px 12px 18px; }
+  .sw1-header__ghost { display: none; }
+  .sw1-header__crests { gap: 6px; margin-bottom: 12px; }
+  .sw1-crest__badge { height: 74px; }
+  .sw1-crest__name { font-size: 13px; margin-top: 6px; }
+  .sw1-header__v { min-width: 50px; padding: 0 4px; }
+  .sw1-header__vs { font-size: 30px; }
+  .sw1-fixture { margin-top: 10px; padding: 4px 6px; }
+  .sw1-fixture__round { font-size: 13px; padding: 5px 18px; margin-bottom: 9px; }
+  .sw1-fixture__grade { font-size: clamp(26px, 8.4vw, 40px); }
+  .sw1-fixture__when { font-size: 13px; margin-top: 9px; }
 }
 
 /* ── Stage (admin panel + pitch) ────────────────────────────────────────── */
 .sw1-stage {
   position: relative;
-  border-radius: 28px;
-  background: transparent;
-  padding: clamp(12px, 2vw, 20px);
+  --stage-pad: clamp(12px, 2vw, 20px);
+  border-radius: 0;
+  background: #ffffff;
+  padding: var(--stage-pad);
+  box-shadow: none;
   display: block;
+  /* Query container so the line labels can tell a full-width graphic (use full
+     "HALF FORWARDS" banners) from the narrow admin preview (use B/HB/C/HF/F). */
+  container: sw1stage / inline-size;
 }
 /* Admin controls now sit ABOVE the graphic (outside the exported frame),
    so the field renders full-width exactly like the public embed.
@@ -397,6 +554,8 @@
   z-index: 1;
   display: flex;
   justify-content: center;
+  /* break out of the stage padding so the oval fills the full width */
+  margin-inline: calc(-1 * var(--stage-pad));
 }
 
 /* "HAWKS" (club name) tiled across the ground panel AROUND the oval — sits on
@@ -427,66 +586,37 @@
 }
 .sw1-lines__label {
   position: absolute;
-  left: -27cqw;
-  width: 27cqw;
-  height: 6.4cqw;
+  left: 1px;
   transform: translateY(-50%);
   display: flex;
   align-items: center;
-  padding: 0 2.2cqw 0 4.6cqw;
-  background: linear-gradient(
-    90deg,
-    var(--club-primary),
-    color-mix(in srgb, var(--club-primary) 72%, #ffffff)
-  );
-  color: var(--club-on-primary);
+  justify-content: center;
+  height: clamp(16px, 5cqw, 30px);
+  min-width: clamp(16px, 5cqw, 30px);
+  padding: 0 clamp(4px, 1.3cqw, 8px);
+  background: #767c86;
+  color: #ffffff;
   font-weight: 900;
-  font-size: 2.0cqw;
-  letter-spacing: -0.01em;
+  font-size: clamp(10px, 3cqw, 16px);
+  letter-spacing: 0;
   text-transform: uppercase;
   line-height: 1;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  clip-path: polygon(0 0, 98% 0, 94% 100%, 0 100%);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.18);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
 }
 .sw1-lines__label span { position: relative; z-index: 2; }
-.sw1-lines__abbr { display: none; }
-.sw1-lines__label::before {
-  content: '';
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4cqw;
-  background: var(--club-secondary);
-}
-/* Below ~1080px the side gutter can't hold the full banner, so we switch to
-   short abbreviation pills (B / HB / C / HF / F) at the oval edge. */
-@media (max-width: 1080px) {
-  .sw1-lines__label {
-    left: -1cqw;
-    width: auto;
-    min-width: 0;
-    height: 8.5cqw;
-    padding: 0 3.2cqw;
-    font-size: 5cqw;
-    border-radius: 7px;
-    clip-path: none;
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.22);
-  }
-  .sw1-lines__label::before { display: none; }
-  .sw1-lines__full { display: none; }
-  .sw1-lines__abbr { display: inline; }
-}
+.sw1-lines__full { display: none; }
+.sw1-lines__abbr { display: inline; }
+/* (Position chips are grey abbreviation pills at every width now — handled by
+   the base .sw1-lines__label rule above, so no width-specific swap is needed.) */
 
 .sw1-pitch {
   position: relative;
   width: 100%;
   max-width: 700px;
   flex: 0 1 700px;
-  aspect-ratio: 1000 / 1230; /* matches the cropped field PNG */
+  aspect-ratio: 1000 / 1230; /* matches the field PNG */
   container-type: inline-size; /* on-field plates size in cqw against this */
 }
 .sw1-oval-img {
@@ -499,10 +629,7 @@
   user-select: none;
   -webkit-user-drag: none;
   pointer-events: none;
-  /* No drop-shadow: with a transparent surround the shadow was the only
-     remaining grey, and it baked into the transparent PNG export as a grey
-     haze. Oval now sits clean on transparency. Re-add a soft shadow here if
-     a lifted look is wanted on a solid host background. */
+  filter: drop-shadow(0 6px 14px rgba(16, 24, 40, 0.14));
 }
 
 /* Sits on top of the green (between the posts), so it reads as a ground
@@ -550,15 +677,17 @@
    at a wide "social card" size is preserved at every width — phones included.
    Bounded by clamp() so they never get unreadably small or oversized.
    Bench/admin plates are unaffected (they live outside .sw1-pitch). */
-.sw1-slot .sw1-plate__row { max-width: clamp(96px, 28cqw, 182px); }
+.sw1-slot .sw1-plate__row { max-width: clamp(100px, 28cqw, 196px); border-radius: 9px; border-color: #e3e8ef; }
 .sw1-slot .sw1-plate__no {
-  font-size: clamp(8px, 2.5cqw, 15px);
-  min-width: clamp(20px, 5cqw, 34px);
-  padding: 0 clamp(5px, 1.6cqw, 10px);
+  font-size: clamp(9px, 2.7cqw, 15px);
+  min-width: clamp(18px, 4.6cqw, 30px);
+  padding: 0 clamp(5px, 1.5cqw, 9px);
 }
-.sw1-slot .sw1-plate__name {
-  font-size: clamp(8px, 2.45cqw, 14px);
-  padding: clamp(3px, 1cqw, 6px) clamp(6px, 2cqw, 12px) clamp(3px, 1cqw, 6px) clamp(4px, 1.4cqw, 8px);
+/* Field names: extra specificity (…--compact…) so they beat the generic compact
+   11px rule below; sized up now that smaller chips freed the gutter. */
+.sw1-slot .sw1-plate--compact .sw1-plate__name {
+  font-size: clamp(9.5px, 2.85cqw, 14.5px);
+  padding: clamp(3px, 1cqw, 6px) clamp(5px, 1.7cqw, 10px) clamp(3px, 1cqw, 6px) clamp(4px, 1.3cqw, 7px);
 }
 .sw1-slot .sw1-plate__badge {
   font-size: clamp(7px, 1.9cqw, 10px);
@@ -566,7 +695,7 @@
   height: clamp(13px, 3.4cqw, 18px);
 }
 .sw1-slot .sw1-plate__art { width: clamp(40px, 11cqw, 58px); height: clamp(40px, 11cqw, 58px); }
-.sw1-slot .sw1-plate--headshot .sw1-plate__art { width: clamp(42px, 11.5cqw, 62px); height: clamp(52px, 14.5cqw, 74px); }
+.sw1-slot .sw1-plate--headshot .sw1-plate__art { width: clamp(46px, 12.5cqw, 70px); height: clamp(60px, 16.5cqw, 88px); }
 
 .sw1-slot__empty {
   width: clamp(64px, 17cqw, 96px);
@@ -603,9 +732,9 @@
 /* headshots are transparent cut-outs that stand above the name plate, like a
    real team graphic. A taller, narrower box suits head-and-shoulders portraits. */
 .sw1-plate--headshot .sw1-plate__art {
-  width: 64px;
-  height: 74px;
-  margin-bottom: -12px;
+  width: 72px;
+  height: 88px;
+  margin-bottom: -2px;
 }
 .sw1-plate--headshot .sw1-plate__art img { object-fit: contain; object-position: bottom; }
 
@@ -613,7 +742,7 @@
   position: relative;
   z-index: 2;
   display: inline-flex;
-  align-items: stretch;
+  align-items: center;
   background: #fff;
   border-radius: 11px;
   overflow: hidden;
@@ -625,13 +754,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  align-self: stretch;
   min-width: 34px;
   padding: 0 9px;
   font-weight: 900;
   font-size: 12px;
-  color: var(--club-on-primary);
+  color: var(--club-number, var(--club-on-primary));
   background: var(--club-primary);
-  clip-path: polygon(0 0, 100% 0, 82% 100%, 0 100%);
 }
 .sw1-plate__name {
   padding: 6px 12px 6px 8px;
@@ -642,23 +771,40 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.sw1-plate__badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+  padding-right: 7px;
+  margin-left: -2px;
+}
 .sw1-plate__badge {
-  align-self: center;
-  margin-right: 8px;
-  min-width: 18px;
-  height: 18px;
+  min-width: 17px;
+  height: 17px;
   padding: 0 4px;
-  border-radius: 6px;
+  border-radius: 5px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 10px;
+  font-size: 9.5px;
   font-weight: 900;
-  color: var(--club-primary);
-  background: var(--club-secondary);
+  color: var(--club-on-primary);
+  background: var(--club-primary);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 .sw1-plate--compact .sw1-plate__name { font-size: 11px; }
 .sw1-plate--compact .sw1-plate__no { font-size: 11px; min-width: 30px; }
+/* No guernsey number (common in Masters/Over-55s): drop the "–" placeholder and
+   shrink the chip to a slim club-colour accent wedge, so the plate reads as a
+   clean name bar with a branded tab instead of a row of repeated dashes. */
+.sw1-plate__no--empty,
+.sw1-plate--compact .sw1-plate__no--empty,
+.sw1-slot .sw1-plate__no--empty {
+  min-width: clamp(5px, 1.5cqw, 9px);
+  padding: 0;
+}
 
 /* ── Benches ────────────────────────────────────────────────────────────── */
 .sw1-benches {
@@ -671,7 +817,7 @@
 }
 .sw1-bench {
   background: #eef2f6;
-  border-radius: 20px;
+  border-radius: 12px;
   padding: 16px;
   text-align: center;
 }
@@ -726,7 +872,7 @@
 .sw1-admin {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 22px;
+  border-radius: 13px;
   padding: 18px;
   box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
   container-type: inline-size;
@@ -734,7 +880,99 @@
 .sw1-admin__title { margin: 0 0 14px; font-size: 20px; font-weight: 900; }
 .sw1-admin__modes { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 .sw1-admin__hint { font-size: 12px; color: #64748b; font-weight: 600; line-height: 1.5; margin: 0 0 14px; }
+.sw1-admin__hint--links a { color: #1d4ed8; font-weight: 700; text-decoration: none; }
+.sw1-admin__hint--links a:hover { text-decoration: underline; }
+.sw1-mediaday {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  margin: 6px 0 8px;
+  padding: 13px 16px;
+  border-radius: 12px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, #0c2340, #16335d) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 55%, #4a5560) border-box;
+  color: #fff;
+}
+.sw1-mediaday__icon {
+  font-size: 34px;
+  line-height: 1;
+  flex: none;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.35));
+}
+.sw1-mediaday__text { display: flex; flex-direction: column; gap: 3px; }
+.sw1-mediaday__text strong { font-size: 14px; }
+.sw1-mediaday__text span { font-size: 12px; color: #c7d6ea; }
+.sw1-logoset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 5px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #15803d;
+}
+.sw1-logoset img {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  border-radius: 4px;
+  background: #fff;
+  border: 1px solid var(--hair);
+}
+.sw1-logoset--empty { color: #94a3b8; }
+.sw1-logoset__tag { font-size: 11px; font-weight: 800; color: #15803d; white-space: nowrap; }
+.sw1-teamjumper { margin: 4px 0 8px; }
+.sw1-teamjumper__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.sw1-teamjumper__btn { position: relative; overflow: hidden; cursor: pointer; }
+.sw1-teamjumper__preview {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #fff;
+  border: 1px solid var(--hair);
+}
+.sw1-teamjumper__clear {
+  border: 0;
+  background: none;
+  color: #b91c1c;
+  font-weight: 700;
+  font-size: 12.5px;
+  cursor: pointer;
+  padding: 4px 6px;
+}
+.sw1-vsstyle { margin: 10px 0 2px; }
+.sw1-vsstyle__label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
 .sw1-admin__buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+
+/* Save-this-team bar at the top of the Team list section */
+.sw1-teamsave {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px;
+  margin-bottom: 12px;
+  background: color-mix(in srgb, var(--club-primary) 6%, #f7f9fb);
+  border: 1px solid color-mix(in srgb, var(--club-primary) 18%, #e7ecf1);
+  border-radius: 12px;
+}
+.sw1-teamsave__btn { flex: 0 0 auto; padding: 9px 18px; font-size: 14px; }
+.sw1-teamsave__hint { flex: 1; min-width: 140px; font-size: 12px; color: #64748b; line-height: 1.35; }
+.sw1-teamsave__msg { flex: 1; min-width: 140px; font-size: 12.5px; color: #15803d; font-weight: 600; }
+.sw1-teamsave__msg.is-err { color: #b91c1c; }
 .sw1-admin__add {
   display: grid;
   grid-template-columns: 78px 1fr auto;
@@ -742,6 +980,7 @@
   margin-bottom: 14px;
 }
 .sw1-admin__bulk { margin-bottom: 14px; }
+.sw1-admin__bulk:not([open]) > *:not(summary) { display: none; }
 .sw1-admin__bulk summary { font-weight: 800; cursor: pointer; margin-bottom: 8px; }
 .sw1-admin__bulk textarea {
   width: 100%;
@@ -780,29 +1019,49 @@
   font: inherit;
   font-size: 14px;
 }
+.sw1-admin select {
+  width: 100%;
+  padding: 10px 34px 10px 12px;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 14px;
+}
 
-/* ── Buttons & chips ────────────────────────────────────────────────────── */
+/* ── Buttons & chips — metallic-edged ───────────────────────────────────── */
 .sw1-btn {
-  border: 1px solid #cbd5e1;
-  background: #fff;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#fff, #fbfcfe) padding-box,
+    linear-gradient(135deg, #f3f6f9 0%, #c2cbd4 45%, #93a0ad 70%, #dde3e9 100%) border-box;
   color: var(--ink);
-  padding: 10px 14px;
+  padding: 11px 16px;
   border-radius: 11px;
   font-weight: 800;
   font-size: 14px;
   cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
   transition: box-shadow 0.2s, transform 0.05s;
 }
-.sw1-btn:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1); }
+.sw1-btn:hover { box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12); }
 .sw1-btn:active { transform: translateY(1px); }
+.sw1-btn:disabled { opacity: 0.55; cursor: default; box-shadow: none; }
 .sw1-btn--primary {
-  background: var(--club-primary);
-  color: var(--club-on-primary);
-  border-color: var(--club-primary);
+  background:
+    linear-gradient(135deg, #16a34a 0%, #0c7a37 100%) padding-box,
+    linear-gradient(135deg, #d9f3e2, #6bbd8a 52%, #2f8f57 100%) border-box;
+  color: #fff;
+}
+.sw1-btn--publish {
+  background:
+    linear-gradient(135deg, #16a34a 0%, #0c7a37 100%) padding-box,
+    linear-gradient(135deg, #d9f3e2, #6bbd8a 52%, #2f8f57 100%) border-box;
+  color: #fff;
 }
 .sw1-chip {
-  border: 1px solid #cbd5e1;
-  background: #fff;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#fff, #fff) padding-box,
+    linear-gradient(135deg, #f3f6f9, #c2cbd4 60%, #aab4be) border-box;
   color: var(--ink);
   padding: 8px 14px;
   border-radius: 999px;
@@ -816,22 +1075,157 @@
   border-color: var(--club-primary);
 }
 
-/* ── Toolbar (download / print) ─────────────────────────────────────────── */
+/* ── Toolbar (sticky, primary actions always reachable) ─────────────────── */
+.sw1-swhead {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  max-width: 1180px;
+  margin: 0 auto 10px;
+  padding: 7px 16px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background:
+    radial-gradient(140% 320% at 50% 0%, #0b1c33 0%, #05080d 78%) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 45%, #4a5560 70%, #cdd6df) border-box;
+  overflow: hidden;
+}
+.sw1-swhead__brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: none;
+  text-decoration: none;
+}
+.sw1-swhead__logo { height: 26px; width: auto; display: block; }
+.sw1-swhead__tag {
+  font-size: 12px;
+  font-weight: 700;
+  color: #9fc2f0;
+  text-align: left;
+  line-height: 1.2;
+  padding-left: 12px;
+  border-left: 1px solid rgba(159, 194, 240, 0.28);
+  max-width: 30ch;
+}
+.sw1-swhead__marquee { display: block; text-decoration: none; cursor: pointer; flex: 1 1 auto; min-width: 0; }
+@media (max-width: 760px) {
+  .sw1-swhead { flex-wrap: wrap; gap: 8px 14px; padding: 8px 14px; }
+  .sw1-swhead__tag { border-left: 0; padding-left: 0; max-width: none; flex: 1 1 60%; }
+  .sw1-swhead__marquee { flex-basis: 100%; }
+}
+
+/* Scrolling module marquee */
+.sw1-marquee { position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+.sw1-swhead__marquee { display: block; text-decoration: none; cursor: pointer; }
+.sw1-marquee__track { display: inline-flex; align-items: center; gap: 26px; white-space: nowrap; animation: sw1-marquee 26s linear infinite; }
+/* Pause the scroll on hover so you can read — and click through to the platform. */
+.sw1-swhead__marquee:hover .sw1-marquee__track,
+.sw1-marquee:hover .sw1-marquee__track { animation-play-state: paused; }
+.sw1-marquee__item { display: inline-flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 700; color: #b9d4f5; }
+.sw1-marquee__icon { display: inline-flex; }
+.sw1-marquee__icon svg { width: 16px; height: 16px; color: #4f9bff; }
+@keyframes sw1-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+@media (prefers-reduced-motion: reduce) { .sw1-marquee__track { animation: none; } }
+.sw1-swhead__word {
+  font-size: 16px;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  background: linear-gradient(180deg, #eaf2ff 0%, #a9cbff 42%, #2f7bff 56%, #d3e3ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Mobile preview collapse (admin) — toggle is mobile-only and never reaches the export */
+.sw1-previewtoggle { display: none; }
+@media (max-width: 1023px) {
+  .sw1-root--admin .sw1-previewtoggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    max-width: 1180px;
+    margin: 0 auto 10px;
+    padding: 12px 16px;
+    border-radius: 13px;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(135deg, #0c2a1b, #06120c) padding-box,
+      linear-gradient(135deg, #d9dee4, #9aa6b2 45%, #5c6670 70%, #c7ced6) border-box;
+    color: #fff;
+    font-size: 14px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .sw1-previewtoggle__chev { color: #8fd6a8; font-size: 12px; }
+  .sw1-previewwrap.is-collapsed .sw1-frame { display: none; }
+  .sw1-previewwrap.is-capturing .sw1-frame { display: block; }
+}
+
 .sw1-toolbar {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
   gap: 8px;
   max-width: 1180px;
   margin: 0 auto 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  padding: 10px 0;
+  /* Transparent bar: the action buttons are self-contained pills (own bg +
+     shadow), so nothing bleeds through when it scrolls over the header. */
+  background: transparent;
+  pointer-events: none;
 }
+.sw1-toolbar > * { pointer-events: auto; }
+.sw1-share { position: relative; display: inline-block; }
+.sw1-share__backdrop { position: fixed; inset: 0; z-index: 30; }
+.sw1-share__menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 31;
+  min-width: 230px;
+  display: flex;
+  flex-direction: column;
+  padding: 6px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+}
+.sw1-share__menu button {
+  text-align: left;
+  padding: 9px 12px;
+  border: 0;
+  background: transparent;
+  border-radius: 8px;
+  font: inherit;
+  font-weight: 700;
+  color: #0c2340;
+  cursor: pointer;
+}
+.sw1-share__menu button:hover { background: #f1f5f9; }
+.sw1-share__sep { height: 1px; background: #e2e8f0; margin: 5px 6px; }
+.sw1-share__tip {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #64748b;
+  padding: 8px 10px 4px;
+  margin: 4px 2px 0;
+  border-top: 1px solid #eef1f5;
+}
+.sw1-share__tip strong { color: #0c2340; }
 
 /* ── Admin: match & branding ────────────────────────────────────────────── */
 .sw1-brand {
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 12px 14px;
   margin-bottom: 16px;
-  background: #fff;
 }
 .sw1-brand > summary { font-weight: 900; cursor: pointer; }
 .sw1-brand__grid {
@@ -879,6 +1273,40 @@
 }
 .sw1-brand__logos input[type='file'] { font-size: 11px; }
 
+/* Competition / extra logos uploader (admin) */
+.sw1-complogos { margin: 4px 0 10px; }
+.sw1-complogos__add { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
+.sw1-complogos__add input[type='file'] { font-size: 11px; font-weight: 400; }
+.sw1-complogos__list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.sw1-complogos__item { position: relative; }
+.sw1-complogos__item img {
+  height: 46px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  background: #fff;
+  border: 1px solid var(--hair);
+  border-radius: 8px;
+  padding: 5px 8px;
+}
+.sw1-complogos__del {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: none;
+  background: #e1342e;
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.25);
+}
+
 /* ── Footer ─────────────────────────────────────────────────────────────── */
 .sw1-footer {
   text-align: center;
@@ -888,6 +1316,8 @@
   padding: 4px 0 2px;
 }
 .sw1-footer strong { color: var(--club-primary); }
+.sw1-footer a { color: inherit; text-decoration: none; }
+.sw1-footer a:hover strong { text-decoration: underline; }
 
 /* ── Focus & motion ─────────────────────────────────────────────────────── */
 .sw1-root :focus-visible { outline: 3px solid var(--club-secondary); outline-offset: 2px; }
@@ -896,10 +1326,49 @@
 }
 
 @media print {
-  .sw1-toolbar,
-  .sw1-admin { display: none !important; }
-  .sw1-root { background: #fff; padding: 0; }
+  @page { size: A3; margin: 12mm; }
+  /* The print sheet is portalled to <body>, so we can fully REMOVE the app from
+     layout (display:none) rather than just hide it — that's what stops the editor
+     padding out blank extra pages behind the sheet. */
+  body > *:not(.sw1-printsheet) { display: none !important; }
+  .sw1-printsheet {
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 14px;
+    background: #fff;
+    width: 100%;
+  }
+  .sw1-printsheet__img {
+    max-width: 100%;
+    max-height: 78vh;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .sw1-printsheet__foot { page-break-inside: avoid; break-inside: avoid; }
+  .sw1-install { display: none !important; }
+  * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
 }
+
+/* The print sheet is built only at print time and hidden on screen. */
+.sw1-printsheet { display: none; }
+.sw1-printsheet__foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  padding-top: 12px;
+  border-top: 2px solid var(--hair);
+  max-width: 90%;
+}
+.sw1-printsheet__qr { width: 132px; height: 132px; flex: none; }
+.sw1-printsheet__cap { text-align: left; max-width: 360px; }
+.sw1-printsheet__cap strong { display: block; font-size: 19px; font-weight: 900; color: #0c2340; }
+.sw1-printsheet__cap span { font-size: 13.5px; color: #475569; font-weight: 600; line-height: 1.4; }
 
 /* ── Admin workspace: panel sits LEFT of the oval on desktop & tablet ───── */
 .sw1-workspace { display: block; }
@@ -915,10 +1384,8 @@
     flex: 0 0 clamp(390px, 34vw, 480px);
     max-width: 480px;
     margin: 0;
-    position: sticky;
-    top: 12px;
-    max-height: calc(100vh - 24px);
-    overflow: auto;
+    /* No sticky/height cap: a panel taller than the screen would otherwise pin
+       and you could never scroll to its lower sections. Let the page scroll. */
   }
   .sw1-workspace .sw1-frame {
     flex: 1 1 auto;
@@ -929,7 +1396,9 @@
 /* In the editor the big hanging line labels are hidden (empty slots already
    name each position, and the panel occupies the left gutter). They return
    in the public / preview view. */
-.sw1-root--admin .sw1-lines { display: none; }
+/* Labels now show in admin + export too (they sit in the left gutter, clear of
+   the slots). The pitch-width container query below swaps full banners for short
+   B/HB/C/HF/F pills whenever the graphic is narrow (admin preview, mobile). */
 
 /* ── Followers (ruck division) centred directly under the oval ──────────── */
 .sw1-followers-wrap {
@@ -1005,7 +1474,7 @@
   gap: 12px;
   padding: 12px 14px;
   margin-bottom: 14px;
-  border-radius: 16px;
+  border-radius: 12px;
   background: linear-gradient(180deg, #f7f9fc, #eef2f7);
   border: 1px solid rgba(12, 33, 58, 0.1);
 }
@@ -1018,27 +1487,240 @@
   color: #6b7a90;
 }
 
-/* ── Collapsible admin sections ─────────────────────────────────────────── */
-.sw1-section { margin-bottom: 16px; }
+/* ── Collapsible admin sections — big, on-brand, full-width tap targets ──── */
+.sw1-section { margin-bottom: 12px; }
+/* "Start here" tag straddling the top edge of the New & Saved teams button. */
+.sw1-section--start { position: relative; margin-top: 16px; }
+.sw1-starthere {
+  position: absolute;
+  top: -10px;
+  left: 16px;
+  z-index: 2;
+  background: linear-gradient(135deg, #c6ff3a, #8af000);
+  color: #0a2e00;
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  padding: 4px 12px;
+  border-radius: 999px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.5), 0 4px 12px rgba(138, 240, 0, 0.55);
+  pointer-events: none;
+}
 .sw1-section > summary {
   cursor: pointer;
   list-style: none;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 17px;
+  gap: 10px;
+  position: relative;
+  font-size: 16px;
   font-weight: 800;
-  color: #0c2340;
-  padding: 6px 2px;
+  color: #fff;
+  padding: 15px 16px 15px 20px;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, #0c2a1b 0%, #06120c 100%) padding-box,
+    linear-gradient(135deg, #d9dee4, #9aa6b2 45%, #5c6670 70%, #c7ced6) border-box;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 2px 8px rgba(6, 18, 12, 0.16);
 }
+.sw1-section[open] > summary { border-radius: 14px 14px 0 0; margin-bottom: 12px; }
 .sw1-section > summary::-webkit-details-marker { display: none; }
+/* metallic left accent bar */
 .sw1-section > summary::before {
-  content: '▸';
-  font-size: 12px;
-  color: #6b7a90;
-  transition: transform 0.15s ease;
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 4px;
+  border-radius: 0 4px 4px 0;
+  background: linear-gradient(180deg, #eef1f4, #aab4be 55%, #7e8a96);
 }
-.sw1-section[open] > summary::before { transform: rotate(90deg); }
+/* chevron, pushed to the right */
+.sw1-section > summary::after {
+  content: '▸';
+  margin-left: auto;
+  font-size: 14px;
+  color: #7fe0a6;
+  transition: transform 0.18s ease;
+}
+.sw1-section[open] > summary::after { transform: rotate(90deg); }
+
+/* ── App brand header (AFL Team Line Ups · powered by SportsWeb One) ─────── */
+.sw1-appbrand {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 13px 16px;
+  margin-bottom: 12px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, #0a100c 0%, #000 100%) padding-box,
+    linear-gradient(135deg, #d9dee4, #9aa6b2 45%, #4a5560 70%, #c7ced6) border-box;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.28);
+}
+.sw1-appbrand__id { display: flex; flex-direction: row; align-items: center; gap: 11px; min-width: 0; }
+.sw1-appbrand__logo {
+  flex: 0 0 auto;
+  height: 42px;
+  width: auto;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+.sw1-appbrand__idtext { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sw1-appbrand__title {
+  font-size: 17px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  background: linear-gradient(180deg, #ffffff, #cfe9da);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sw1-appbrand__by { display: inline-flex; align-items: center; gap: 6px; font-size: 11px; color: #9fb6a8; text-decoration: none; }
+.sw1-appbrand__by img { height: 15px; width: auto; filter: brightness(0) invert(1); opacity: 0.9; }
+.sw1-appbrand__tools { display: flex; gap: 8px; flex-shrink: 0; }
+.sw1-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  text-decoration: none;
+  cursor: pointer;
+  background: linear-gradient(180deg, #eef1f4, #c2cbd4);
+  color: #0c2340;
+  border: 1px solid rgba(255, 255, 255, 0.5);
+}
+.sw1-pill--chat { background: linear-gradient(180deg, #23c265, #159a4c); color: #04160c; border-color: rgba(255, 255, 255, 0.25); }
+
+/* ── House banner (SportsWeb-supplied creative) ─────────────────────────── */
+.sw1-housead { display: block; margin-bottom: 12px; border-radius: 12px; overflow: hidden; text-decoration: none; border: 1px solid #e1e7ee; }
+.sw1-housead img { display: block; width: 100%; height: auto; }
+.sw1-housead__ph {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  justify-content: center;
+  padding: 14px;
+  text-align: center;
+  background: linear-gradient(135deg, #0c2a1b, #06120c);
+}
+.sw1-housead__ph strong { color: #fff; font-size: 14px; font-weight: 800; }
+.sw1-housead__ph span { color: #7fe0a6; font-size: 12px; }
+
+/* ── Quick start ────────────────────────────────────────────────────────── */
+.sw1-quick__body { display: flex; flex-direction: column; gap: 12px; }
+.sw1-quick__video {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  background: #0c2a1b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw1-quick__video iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.sw1-quick__videoph { color: #7fe0a6; font-size: 13px; font-weight: 600; }
+.sw1-quick__steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 7px; font-size: 13px; color: #334155; line-height: 1.45; }
+.sw1-quick__steps strong { color: #0c2340; }
+.sw1-quick__steps em { font-style: normal; font-weight: 700; color: #159a4c; }
+.sw1-quick__chat { font-size: 13px; font-weight: 700; color: #159a4c; text-decoration: none; }
+.sw1-hosting { font-size: 13px; color: #475569; }
+.sw1-hosting p { margin: 0 0 8px; }
+.sw1-hosting ul { margin: 0 0 10px; padding-left: 18px; display: grid; gap: 7px; }
+.sw1-hosting li { line-height: 1.45; }
+.sw1-hosting strong { color: #0c2340; }
+.sw1-hosting__rooms { padding: 8px 10px; background: #f1f5f9; border-radius: 8px; }
+.sw1-quick__chat:hover { text-decoration: underline; }
+
+/* ── Database intent buttons (equal-size grid) ──────────────────────────── */
+.sw1-db__actions { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 10px 0 6px; }
+.sw1-db__actions .sw1-btn { width: 100%; }
+
+/* ── Footer (upgrade CTA + SportsWeb link) ──────────────────────────────── */
+/* ── SportsWeb One platform footer (black · metallic silver · blue) ──────── */
+.sw1-swfoot { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
+
+/* Single scrolling SportsWeb One promo button */
+.sw1-swpromo {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 16px;
+  text-decoration: none;
+  border-radius: 14px;
+  border: 1px solid transparent;
+  background:
+    radial-gradient(120% 180% at 50% 0%, #0b1c33 0%, #05080d 72%) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 45%, #4a5560 70%, #cdd6df) border-box;
+}
+.sw1-swpromo__head {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #5f7596;
+  text-align: center;
+}
+.sw1-swpromo__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 24px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #79b6ff;
+  text-align: center;
+  animation: sw1-swfade 0.5s ease;
+}
+.sw1-swpromo__icon { display: inline-flex; flex: 0 0 auto; }
+.sw1-swpromo__icon svg { width: 20px; height: 20px; color: #4f9bff; }
+.sw1-swpromo__dots { display: flex; justify-content: center; gap: 5px; }
+.sw1-swpromo__dots span { width: 5px; height: 5px; border-radius: 999px; background: #2a3a52; }
+.sw1-swpromo__dots span.is-on { background: #4f9bff; }
+@keyframes sw1-swfade {
+  from { opacity: 0; transform: translateY(3px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.sw1-upgrade {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  text-decoration: none;
+  text-align: center;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, #1f6fff 0%, #0a2a66 100%) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 50%, #4a5560) border-box;
+}
+.sw1-upgrade strong { color: #fff; font-size: 14px; font-weight: 800; }
+.sw1-upgrade span { color: #cfe0ff; font-size: 12.5px; }
+.sw1-swfoot__link {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 700;
+  color: #6db1ff;
+  text-decoration: none;
+  padding: 4px;
+}
+.sw1-swfoot__link:hover { text-decoration: underline; }
+
+/* legacy footer classes (kept harmless) */
+.sw1-appfoot { margin-top: 18px; display: flex; flex-direction: column; gap: 10px; }
+.sw1-appfoot__link { text-align: center; font-size: 12px; color: #6b7a90; text-decoration: none; }
+.sw1-appfoot__link:hover { text-decoration: underline; }
 
 /* ── Status: role badges (captain/VC keep club gold; debut/milestone get colour) */
 .sw1-plate__badge.is-debut { background: #16a34a; color: #fff; }
@@ -1216,31 +1898,92 @@
 .sw1-interchange {
   position: relative;
   z-index: 2;
-  max-width: 360px;
-  margin: 16px auto 0;
+  max-width: 460px;
+  margin: 14px auto 0;
 }
 /* Cards inside the stage read cleanly on the tinted background. */
+/* Interchange & Emergencies boxes carry the SAME branded gradient as the match
+   header, so they read as part of the team graphic rather than plain white panels. */
 .sw1-emergencies .sw1-bench,
 .sw1-interchange .sw1-bench {
-  background: rgba(255, 255, 255, 0.74);
+  background:
+    radial-gradient(130% 120% at 50% -12%,
+      color-mix(in srgb, var(--club-primary) 60%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
+      var(--club-primary) 46%,
+      color-mix(in srgb, var(--club-primary) 74%, #ffffff) 100%);
+  box-shadow: 0 12px 26px -14px rgba(0, 0, 0, 0.45);
 }
-/* Desktop: the two benches float at the bottom corners of the oval. */
-@media (min-width: 1240px) {
-  .sw1-emergencies,
-  .sw1-interchange {
+.sw1-emergencies .sw1-bench__empty,
+.sw1-interchange .sw1-bench__empty { color: rgba(255, 255, 255, 0.82); }
+/* Stacked Interchange/Emergencies (mobile + a heavy >6 bench): lay players out
+   side by side, filling 2-up on a phone and 3-up where the panel is wider, rather
+   than a single tall column. The wide corner-float and PNG-export rules further
+   down are more specific, so they still force one-per-column when the bench tucks
+   into the ground corners — this only changes the centred/stacked panel. */
+.sw1-interchange .sw1-bench__grid,
+.sw1-emergencies .sw1-bench__grid {
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
+  gap: 10px 12px;
+}
+/* Followers, Interchange and Emergencies stack as consistent rows beneath the
+   oval by default (mobile + the admin editor — avoids any overlap while editing). */
+/* On a wide PUBLIC/embedded graphic, float Interchange into the right corner and
+   Emergencies into the left corner of the ground, with Followers centred between.
+   Uses a container query (not viewport) so it also holds in the fixed-width PNG export. */
+@container sw1stage (min-width: 700px) {
+  .sw1-root:not(.sw1-root--admin) .sw1-interchange:not(.sw1-zone--stack),
+  .sw1-root:not(.sw1-root--admin) .sw1-emergencies:not(.sw1-zone--stack) {
     position: absolute;
-    bottom: 14px;
-    width: 190px;
-    max-width: none;
+    bottom: clamp(8px, 1.6cqw, 22px);
+    width: min(23%, 220px);
+    max-width: 220px;
     margin: 0;
+    z-index: 3;
   }
-  .sw1-emergencies { left: 14px; }
-  .sw1-interchange { right: 14px; }
-  .sw1-emergencies .sw1-bench__grid,
-  .sw1-interchange .sw1-bench__grid { grid-template-columns: 1fr; }
+  .sw1-root:not(.sw1-root--admin) .sw1-emergencies:not(.sw1-zone--stack) { left: clamp(6px, 1.4cqw, 26px); }
+  .sw1-root:not(.sw1-root--admin) .sw1-interchange:not(.sw1-zone--stack) { right: clamp(6px, 1.4cqw, 26px); }
+  /* Compact plates in the corners so a full bench clears the oval. */
+  .sw1-root:not(.sw1-root--admin) .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
+  .sw1-root:not(.sw1-root--admin) .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
+    grid-template-columns: 1fr;
+    gap: 5px;
+  }
+  /* Keep the centred followers clear of the corner cards. */
+  .sw1-root:not(.sw1-root--admin) .sw1-followers-wrap {
+    padding-left: clamp(150px, 26cqw, 300px);
+    padding-right: clamp(150px, 26cqw, 300px);
+  }
 }
 /* Unavailable: full-width strip beneath the field. */
 .sw1-unavailable-wrap { margin-top: 16px; }
+
+/* EXPORT / PRINT: html-to-image captures at a fixed 1080px width. Container queries
+   don't always resolve inside the serialised capture, and the editor capture still
+   carries the admin layout — so force the public corner-float here explicitly. This
+   guarantees the downloaded PNG and the printed A3 float Interchange to the right and
+   Emergencies to the left (Followers centred), exactly like the live public graphic. */
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack),
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) {
+  position: absolute;
+  bottom: 19px;
+  width: 220px;
+  max-width: 220px;
+  margin: 0;
+  z-index: 3;
+}
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) { left: 16px; }
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) { right: 16px; }
+.sw1-exporting .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
+.sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
+  grid-template-columns: 1fr;
+  gap: 5px;
+}
+.sw1-exporting .sw1-followers-wrap {
+  padding-left: 300px;
+  padding-right: 300px;
+}
 .sw1-unavailable-wrap .sw1-bench__grid {
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
 }
@@ -1300,6 +2043,22 @@
   font-weight: 800;
 }
 .sw1-playinglist__row.is-empty .sw1-playinglist__player { color: #cbd5e1; font-weight: 600; }
+
+.sw1-playinglist__unavail { margin-top: 4px; }
+.sw1-playinglist__unavail .sw1-playinglist__linehead { color: #b91c1c; }
+.sw1-playinglist__unavail .sw1-playinglist__player { text-align: left; }
+.sw1-playinglist__unavail .sw1-playinglist__no { background: #94a3b8; }
+.sw1-playinglist__tag {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fde2e2;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
 
 /* ── Streamlined "unavailable" tags (tag floats on top of the name) ─────── */
 .sw1-bench--rows .sw1-bench__grid {
@@ -1372,19 +2131,95 @@
   overflow-y: auto;
   padding-right: 2px;
 }
-.sw1-squad__row {
-  display: flex;
+
+/* Ins & Outs vs last week (admin reference) */
+.sw1-inouts { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+.sw1-inouts__vs { font-size: 12.5px; color: #51606f; margin: 0; }
+.sw1-inouts__vs strong { color: #0c2340; }
+.sw1-inouts__cols { display: flex; gap: 10px; align-items: flex-start; }
+.sw1-inouts__col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.sw1-inouts__head {
+  display: inline-flex;
   align-items: center;
   gap: 6px;
+  font-size: 11px;
+  font-weight: 900;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.sw1-inouts__head--in { color: #15803d; }
+.sw1-inouts__head--out { color: #b91c1c; }
+.sw1-inouts__count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  font-size: 10px;
+  color: #fff;
+}
+.sw1-inouts__head--in .sw1-inouts__count { background: #16a34a; }
+.sw1-inouts__head--out .sw1-inouts__count { background: #dc2626; }
+.sw1-inouts__chip {
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 12.5px;
+  line-height: 1.3;
+  border: 1px solid transparent;
+}
+.sw1-inouts__chip b { font-weight: 800; margin-right: 2px; }
+.sw1-inouts__chip--in { background: #e8f6ee; color: #14532d; border-color: #c4e6d0; }
+.sw1-inouts__chip--out { background: #fdeaea; color: #7f1d1d; border-color: #f3c2c2; }
+.sw1-inouts__empty { font-size: 12px; color: #93a1af; font-style: italic; }
+.sw1-inouts__refresh { align-self: flex-start; font-size: 12.5px; padding: 6px 12px; }
+.sw1-squad__row {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
   background: #fff;
   border: 1px solid #e7ecf1;
   border-radius: 10px;
-  padding: 4px 6px 4px 4px;
+  padding: 4px 6px 5px 4px;
+}
+.sw1-squad__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 .sw1-squad__row.is-selected {
   border-color: var(--club-primary);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--club-primary) 28%, transparent);
 }
+
+/* One-tap honour badges (Captain / VC / Debut / Milestone) */
+.sw1-squad__roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 0 2px 0 4px;
+}
+.sw1-rolechip {
+  flex: 0 0 auto;
+  border: 1px solid #d7dee6;
+  background: #fff;
+  color: #51606f;
+  border-radius: 999px;
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.4;
+  cursor: pointer;
+  transition: background .12s ease, border-color .12s ease, color .12s ease;
+}
+.sw1-rolechip:hover { border-color: #b9c4d0; background: #f3f6f9; }
+.sw1-rolechip.is-on { color: #fff; border-color: transparent; }
+.sw1-rolechip.is-captain.is-on { background: var(--club-secondary); color: var(--club-primary); }
+.sw1-rolechip.is-vc.is-on { background: var(--club-secondary); color: var(--club-primary); }
+.sw1-rolechip.is-debut.is-on { background: #16a34a; }
+.sw1-rolechip.is-milestone.is-on { background: #7c3aed; }
 .sw1-squad__pick {
   flex: 1;
   min-width: 0;
@@ -1433,15 +2268,74 @@
 }
 .sw1-squad__loc.is-on { color: #0c2340; background: color-mix(in srgb, var(--club-primary) 16%, #eef2f6); }
 .sw1-squad__loc.is-out { color: #b91c1c; background: #fde2e2; }
+
+/* Placed on the ground → whole row turns green so it reads as "used" */
+.sw1-squad__row.is-placed { background: #f1fbf4; border-color: #b7e4c6; }
+.sw1-squad__row.is-placed .sw1-squad__pick { background: #e3f7ea; border-radius: 8px; }
+.sw1-squad__row.is-placed .sw1-squad__name { color: #15803d; }
+.sw1-squad__row.is-placed .sw1-squad__no { background: #16a34a; color: #fff; }
+
+/* Unavailable rows (grouped at the bottom) read dimmer */
+.sw1-squad__row.is-unavail { background: #fbf6f6; border-color: #f0d9d9; }
+.sw1-squad__row.is-unavail .sw1-squad__no { background: #94a3b8; }
+.sw1-squad__tag {
+  flex: 0 0 auto;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: #b91c1c;
+  background: #fde2e2;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.sw1-squad__divider {
+  margin: 10px 2px 2px;
+  padding-top: 8px;
+  border-top: 1px dashed #d7dee6;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #94a3b8;
+}
+.sw1-squad__divider span { color: #cbd5e1; }
+
+/* Quick-place dropdown — assign to a position/bench without scrolling */
+.sw1-squad__place,
+.sw1-squad__avail,
+.sw1-admin select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  border: 1px solid transparent;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%234a5560' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"),
+    linear-gradient(#fff, #f7fafc),
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 50%, #5c6670);
+  background-position: right 10px center, 0 0, 0 0;
+  background-size: 12px 12px, auto, auto;
+  background-repeat: no-repeat;
+  background-origin: border-box;
+  background-clip: border-box, padding-box, border-box;
+  color: #0c2340;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sw1-squad__place {
+  width: 100%;
+  margin: 1px 0;
+  padding: 9px 30px 9px 12px;
+  border-radius: 9px;
+  font-size: 12.5px;
+}
+.sw1-squad__row.is-placed .sw1-squad__place { color: #15803d; }
 .sw1-squad__controls { flex: 0 0 auto; display: flex; align-items: center; gap: 4px; }
 .sw1-squad__avail {
   font-size: 11px;
-  border: 1px solid #d7dee6;
   border-radius: 7px;
-  padding: 3px 4px;
-  background: #fff;
-  color: #334155;
-  max-width: 104px;
+  padding: 5px 26px 5px 8px;
+  max-width: 116px;
 }
 .sw1-squad__edit,
 .sw1-squad__remove {
@@ -1460,10 +2354,53 @@
 }
 .sw1-squad__edit:hover { background: #eef2f6; }
 .sw1-squad__remove:hover { background: #fde2e2; border-color: #f5b1b1; color: #b91c1c; }
-.sw1-squad__row--edit { gap: 6px; padding: 5px; }
-.sw1-squad__row--edit input { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
+.sw1-squad__row--edit { flex-direction: column; align-items: stretch; gap: 8px; padding: 7px; }
+.sw1-squad__editline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+/* Photo button + Save/Cancel together, wrapping so they never push off-screen. */
+.sw1-squad__editactions { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sw1-squad__editactions-gap { flex: 1 1 auto; }
+.sw1-squad__row--edit input[type="text"],
+.sw1-squad__row--edit .sw1-squad__editno,
+.sw1-squad__row--edit .sw1-squad__editname { border: 1px solid #cbd5e1; border-radius: 7px; padding: 5px 7px; font-size: 13px; }
 .sw1-squad__editno { width: 50px; flex: 0 0 auto; }
 .sw1-squad__editname { flex: 1; min-width: 0; }
+.sw1-squad__imgrow { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sw1-squad__imgbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 10px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background:
+    linear-gradient(#fff, #f5f8fb) padding-box,
+    linear-gradient(135deg, #e6ecf3, #9aa6b2 55%, #5c6670) border-box;
+  font-size: 12px;
+  font-weight: 800;
+  color: #0c2340;
+  cursor: pointer;
+}
+.sw1-squad__imgbtn input { display: none; }
+.sw1-squad__imgbtn:has(input:disabled) {
+  opacity: 0.65;
+  cursor: progress;
+}
+.sw1-squad__imgnote {
+  margin: 6px 0 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: #64748b;
+}
+.sw1-squad__imgnote strong { color: #0c2340; }
+.sw1-squad__imgclear {
+  border: 0;
+  background: none;
+  color: #b91c1c;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 4px 2px;
+}
 .sw1-squad__ok,
 .sw1-squad__x {
   width: 30px;
@@ -1496,28 +2433,11 @@
   visibility: hidden;
   pointer-events: none;
 }
-.sw1-splash__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 22px;
-  padding: 24px;
+.sw1-splash__poster {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   animation: sw1-splash-pop 0.6s ease both;
-}
-.sw1-splash__logo {
-  width: min(62vw, 300px);
-  height: auto;
-  filter: drop-shadow(0 12px 34px rgba(0, 0, 0, 0.55));
-}
-.sw1-splash__tag {
-  color: #7cf7ae;
-  font-weight: 800;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
-  font-size: clamp(11px, 2.4vw, 15px);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  opacity: 0.92;
-  text-align: center;
 }
 @keyframes sw1-splash-pop {
   from { transform: scale(0.94); opacity: 0; }
@@ -1566,43 +2486,58 @@
 /* ── PWA install prompt ─────────────────────────────────────────────────── */
 .sw1-install {
   position: fixed;
-  left: 50%;
-  bottom: 16px;
-  transform: translateX(-50%);
+  left: 12px;
+  right: 12px;
+  bottom: 14px;
+  margin: 0 auto;
   z-index: 60;
   display: flex;
   align-items: center;
   gap: 12px;
-  max-width: min(92vw, 520px);
-  padding: 10px 12px 10px 16px;
-  background: #0c2340;
+  max-width: 480px;
+  padding: 13px 40px 13px 16px;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(135deg, #0c2a1b, #06120c) padding-box,
+    linear-gradient(135deg, #d9dee4, #9aa6b2 45%, #4a5560 70%, #c7ced6) border-box;
   color: #fff;
-  border-radius: 14px;
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
   font-family: system-ui, sans-serif;
 }
-.sw1-install__txt { font-size: 13px; font-weight: 600; line-height: 1.25; }
+.sw1-install__txt { flex: 1 1 auto; min-width: 0; font-size: 13px; font-weight: 600; line-height: 1.3; }
 .sw1-install__txt strong { font-weight: 800; }
 .sw1-install__btn {
   flex: 0 0 auto;
-  border: 0;
-  background: #fff;
+  border: 1px solid transparent;
+  background:
+    linear-gradient(#fff, #eef2f6) padding-box,
+    linear-gradient(135deg, #ffffff, #aab4be) border-box;
   color: #0c2340;
   font-weight: 800;
   font-size: 13px;
-  padding: 8px 14px;
-  border-radius: 10px;
+  padding: 9px 16px;
+  border-radius: 11px;
   cursor: pointer;
+  white-space: nowrap;
 }
 .sw1-install__x {
-  flex: 0 0 auto;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   border: 0;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.8);
-  font-size: 14px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 12px;
   cursor: pointer;
-  padding: 4px 6px;
 }
+.sw1-install__x:hover { background: rgba(255, 255, 255, 0.22); }
 @media print { .sw1-install { display: none; } }
 
 /* ── Saved-teams recall picker ──────────────────────────────────────────── */
@@ -1635,6 +2570,13 @@
 
 /* ── Saved-team actions (clone / copy embed) ────────────────────────────── */
 .sw1-db__savedactions { display: flex; flex-wrap: wrap; gap: 8px; }
+.sw1-db__deletebtn {
+  font-size: 12.5px;
+  padding: 7px 12px;
+  color: #b91c1c;
+  border-color: #f3c2c2;
+}
+.sw1-db__deletebtn:hover { background: #fde2e2; border-color: #ef9a9a; }
 
 /* ── Watermark polish: spacing between repeats + readable light logos ────── */
 .sw1-stage-watermark .sw1-watermark__row span { padding: 0 1.7em; }
@@ -1645,32 +2587,83 @@
   filter: drop-shadow(0 1px 1.5px rgba(0, 0, 0, 0.5));
 }
 
-/* ── Captains & milestones quick-set ────────────────────────────────────── */
-.sw1-roles { display: flex; flex-direction: column; gap: 6px; }
-.sw1-roles__row {
+/* ── Login gate + brand-green button ────────────────────────────────────── */
+.sw1-btn--brand {
+  background: linear-gradient(180deg, #2fbf63 0%, #149a4e 100%);
+  border-color: rgba(0, 0, 0, 0.10);
+  color: #fff;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.18);
+}
+.sw1-btn--brand:hover { background: linear-gradient(180deg, #34cc6a 0%, #16a554 100%); }
+.sw1-btn--brand:disabled { opacity: 0.6; cursor: default; }
+
+.sw1-login {
+  position: fixed;
+  inset: 0;
+  z-index: 9998;
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-  padding: 6px 4px;
-  border-bottom: 1px solid #eef2f6;
+  justify-content: center;
+  padding: 24px;
+  background: radial-gradient(120% 90% at 50% 32%, #0e3a24 0%, #06120c 64%, #04100a 100%);
 }
-.sw1-roles__name { font-weight: 700; font-size: 14px; color: #0f172a; }
-.sw1-roles__chips { display: flex; gap: 6px; flex: 0 0 auto; }
-.sw1-rolechip {
-  min-width: 34px;
-  height: 30px;
-  padding: 0 8px;
-  border-radius: 8px;
+.sw1-login__card {
+  width: min(100%, 360px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 12px;
+  padding: 28px 24px 22px;
+  border-radius: 18px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
+  text-align: center;
+}
+.sw1-login__logo {
+  width: 84px;
+  height: 84px;
+  border-radius: 18px;
+  align-self: center;
+  box-shadow: 0 8px 20px -8px rgba(0, 0, 0, 0.5);
+}
+.sw1-login__title {
+  margin: 8px 0 0;
+  font-size: 20px;
+  font-weight: 900;
+  letter-spacing: 0.01em;
+  color: #0f172a;
+}
+.sw1-login__sub { margin: 0 0 6px; font-size: 13px; color: #64748b; }
+.sw1-login__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #64748b;
+}
+.sw1-login__field input {
+  width: 100%;
+  padding: 11px 12px;
+  border-radius: 10px;
   border: 1px solid #cbd5e1;
   background: #fff;
-  color: #475569;
-  font-weight: 800;
-  font-size: 12px;
-  cursor: pointer;
+  font: inherit;
+  font-size: 15px;
+  color: var(--ink);
 }
-.sw1-rolechip.is-on {
-  background: var(--club-primary);
-  color: var(--club-on-primary);
-  border-color: var(--club-primary);
+.sw1-login__btn { width: 100%; margin-top: 4px; padding: 12px 16px; }
+.sw1-login__err {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #b91c1c;
+  background: #fdeaea;
+  border: 1px solid #f3c2c2;
+  border-radius: 8px;
+  padding: 8px 10px;
 }
+.sw1-login__note { margin: 2px 0 0; font-size: 11px; color: #94a3b8; }

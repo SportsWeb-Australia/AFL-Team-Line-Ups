@@ -1,5 +1,13 @@
 import type { Club, MatchInfo } from '../types';
 
+/** Show ISO dates (yyyy-mm-dd, what the date picker stores) as dd/mm/yyyy.
+ *  Any other free-typed text is shown exactly as entered. */
+function formatDate(d?: string): string {
+  if (!d) return '';
+  const m = d.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : d;
+}
+
 function monogram(name: string) {
   return name
     .split(/\s+/)
@@ -23,9 +31,10 @@ function Crest({ name, logoUrl, color }: { name: string; logoUrl?: string | null
 interface Props {
   club: Club;
   match: MatchInfo;
+  vsStyle?: 'chrome' | 'split';
 }
 
-export default function MatchHeader({ club, match }: Props) {
+export default function MatchHeader({ club, match, vsStyle = 'chrome' }: Props) {
   return (
     <header className="sw1-header">
       {/* faint crests bleeding off each side */}
@@ -36,15 +45,18 @@ export default function MatchHeader({ club, match }: Props) {
 
       <div className="sw1-header__crests">
         <Crest name={club.name} logoUrl={club.logoUrl} color={club.secondaryColor} />
-        <div className="sw1-header__v">V</div>
+        <div className={`sw1-header__v sw1-header__v--${vsStyle}`} aria-hidden>
+          <span className="sw1-header__bolt" />
+          <span className="sw1-header__vs">VS</span>
+        </div>
         <Crest name={match.opponent} logoUrl={match.opponentLogoUrl} color="#64748b" />
       </div>
 
       <div className="sw1-fixture">
-        <div className="sw1-fixture__round">{match.round}</div>
+        {match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
         <div className="sw1-fixture__grade">{match.grade}</div>
         <div className="sw1-fixture__when">
-          {match.date} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
+          {formatDate(match.date)} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
         </div>
         {match.competition && <div className="sw1-fixture__comp">{match.competition}</div>}
       </div>
