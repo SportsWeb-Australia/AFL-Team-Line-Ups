@@ -1169,7 +1169,7 @@
 /* Scrolling module marquee */
 .sw1-marquee { position: relative; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
 .sw1-swhead__marquee { display: block; text-decoration: none; cursor: pointer; }
-.sw1-marquee__track { display: inline-flex; align-items: center; gap: 26px; white-space: nowrap; animation: sw1-marquee 26s linear infinite; }
+.sw1-marquee__track { display: inline-flex; align-items: center; gap: 26px; white-space: nowrap; animation: sw1-marquee 44s linear infinite; }
 /* Pause the scroll on hover so you can read — and click through to the platform. */
 .sw1-swhead__marquee:hover .sw1-marquee__track,
 .sw1-marquee:hover .sw1-marquee__track { animation-play-state: paused; }

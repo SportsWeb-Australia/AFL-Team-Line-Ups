@@ -1195,6 +1195,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         width: EXPORT_WIDTH,
         height: Math.ceil(node.scrollHeight),
         style: { margin: '0', transform: 'none' },
+        // The "Advertise with us" tag is a live-web CTA only — never bake it into
+        // the downloaded/printed graphic, regardless of the editor's toggle state.
+        filter: (domNode) => {
+          const cl = (domNode as HTMLElement)?.classList;
+          return !(cl && cl.contains('sw1-banner__advertise'));
+        },
       });
     } finally {
       node.style.width = prevWidth;
@@ -1495,7 +1501,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         <RotatingBanner
           sponsors={sponsors?.rotating}
           interval={sponsors?.rotationMs ?? 3800}
-          showAdvertise={!admin && sponsors?.advertiseEnabled !== false}
+          showAdvertise={sponsors?.advertiseEnabled !== false}
           advertiseHref={sponsors?.advertiseHref}
         />
 
