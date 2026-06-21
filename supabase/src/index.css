@@ -1,4 +1,0 @@
-/* Minimal host reset. The widget brings its own styling in teamsheet.css.
-   (This replaces the old Vite starter index.css, which fought the layout.) */
-html, body, #root { margin: 0; }
-body { background: #e7eaee; }
