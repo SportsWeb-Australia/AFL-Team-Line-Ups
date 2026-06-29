@@ -75,6 +75,8 @@ export interface Club {
 }
 
 export interface Sponsor {
+  /** The library row id once saved. Lets a sheet reference which banners rotate. */
+  id?: string;
   name: string;
   logoUrl?: string | null;
   /** A full pre-made banner image for the rotating strip (takes priority over name/logo). */
@@ -119,6 +121,9 @@ export interface TeamSheetData {
   sponsors?: {
     /** Sponsors that rotate through the banner strip above the ground. */
     rotating?: Sponsor[];
+    /** The club's full banner library (all saved banners) — the editor's
+     *  "add a saved banner" picker chooses from this. Not used by the embed. */
+    library?: Sponsor[];
     /** Milliseconds each banner is shown before rotating. */
     rotationMs?: number;
     /** Click-through for the "Advertise with us" banner tag. An email address

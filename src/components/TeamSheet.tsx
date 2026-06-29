@@ -7,6 +7,7 @@ import type {
   PlayerStatus,
   PositionKey,
   RenderMode,
+  Sponsor,
   TeamSheetData,
   VisualMode,
 } from '../types';
@@ -34,6 +35,7 @@ import {
   loadPreviousSelections,
   listOpponentClubs,
   listClubPlayers,
+  deleteLibraryBanner,
   addOpponentClub,
   deleteOpponentClub,
   EMPTY_REFS,
@@ -430,7 +432,20 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     );
   }
 
-  function loadDemo() {
+  // The on-field 18 = 15 field positions + 3 followers (ruck/ruck-rover/rover).
+  function startersPlaced(): number {
+    return Object.values(positions).filter(Boolean).length + followers.filter(Boolean).length;
+  }
+  // Warn once before producing/sharing/publishing an under-strength sheet.
+  // Returns true to proceed, false if the user backs out.
+  function confirmStarters(): boolean {
+    const n = startersPlaced();
+    if (n >= 18) return true;
+    return window.confirm(
+      `Heads up — only ${n} of the 18 on-field spots are filled (15 field positions + 3 followers). Are you sure you want to continue?`,
+    );
+  }
+
     if (
       lineupFilledCount() > 0 &&
       !window.confirm(
@@ -785,6 +800,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
    * Share API it falls back to copying the team list.
    */
   async function shareTeam() {
+    if (!confirmStarters()) return;
     const text = buildTeamListText();
     const url = dbRefs.fixtureId
       ? `${window.location.origin}/?embed=1&fixture=${dbRefs.fixtureId}`
@@ -856,8 +872,36 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setDbState('saving');
     setDbMsg('');
     try {
-      const { refs, playerIds } = await saveTeamSheet(currentData(), dbRefs, { publish });
+      const { refs, playerIds, bannerIds } = await saveTeamSheet(currentData(), dbRefs, { publish });
       setDbRefs(refs);
+      // Write library ids back onto freshly-uploaded banners (and merge them into
+      // the library) so re-saving updates them instead of inserting duplicates.
+      if (bannerIds) {
+        setSponsors((s) => {
+          let k = 0;
+          const rotating = (s?.rotating ?? []).map((slot) => {
+            if (!(slot.name || slot.bannerUrl || slot.logoUrl)) return slot;
+            const id = bannerIds[k++];
+            return id ? { ...slot, id } : slot;
+          });
+          const lib = [...(s?.library ?? [])];
+          for (const slot of rotating) {
+            if (!slot.id) continue;
+            const entry = {
+              id: slot.id,
+              name: slot.name,
+              bannerUrl: slot.bannerUrl,
+              logoUrl: slot.logoUrl,
+              href: slot.href,
+              tier: slot.tier,
+            };
+            const idx = lib.findIndex((b) => b.id === slot.id);
+            if (idx >= 0) lib[idx] = entry;
+            else lib.push(entry);
+          }
+          return { ...s, rotating, library: lib };
+        });
+      }
       // Write DB ids back onto players so the next save updates them (rather than
       // duplicating) — this is what keeps numberless players stable across saves.
       if (playerIds.size) {
@@ -890,7 +934,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   const saveDraft = () => persist(false);
   const publishLive = () => {
-    if (!window.confirm(`Publish this team live to ${PUBLISH_TARGET_LABEL}?`)) return;
+    const n = startersPlaced();
+    const warn =
+      n < 18
+        ? `Only ${n} of the 18 on-field spots are filled (15 field + 3 followers).\n\n`
+        : '';
+    if (!window.confirm(`${warn}Publish this team live to ${PUBLISH_TARGET_LABEL}?`)) return;
     persist(true);
   };
 
@@ -1154,6 +1203,39 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     });
   }
 
+  // Bring a saved banner from the club library onto THIS sheet's rotation.
+  function addSavedBanner(b: Sponsor) {
+    setSponsors((s) => {
+      const rotating = [...(s?.rotating ?? [])];
+      if (rotating.length >= 5) return s;
+      if (b.id && rotating.some((r) => r.id === b.id)) return s; // already on the sheet
+      rotating.push({
+        id: b.id,
+        name: b.name,
+        bannerUrl: b.bannerUrl,
+        logoUrl: b.logoUrl,
+        href: b.href,
+        tier: b.tier,
+      });
+      return { ...s, rotating };
+    });
+  }
+
+  // Permanently remove a banner from the club library (and from this sheet).
+  async function removeLibraryBanner(id: string) {
+    try {
+      await deleteLibraryBanner(id);
+    } catch {
+      /* leave state as-is if the delete failed; the UI can be retried */
+      return;
+    }
+    setSponsors((s) => ({
+      ...s,
+      library: (s?.library ?? []).filter((b) => b.id !== id),
+      rotating: (s?.rotating ?? []).filter((b) => b.id !== id),
+    }));
+  }
+
   function removeSponsorSlot(index: number) {
     setSponsors((s) => {
       const rotating = (s?.rotating ?? []).filter((_, i) => i !== index);
@@ -1366,6 +1448,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   async function downloadPng() {
+    if (!confirmStarters()) return;
     setDownloading(true);
     try {
       const dataUrl = await captureGraphicPng();
@@ -1386,6 +1469,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   // — Instagram's tallest feed ratio — so nothing is cropped when posted.
   async function downloadInstagram() {
     setShareOpen(false);
+    if (!confirmStarters()) return;
     setDownloading(true);
     try {
       const shot = await captureGraphicPng();
@@ -1560,6 +1644,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onSponsorHref={setSponsorHref}
             onAddSponsor={addSponsorSlot}
             onRemoveSponsor={removeSponsorSlot}
+            bannerLibrary={sponsors?.library ?? []}
+            onAddSavedBanner={addSavedBanner}
+            onRemoveLibraryBanner={removeLibraryBanner}
             onRotationMs={setRotationMs}
             rotationMs={sponsors?.rotationMs ?? 3800}
             advertiseHref={sponsors?.advertiseHref}

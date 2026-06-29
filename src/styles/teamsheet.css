@@ -2992,3 +2992,15 @@
 
 /* Faint note when the cross-team pool hasn't loaded (helps diagnose scope). */
 .sw1-squad__clubnote { margin: 6px 2px 0; font-size: 11px; color: #94a3b8; }
+
+/* Saved banner library — redeploy previously-used banners on any sheet. */
+.sw1-bannerlib { margin-top: 10px; display: flex; flex-direction: column; gap: 8px; }
+.sw1-bannerlib__add { display: flex; flex-direction: column; gap: 4px; font-size: 12px; font-weight: 700; color: #475569; }
+.sw1-bannerlib__add select { font-weight: 500; }
+.sw1-bannerlib__manage summary { cursor: pointer; font-size: 12px; font-weight: 700; color: #475569; }
+.sw1-bannerlib__list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sw1-bannerlib__item { display: flex; align-items: center; gap: 8px; background: #f8fafc; border: 1px solid #e7ecf1; border-radius: 8px; padding: 4px 6px; }
+.sw1-bannerlib__item img { height: 26px; max-width: 120px; object-fit: contain; border-radius: 3px; }
+.sw1-bannerlib__noimg { font-size: 12px; color: #94a3b8; }
+.sw1-bannerlib__name { flex: 1; min-width: 0; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw1-bannerlib__del { flex: 0 0 auto; border: none; background: #fbeaea; color: #b42318; width: 24px; height: 24px; border-radius: 6px; font-weight: 800; cursor: pointer; }

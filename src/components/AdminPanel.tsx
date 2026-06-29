@@ -98,6 +98,10 @@ interface Props {
   onSponsorHref?: (index: number, href: string) => void;
   onAddSponsor: () => void;
   onRemoveSponsor: (index: number) => void;
+  /** Saved banner library (all the club's banners) + actions for the picker. */
+  bannerLibrary?: Sponsor[];
+  onAddSavedBanner?: (b: Sponsor) => void;
+  onRemoveLibraryBanner?: (id: string) => void;
   onRotationMs: (ms: number) => void;
   advertiseHref?: string;
   onAdvertiseHref?: (href: string) => void;
@@ -184,6 +188,9 @@ export default function AdminPanel({
   onSponsorHref,
   onAddSponsor,
   onRemoveSponsor,
+  bannerLibrary = [],
+  onAddSavedBanner,
+  onRemoveLibraryBanner,
   onRotationMs,
   rotationMs = 3800,
   advertiseHref,
@@ -941,6 +948,68 @@ export default function AdminPanel({
               </select>
             </label>
           </div>
+
+          {onAddSavedBanner && bannerLibrary.length > 0 && (
+            <div className="sw1-bannerlib">
+              <label className="sw1-bannerlib__add">
+                Re-use a saved banner
+                <select
+                  value=""
+                  disabled={rotating.length >= 5}
+                  onChange={(e) => {
+                    const b = bannerLibrary.find((x) => x.id === e.target.value);
+                    if (b) onAddSavedBanner(b);
+                    e.currentTarget.value = '';
+                  }}
+                >
+                  <option value="">
+                    {rotating.length >= 5 ? 'Rotation full (max 5)' : 'Add a saved banner…'}
+                  </option>
+                  {bannerLibrary
+                    .filter((b) => b.id && !rotating.some((r) => r.id === b.id))
+                    .map((b) => (
+                      <option key={b.id} value={b.id}>{b.name || 'Untitled banner'}</option>
+                    ))}
+                </select>
+              </label>
+              <details className="sw1-bannerlib__manage">
+                <summary>Manage saved banners ({bannerLibrary.length})</summary>
+                <p className="sw1-admin__hint">
+                  Your banners are kept here so you can redeploy them on any round. Deleting one
+                  removes it from the library and from any sheet using it.
+                </p>
+                <div className="sw1-bannerlib__list">
+                  {bannerLibrary.map((b) => (
+                    <div key={b.id} className="sw1-bannerlib__item">
+                      {b.bannerUrl ? (
+                        <img src={b.bannerUrl} alt="" />
+                      ) : (
+                        <span className="sw1-bannerlib__noimg">{b.name || '—'}</span>
+                      )}
+                      <span className="sw1-bannerlib__name">{b.name || 'Untitled'}</span>
+                      <button
+                        type="button"
+                        className="sw1-bannerlib__del"
+                        title="Delete from library"
+                        onClick={() => {
+                          if (
+                            b.id &&
+                            window.confirm(
+                              `Delete "${b.name || 'this banner'}" from your saved banners? It will be removed from any sheet using it.`,
+                            )
+                          ) {
+                            onRemoveLibraryBanner?.(b.id);
+                          }
+                        }}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )}
 
           <div className="sw1-advertise">
             <label className="sw1-advertise__toggle">

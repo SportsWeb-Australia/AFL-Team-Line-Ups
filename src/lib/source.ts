@@ -62,6 +62,10 @@ function parseLogoList(raw: any): string[] | undefined {
 export interface SaveResult {
   refs: DbRefs;
   playerIds: Map<string, string>;
+  /** The library ids of the banners selected on this sheet, in order. Lets the
+   *  editor write ids back onto freshly-uploaded banners so re-saving updates
+   *  them instead of inserting duplicates. */
+  bannerIds?: string[];
 }
 
 /**
@@ -101,7 +105,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url');
@@ -208,7 +213,7 @@ export async function loadTeamSheet(
 
   const { data: sponsorRows } = await supabase
     .from('sponsors')
-    .select('name, tier, logo_url, banner_url, href')
+    .select('id, name, tier, logo_url, banner_url, href')
     .eq('club_id', club.id)
     .eq('active', true)
     .order('sort_order');
@@ -242,15 +247,27 @@ export async function loadTeamSheet(
       emergencies: bench.emergencies,
       unavailable: bench.unavailable,
     },
-    sponsors: {
-      rotating: ((sponsorRows as any[]) ?? []).map((s) => ({
+    sponsors: (() => {
+      const library = ((sponsorRows as any[]) ?? []).map((s) => ({
+        id: s.id as string,
         name: s.name,
         tier: s.tier ?? undefined,
         logoUrl: s.logo_url ?? undefined,
         bannerUrl: s.banner_url ?? undefined,
         href: s.href ?? undefined,
-      })),
-    },
+      }));
+      // banner_ids = the banners THIS sheet rotates. null/absent (old sheets or
+      // pre-migration) → rotate the whole library, preserving prior behaviour.
+      // An explicit empty array → rotate nothing.
+      const sel: string[] | null = (lineup && (lineup as any).banner_ids) ?? null;
+      const rotating =
+        sel == null
+          ? library
+          : sel
+              .map((id) => library.find((b) => b.id === id))
+              .filter((b): b is (typeof library)[number] => !!b);
+      return { rotating, library };
+    })(),
     watermark: true,
     visualMode: (lineup && (lineup as any).visual_mode) || undefined,
     watermarkSource: (lineup && (lineup as any).watermark_source) || undefined,
@@ -854,12 +871,18 @@ export async function saveTeamSheet(
     if (e7) throw e7;
   }
 
-  // 8. sponsors (replace for club) --------------------------------------------
-  await supabase.from('sponsors').delete().eq('club_id', clubId);
-  const sponsors = d.sponsors?.rotating ?? [];
-  const sponsorRows = sponsors
-    .filter((s) => s.name || s.bannerUrl || s.logoUrl)
-    .map((s, i) => ({
+  // 8. banner library + this sheet's selection --------------------------------
+  // The old behaviour DELETED every club sponsor and re-inserted the current
+  // sheet's — so saving a sheet that omitted a banner wiped it from the club.
+  // Now the sponsors table is a persistent LIBRARY: existing banners are updated
+  // in place, new uploads are inserted, and nothing is deleted here (pruning is
+  // an explicit action via deleteLibraryBanner). The sheet records WHICH library
+  // banners it rotates in lineups.banner_ids.
+  const slots = (d.sponsors?.rotating ?? []).filter((s) => s.name || s.bannerUrl || s.logoUrl);
+  const selectedIds: string[] = [];
+  for (let i = 0; i < slots.length; i++) {
+    const s = slots[i];
+    const row = {
       club_id: clubId,
       name: s.name || `Banner ${i + 1}`,
       tier: s.tier ?? null,
@@ -867,13 +890,41 @@ export async function saveTeamSheet(
       banner_url: s.bannerUrl ?? null,
       href: s.href ?? null,
       sort_order: i,
-    }));
-  if (sponsorRows.length) {
-    const { error: e8 } = await supabase.from('sponsors').insert(sponsorRows);
-    if (e8) throw e8;
+      active: true,
+    };
+    if (s.id) {
+      const { error: eU } = await supabase.from('sponsors').update(row).eq('id', s.id);
+      if (eU) throw eU;
+      selectedIds.push(s.id);
+    } else {
+      const { data: ins, error: eI } = await supabase
+        .from('sponsors')
+        .insert(row)
+        .select('id')
+        .single();
+      if (eI) throw eI;
+      if ((ins as any)?.id) selectedIds.push((ins as any).id);
+    }
+  }
+  // Record the selection on the sheet. Best-effort: if banner_ids isn't migrated
+  // yet, skip silently (every active library banner then rotates, as before).
+  {
+    const r = await supabase.from('lineups').update({ banner_ids: selectedIds }).eq('id', lineupId);
+    if (r.error && !isMissingColumn(r.error)) throw r.error;
   }
 
-  return { refs: { clubId, teamId, fixtureId, lineupId }, playerIds };
+  return { refs: { clubId, teamId, fixtureId, lineupId }, playerIds, bannerIds: selectedIds };
+}
+
+/**
+ * Permanently removes one banner from the club's library (the sponsors table).
+ * Sheets that referenced it simply stop showing it (the load filters missing
+ * ids out). Best-effort; throws on a real error so the UI can report it.
+ */
+export async function deleteLibraryBanner(id: string): Promise<void> {
+  if (!supabase) throw new Error('Database is not configured.');
+  const { error } = await supabase.from('sponsors').delete().eq('id', id);
+  if (error) throw error;
 }
 
 /**
