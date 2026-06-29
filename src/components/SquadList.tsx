@@ -347,9 +347,9 @@ export default function SquadList({
         <p className="sw1-admin__hint">No players yet — add them below.</p>
       )}
 
-      {players.length > 6 && (
+      {(players.length > 6 || (onAddClubPlayer && clubPlayers.length > 0)) && (
         <div className="sw1-squad__search">
-          <div className="sw1-squad__searchhead">Find a player in your squad</div>
+          <div className="sw1-squad__searchhead">Find a player</div>
           <input
             type="search"
             className="sw1-squad__searchinput"
@@ -395,13 +395,27 @@ export default function SquadList({
               <button
                 type="button"
                 className="sw1-btn sw1-btn--primary sw1-squad__clubadd"
-                onClick={() => onAddClubPlayer?.(cp)}
+                onClick={() => {
+                  if (
+                    window.confirm(
+                      `Add ${cp.name || 'this player'} to this team? They're already in your club's player list — this only adds them to the team you're editing.`,
+                    )
+                  ) {
+                    onAddClubPlayer?.(cp);
+                  }
+                }}
               >
                 + Add
               </button>
             </div>
           ))}
         </>
+      )}
+
+      {q !== '' && onAddClubPlayer && clubPlayers.length === 0 && (
+        <p className="sw1-admin__hint sw1-squad__clubnote">
+          Searching this team only — no other players loaded from your club yet.
+        </p>
       )}
 
       {nothingFound && clubMatches.length === 0 && (

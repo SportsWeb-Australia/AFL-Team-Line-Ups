@@ -233,6 +233,7 @@ export default function AdminPanel({
   const [addBusy, setAddBusy] = useState(false);
   const [gradeNew, setGradeNew] = useState(false);
   const [oppNew, setOppNew] = useState(false);
+  const [venueNew, setVenueNew] = useState(false);
 
 
   const openQuickStart = () => {
@@ -772,16 +773,37 @@ export default function AdminPanel({
             </select>
           </label>
           <label className="sw1-brand__full"><span className="sw1-step">7</span>Venue
-            <input
-              list="sw1-venue-list"
-              value={match.venue}
-              placeholder="Type to search your venues, or add a new one"
-              onChange={(e) => onMatch({ venue: e.target.value })}
-            />
-            {pastVenues.length > 0 && (
-              <datalist id="sw1-venue-list">
-                {pastVenues.map((v) => (<option key={v} value={v} />))}
-              </datalist>
+            {venueNew || (pastVenues.length === 0 && !match.venue.trim()) ? (
+              <input
+                value={match.venue}
+                placeholder="e.g. Kardinia Park — Oval 2"
+                autoFocus={venueNew}
+                onChange={(e) => onMatch({ venue: e.target.value })}
+                onBlur={() => {
+                  if (pastVenues.length > 0 && !match.venue.trim()) setVenueNew(false);
+                }}
+              />
+            ) : (
+              <select
+                value={match.venue}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    onMatch({ venue: '' });
+                    setVenueNew(true);
+                  } else {
+                    onMatch({ venue: e.target.value });
+                  }
+                }}
+              >
+                <option value="">Select venue…</option>
+                {match.venue && !pastVenues.includes(match.venue) && (
+                  <option value={match.venue}>{match.venue}</option>
+                )}
+                {pastVenues.map((v) => (
+                  <option key={v} value={v}>{v}</option>
+                ))}
+                <option value="__new__">➕ Add a new venue…</option>
+              </select>
             )}
           </label>
           <label className="sw1-brand__full">Competition / league<input value={match.competition ?? ''} onChange={(e) => onMatch({ competition: e.target.value })} placeholder="e.g. Eastern Football Netball League" /></label>
@@ -832,7 +854,7 @@ export default function AdminPanel({
 
         {/* Competition / extra logos — its own collapsible action, separated from
             the Home/Away uploads so it reads as a distinct step. */}
-        <details className="sw1-complogos">
+        <details className="sw1-complogos" open>
           <summary className="sw1-complogos__summary">
             Competition / extra logos (top-right){competitionLogos.length > 0 ? ` · ${competitionLogos.length}` : ''}
           </summary>

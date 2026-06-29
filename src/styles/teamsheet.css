@@ -2989,3 +2989,6 @@
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .sw1-squad__clubadd { flex: 0 0 auto; padding: 5px 10px; font-size: 12px; }
+
+/* Faint note when the cross-team pool hasn't loaded (helps diagnose scope). */
+.sw1-squad__clubnote { margin: 6px 2px 0; font-size: 11px; color: #94a3b8; }

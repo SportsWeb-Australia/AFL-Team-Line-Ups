@@ -495,14 +495,28 @@ export interface ClubPlayer {
  */
 export async function listClubPlayers(clubId: string | null): Promise<ClubPlayer[]> {
   if (!supabase || !clubId) return [];
+  const sb = supabase;
   try {
-    const { data } = await supabase
+    // 1) Resolve every team at this club. Match by club NAME (like the recall
+    // list) so teams that ended up under a duplicate club row still count.
+    const { data: club } = await sb.from('clubs').select('name').eq('id', clubId).maybeSingle();
+    const clubName = (club as any)?.name as string | undefined;
+    let teamsQ = sb.from('teams').select('id, club:clubs!inner ( name )');
+    teamsQ = clubName ? teamsQ.eq('club.name', clubName) : teamsQ.eq('club_id', clubId);
+    const { data: teams } = await teamsQ;
+    const teamIds = ((teams as any[]) ?? []).map((t) => t.id).filter(Boolean);
+    if (teamIds.length === 0) return [];
+
+    // 2) Players who've appeared for ANY of those teams. Reuses the exact filter
+    // path proven by the per-team roster load (lineup.fixture.team_id), just
+    // widened from .eq to .in — more reliable than a deep team.club_id filter.
+    const { data } = await sb
       .from('lineup_positions')
       .select(
         `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url ),
-         lineup:lineups!inner ( fixture:fixtures!inner ( team:teams!inner ( club_id ) ) )`,
+         lineup:lineups!inner ( fixture:fixtures!inner ( team_id ) )`,
       )
-      .eq('lineup.fixture.team.club_id', clubId);
+      .in('lineup.fixture.team_id', teamIds);
     const seen = new Set<string>();
     const out: ClubPlayer[] = [];
     for (const row of (data as any[]) ?? []) {
