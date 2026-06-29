@@ -2964,3 +2964,28 @@
 }
 .sw1-oppadd__logo img { max-height: 32px; max-width: 64px; object-fit: contain; }
 .sw1-oppadd__logo input { display: none; }
+
+/* Cross-team player search — players from other teams at the club, offered to
+   add when searching the squad. Distinct tint so they read as "not yet in this
+   team". */
+.sw1-squad__clubrow {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: #f8fbff;
+  border-color: #dbe7f5;
+}
+.sw1-squad__clubpick { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sw1-squad__clubno {
+  flex: 0 0 auto;
+  min-width: 22px; height: 22px; padding: 0 6px;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: #64748b; color: #fff; border-radius: 6px;
+  font-weight: 800; font-size: 12px;
+}
+.sw1-squad__clubname {
+  font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.sw1-squad__clubadd { flex: 0 0 auto; padding: 5px 10px; font-size: 12px; }

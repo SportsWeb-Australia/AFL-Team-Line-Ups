@@ -429,6 +429,8 @@ export interface SavedSheet {
   dateText: string | null;
   grade: string | null;
   opponent: string | null;
+  /** The opponent logo that was used on this past sheet (free-text data URL). */
+  opponentLogo: string | null;
   venue: string | null;
 }
 
@@ -448,7 +450,7 @@ export async function listSavedSheets(clubId: string | null): Promise<SavedSheet
   const clubName = (club as any)?.name as string | undefined;
 
   const run = (withDateText: boolean, byName: boolean) => {
-    const cols = `id, round,${withDateText ? ' match_date_text,' : ''} opponent_name, venue:venues ( name ), created_at, team:teams!inner ( name, club:clubs!inner ( name ) )`;
+    const cols = `id, round,${withDateText ? ' match_date_text,' : ''} opponent_name, opponent_logo_url, venue:venues ( name ), created_at, team:teams!inner ( name, club:clubs!inner ( name ) )`;
     let q = sb.from('fixtures').select(cols);
     q = byName && clubName ? q.eq('team.club.name', clubName) : q.eq('team.club_id', clubId);
     return q.order('created_at', { ascending: false });
@@ -467,9 +469,58 @@ export async function listSavedSheets(clubId: string | null): Promise<SavedSheet
     dateText: f.match_date_text ?? null,
     grade: f.team?.name ?? null,
     opponent: f.opponent_name ?? null,
+    opponentLogo: f.opponent_logo_url ?? null,
     venue: f.venue?.name ?? null,
   }));
   return rows;
+}
+
+/** A player who has appeared for ANY team at the club — for the opt-in
+ * cross-team search. Distinct from the current squad. */
+export interface ClubPlayer {
+  id: string;
+  number: string;
+  name: string;
+  headshotUrl?: string;
+  jumperImageUrl?: string;
+}
+
+/**
+ * Lists every player who has appeared in a line-up for any team at this club,
+ * deduped. Powers the opt-in "add from another team at your club" search in the
+ * squad list. Deliberately NOT merged into the squad automatically — that was
+ * the old squad-pollution bug. Callers add individual players on demand; the
+ * player attaches to this team naturally when the sheet is saved. Best-effort:
+ * returns [] on any error so the editor never blocks on it.
+ */
+export async function listClubPlayers(clubId: string | null): Promise<ClubPlayer[]> {
+  if (!supabase || !clubId) return [];
+  try {
+    const { data } = await supabase
+      .from('lineup_positions')
+      .select(
+        `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url ),
+         lineup:lineups!inner ( fixture:fixtures!inner ( team:teams!inner ( club_id ) ) )`,
+      )
+      .eq('lineup.fixture.team.club_id', clubId);
+    const seen = new Set<string>();
+    const out: ClubPlayer[] = [];
+    for (const row of (data as any[]) ?? []) {
+      const p = row.player;
+      if (!p || seen.has(p.id)) continue;
+      seen.add(p.id);
+      out.push({
+        id: p.id,
+        number: p.number ?? '',
+        name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
+        headshotUrl: p.headshot_url ?? undefined,
+        jumperImageUrl: p.jumper_image_url ?? undefined,
+      });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 /**

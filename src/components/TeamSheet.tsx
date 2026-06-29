@@ -33,6 +33,7 @@ import {
   deleteTeamSheet,
   loadPreviousSelections,
   listOpponentClubs,
+  listClubPlayers,
   addOpponentClub,
   deleteOpponentClub,
   EMPTY_REFS,
@@ -41,6 +42,7 @@ import {
   type PrevLineup,
   type PrevSelection,
   type OpponentClub,
+  type ClubPlayer,
 } from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { SHOW_EMBED, PUBLISH_TARGET_LABEL } from '../lib/config';
@@ -201,6 +203,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [printImage, setPrintImage] = useState<string | null>(null);
   // Opponent store: every other club on file, for the Match & branding dropdown.
   const [opponentClubs, setOpponentClubs] = useState<OpponentClub[]>([]);
+  // Players from other teams at this club, for the opt-in cross-team search.
+  const [clubPlayers, setClubPlayers] = useState<ClubPlayer[]>([]);
 
   // Background watermark behind the oval (club/sponsor name or logo).
   type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
@@ -895,6 +899,26 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setPlayers((prev) => [...prev, { id: uid(), number, name, sourceType: 'standalone' }]);
   }
 
+  // Pull a player from another team at this club into the current squad. Keeps
+  // their db id so they de-dupe and attach to this team naturally on save.
+  function addClubPlayer(cp: ClubPlayer) {
+    setPlayers((prev) => {
+      if (prev.some((p) => p.id === cp.id || p.dbId === cp.id)) return prev;
+      return [
+        ...prev,
+        {
+          id: cp.id,
+          dbId: cp.id,
+          number: cp.number ?? '',
+          name: cp.name,
+          headshotUrl: cp.headshotUrl,
+          jumperImageUrl: cp.jumperImageUrl,
+          sourceType: 'standalone',
+        },
+      ];
+    });
+  }
+
   function importPlayers(rows: { number: string; name: string; headshotUrl?: string }[]) {
     setPlayers((prev) => [
       ...prev,
@@ -1196,6 +1220,23 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       cancelled = true;
     };
   }, [dbRefs.clubId, club.name, mode]);
+
+  // Load the club-wide player pool (other teams at this club) for the opt-in
+  // cross-team search. Best-effort; the squad still works if it stays empty.
+  useEffect(() => {
+    if (!isSupabaseConfigured || mode !== 'admin' || !dbRefs.clubId) return;
+    let cancelled = false;
+    listClubPlayers(dbRefs.clubId)
+      .then((rows) => {
+        if (!cancelled) setClubPlayers(rows);
+      })
+      .catch(() => {
+        /* cross-team search simply offers nothing */
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [dbRefs.clubId, mode]);
 
   // Media-officer opposition directory: add/remove, then refresh the picker list.
   const refreshOpponentClubs = useCallback(async () => {
@@ -1539,6 +1580,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             opponentClubs={opponentClubs}
             onAddOpponentClub={handleAddOpponentClub}
             onDeleteOpponentClub={handleDeleteOpponentClub}
+            clubPlayers={clubPlayers}
+            onAddClubPlayer={addClubPlayer}
             onClone={cloneToNewRound}
             insOuts={insOuts}
             onRefreshInsOuts={() => refreshPrevWeek(dbRefs.clubId, match.grade, dbRefs.fixtureId)}

@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
-import type { SavedSheet, OpponentClub } from '../lib/source';
+import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { SHOW_EMBED } from '../lib/config';
@@ -121,6 +121,9 @@ interface Props {
   /** Media-officer opposition directory management. */
   onAddOpponentClub?: (name: string, logoUrl: string | null) => void | Promise<void>;
   onDeleteOpponentClub?: (id: string) => void | Promise<void>;
+  /** Players from OTHER teams at this club — opt-in cross-team search. */
+  clubPlayers?: ClubPlayer[];
+  onAddClubPlayer?: (p: ClubPlayer) => void;
   onClone?: () => void;
   /** Ins & Outs vs last week (admin reference only). Null until a prior round exists. */
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
@@ -201,6 +204,8 @@ export default function AdminPanel({
   opponentClubs = [],
   onAddOpponentClub,
   onDeleteOpponentClub,
+  clubPlayers = [],
+  onAddClubPlayer,
   onClone,
   insOuts,
   onRefreshInsOuts,
@@ -227,6 +232,7 @@ export default function AdminPanel({
   const [addLogo, setAddLogo] = useState<string | null>(null);
   const [addBusy, setAddBusy] = useState(false);
   const [gradeNew, setGradeNew] = useState(false);
+  const [oppNew, setOppNew] = useState(false);
 
 
   const openQuickStart = () => {
@@ -310,9 +316,37 @@ export default function AdminPanel({
     Array.from(new Set(xs.map((x) => (x ?? '').trim()).filter(Boolean)));
   const pastGrades = uniq(savedSheets.map((s) => s.grade));
   const pastVenues = uniq(savedSheets.map((s) => s.venue));
-  const oppNamesLc = new Set(opponentClubs.map((c) => c.name.trim().toLowerCase()));
-  const pastOpponents = uniq(savedSheets.map((s) => s.opponent)).filter(
-    (n) => !oppNamesLc.has(n.toLowerCase()),
+
+  // Opponent options for the dropdown: the saved opposition directory/clubs
+  // (which carry a logo + can be FK-linked) MERGED with past opponents pulled
+  // from saved sheets (which carry the logo that was used at the time). Keyed
+  // by lower-cased name so a club that's both in the directory and a past
+  // opponent only appears once — and a directory entry missing a logo can
+  // borrow one from history.
+  const oppByName = new Map<
+    string,
+    { name: string; logoUrl: string | null; clubId: string | null }
+  >();
+  for (const c of opponentClubs) {
+    const key = c.name.trim().toLowerCase();
+    if (key && !oppByName.has(key)) {
+      oppByName.set(key, {
+        name: c.name,
+        logoUrl: c.logoUrl ?? null,
+        clubId: c.source === 'club' ? c.id : null,
+      });
+    }
+  }
+  for (const s of savedSheets) {
+    const nm = (s.opponent ?? '').trim();
+    if (!nm) continue;
+    const key = nm.toLowerCase();
+    const ex = oppByName.get(key);
+    if (!ex) oppByName.set(key, { name: nm, logoUrl: s.opponentLogo ?? null, clubId: null });
+    else if (!ex.logoUrl && s.opponentLogo) ex.logoUrl = s.opponentLogo;
+  }
+  const oppOptions = Array.from(oppByName.values()).sort((a, b) =>
+    a.name.localeCompare(b.name),
   );
   const opponentSaved =
     !!match.opponent.trim() &&
@@ -505,42 +539,51 @@ export default function AdminPanel({
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
           <label><span className="sw1-step">2</span>Opponent
-            {/* Type to search saved opposition clubs (or pick from the dropdown the
-                browser shows). When the typed/picked name matches a saved club, its
-                logo loads automatically. Any other text is a brand-new opponent. */}
-            <input
-              list="sw1-opponent-list"
-              value={match.opponent}
-              placeholder="Opponent — type to search saved clubs"
-              onChange={(e) => {
-                const name = e.target.value;
-                const hit = opponentClubs.find(
-                  (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase(),
-                );
-                if (hit) {
+            {/* A real dropdown (not a type-to-filter box): the whole opponent
+                list is always visible. Each option carries its logo — directory
+                clubs and past opponents alike — so picking one loads the right
+                logo and clears any stale one. "Add a new opponent" switches to a
+                text field where you can also save it (+ logo) below. */}
+            {oppNew ? (
+              <input
+                value={match.opponent}
+                placeholder="New opponent name"
+                autoFocus
+                onChange={(e) => onMatch({ opponent: e.target.value, opponentClubId: null })}
+                onBlur={() => {
+                  if (oppOptions.length > 0 && !match.opponent.trim()) setOppNew(false);
+                }}
+              />
+            ) : (
+              <select
+                value={match.opponent}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === '__new__') {
+                    onMatch({ opponent: '', opponentLogoUrl: null, opponentClubId: null });
+                    setOppNew(true);
+                    return;
+                  }
+                  const o = oppByName.get(v.trim().toLowerCase());
+                  // Always set the logo to this opponent's (or null) so the
+                  // previous opponent's logo never lingers.
                   onMatch({
-                    opponent: hit.name,
-                    opponentLogoUrl: hit.logoUrl ?? null,
-                    // Only a real clubs row can be linked via the opponent_club_id FK.
-                    // Directory entries are name+logo only, so leave the link null.
-                    opponentClubId: hit.source === 'club' ? hit.id : null,
+                    opponent: v,
+                    opponentLogoUrl: o?.logoUrl ?? null,
+                    opponentClubId: o?.clubId ?? null,
                   });
-                } else {
-                  // New opponent: keep whatever logo is set so a manual upload isn't
-                  // wiped mid-edit; just drop the store link.
-                  onMatch({ opponent: name, opponentClubId: null });
-                }
-              }}
-            />
-            {(opponentClubs.length > 0 || pastOpponents.length > 0) && (
-              <datalist id="sw1-opponent-list">
-                {opponentClubs.map((c) => (
-                  <option key={c.id} value={c.name} />
+                }}
+              >
+                <option value="">Select opponent…</option>
+                {match.opponent.trim() &&
+                  !oppByName.has(match.opponent.trim().toLowerCase()) && (
+                    <option value={match.opponent}>{match.opponent}</option>
+                  )}
+                {oppOptions.map((o) => (
+                  <option key={o.name} value={o.name}>{o.name}</option>
                 ))}
-                {pastOpponents.map((n) => (
-                  <option key={`past-${n}`} value={n} />
-                ))}
-              </datalist>
+                <option value="__new__">➕ Add a new opponent…</option>
+              </select>
             )}
           </label>
 
@@ -572,6 +615,7 @@ export default function AdminPanel({
                     await onAddOpponentClub(name, addLogo);
                     if (addLogo) onMatch({ opponentLogoUrl: addLogo });
                     setAddLogo(null);
+                    setOppNew(false);
                   } finally {
                     setAddBusy(false);
                   }
@@ -1138,6 +1182,8 @@ export default function AdminPanel({
         onRemovePlayer={onRemovePlayer}
         onSetPlayerImage={onSetPlayerImage}
         onUpdatePlayer={onUpdatePlayer}
+        clubPlayers={clubPlayers}
+        onAddClubPlayer={onAddClubPlayer}
       />
       </details>
 

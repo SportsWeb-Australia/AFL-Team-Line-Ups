@@ -1,6 +1,7 @@
 import { useState, type ChangeEvent } from 'react';
 import type { Player, PlayerStatus, PositionKey } from '../types';
 import type { SlotDef } from '../lib/field';
+import type { ClubPlayer } from '../lib/source';
 import { removeHeadshotBackground } from '../lib/removeBg';
 
 const REASONS: { value: PlayerStatus; label: string }[] = [
@@ -58,6 +59,9 @@ interface Props {
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
   onSetPlayerImage: (id: string, kind: 'headshot' | 'jumper', dataUrl: string | null) => void;
+  /** Players from other teams at this club, for the opt-in cross-team search. */
+  clubPlayers?: ClubPlayer[];
+  onAddClubPlayer?: (p: ClubPlayer) => void;
 }
 
 export default function SquadList({
@@ -73,6 +77,8 @@ export default function SquadList({
   onRemovePlayer,
   onUpdatePlayer,
   onSetPlayerImage,
+  clubPlayers = [],
+  onAddClubPlayer,
 }: Props) {
   const [editId, setEditId] = useState<string | null>(null);
   const [editNo, setEditNo] = useState('');
@@ -117,6 +123,24 @@ export default function SquadList({
   const availableShown = available.filter(matchesSearch);
   const unavailableShown = unavailable.filter(matchesSearch);
   const nothingFound = q !== '' && availableShown.length === 0 && unavailableShown.length === 0;
+
+  // Opt-in cross-team search: only when actively searching, only players from
+  // OTHER teams at this club who aren't already in this squad. Adding one pulls
+  // them into the current sheet (and attaches them on save) — it never
+  // auto-merges the whole club, which was the old squad-pollution bug.
+  const inSquad = new Set<string>();
+  for (const p of players) {
+    inSquad.add(p.id);
+    if (p.dbId) inSquad.add(p.dbId);
+  }
+  const clubMatches =
+    q === '' || !onAddClubPlayer
+      ? []
+      : clubPlayers.filter(
+          (cp) =>
+            !inSquad.has(cp.id) &&
+            (cp.name.toLowerCase().includes(q) || (cp.number || '').toLowerCase().includes(q)),
+        );
 
   const startEdit = (p: Player) => {
     setEditId(p.id);
@@ -357,7 +381,30 @@ export default function SquadList({
         </>
       )}
 
-      {nothingFound && (
+      {clubMatches.length > 0 && (
+        <>
+          <div className="sw1-squad__divider">
+            From other teams at your club <span>({clubMatches.length})</span>
+          </div>
+          {clubMatches.map((cp) => (
+            <div key={`club-${cp.id}`} className="sw1-squad__row sw1-squad__clubrow">
+              <span className="sw1-squad__clubpick">
+                <span className="sw1-squad__clubno">{cp.number || '–'}</span>
+                <span className="sw1-squad__clubname">{cp.name}</span>
+              </span>
+              <button
+                type="button"
+                className="sw1-btn sw1-btn--primary sw1-squad__clubadd"
+                onClick={() => onAddClubPlayer?.(cp)}
+              >
+                + Add
+              </button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {nothingFound && clubMatches.length === 0 && (
         <p className="sw1-admin__hint">No players match "{search}".</p>
       )}
     </div>
