@@ -487,8 +487,8 @@ export default function AdminPanel({
         <summary>Match &amp; branding</summary>
 
         <div className="sw1-brand__grid">
-          <label>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
-          <label>Opponent
+          <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
+          <label><span className="sw1-step">2</span>Opponent
             {/* Type to search saved opposition clubs (or pick from the dropdown the
                 browser shows). When the typed/picked name matches a saved club, its
                 logo loads automatically. Any other text is a brand-new opponent. */}
@@ -524,9 +524,9 @@ export default function AdminPanel({
               </datalist>
             )}
           </label>
-          <label>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
-          <label>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
-          <label>Date<input
+          <label><span className="sw1-step">3</span>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
+          <label><span className="sw1-step">4</span>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
+          <label><span className="sw1-step">5</span>Date<input
             type="date"
             value={match.date}
             onChange={(e) => onMatch({ date: e.target.value })}
@@ -541,7 +541,7 @@ export default function AdminPanel({
             }}
           /></label>
           <label>
-            Time
+            <span className="sw1-step">6</span>Time
             <select value={match.time} onChange={(e) => onMatch({ time: e.target.value })}>
               {match.time && !TIME_OPTIONS.includes(match.time) && (
                 <option value={match.time}>{match.time}</option>
@@ -553,7 +553,7 @@ export default function AdminPanel({
               ))}
             </select>
           </label>
-          <label className="sw1-brand__full">Venue<input value={match.venue} onChange={(e) => onMatch({ venue: e.target.value })} /></label>
+          <label className="sw1-brand__full"><span className="sw1-step">7</span>Venue<input value={match.venue} onChange={(e) => onMatch({ venue: e.target.value })} /></label>
           <label className="sw1-brand__full">Competition / league<input value={match.competition ?? ''} onChange={(e) => onMatch({ competition: e.target.value })} placeholder="e.g. Eastern Football Netball League" /></label>
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
@@ -795,6 +795,7 @@ export default function AdminPanel({
         {/* Background watermark behind the oval */}
         <div className="sw1-watermarkpanel">
           <strong>Background behind the oval</strong>
+          <p className="sw1-admin__hint">The faint graphic shown behind the players. Use your <strong>club name or logo</strong>, a <strong>sponsor&rsquo;s name or logo</strong> &mdash; or type a <strong>special-round note</strong> like <strong>ANZAC DAY</strong> or <strong>FINAL</strong> in the name field below.</p>
           <div className="sw1-brand__grid">
             <label>
               Show
@@ -815,7 +816,7 @@ export default function AdminPanel({
                   type="text"
                   value={wmSponsorName}
                   onChange={(e) => onWmSponsorName(e.target.value)}
-                  placeholder="e.g. Riverton Motors"
+                  placeholder="e.g. Riverton Motors — or a note like ANZAC DAY"
                 />
               </label>
             )}
@@ -939,6 +940,10 @@ export default function AdminPanel({
               </>
             )}
           </div>
+          <p className="sw1-admin__hint sw1-teamjumper__help">
+            <span className="sw1-helpdot" title="How to get a jumper image" aria-hidden="true">i</span>
+            <strong>Where do I get a jumper image?</strong> Photograph the front of a guernsey laid flat on a plain background, or ask your supplier for a product shot. Best result: a <strong>square PNG with a see-through (transparent) background, about 600&times;600&nbsp;px</strong>. More in the Quick Start &amp; Help guide.
+          </p>
           <p className="sw1-admin__hint">
             <strong>One jumper for the whole team</strong> — shown on every player when the mode above is set to
             <strong> Jumper</strong>. <strong>Headshots are per player</strong> — add them with each player's
@@ -985,6 +990,21 @@ export default function AdminPanel({
         <p className={`sw1-addmsg ${addMsg.ok ? 'is-ok' : 'is-err'}`}>{addMsg.text}</p>
       )}
 
+      <SquadList
+        players={players}
+        location={squadLocation}
+        fieldSlots={fieldSlots}
+        positions={positions}
+        selectedPlayerId={selectedPlayerId}
+        onSelect={onSelect}
+        onSetAvailability={onSetAvailability}
+        onSetRole={onSetRole}
+        onQuickPlace={onQuickPlace}
+        onRemovePlayer={onRemovePlayer}
+        onSetPlayerImage={onSetPlayerImage}
+        onUpdatePlayer={onUpdatePlayer}
+      />
+
       <details name="sw1adm" className="sw1-admin__bulk">
         <summary>Bulk import</summary>
         <p className="sw1-admin__hint sw1-admin__hint--links">
@@ -1000,21 +1020,6 @@ export default function AdminPanel({
         />
         <button className="sw1-btn" onClick={importRows}>Import players</button>
       </details>
-
-      <SquadList
-        players={players}
-        location={squadLocation}
-        fieldSlots={fieldSlots}
-        positions={positions}
-        selectedPlayerId={selectedPlayerId}
-        onSelect={onSelect}
-        onSetAvailability={onSetAvailability}
-        onSetRole={onSetRole}
-        onQuickPlace={onQuickPlace}
-        onRemovePlayer={onRemovePlayer}
-        onSetPlayerImage={onSetPlayerImage}
-        onUpdatePlayer={onUpdatePlayer}
-      />
       </details>
 
       {/* SportsWeb One platform footer — one scrolling promo button */}

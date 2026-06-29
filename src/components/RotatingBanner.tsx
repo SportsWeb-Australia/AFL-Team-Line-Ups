@@ -53,6 +53,28 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
 
   const active = slides[i % slides.length];
 
+  // Empty state: no sponsors yet — fill the strip with an "Advertise with us here"
+  // call-to-action instead of a blank placeholder, so the space sells itself.
+  if (!(sponsors && sponsors.length > 0)) {
+    return (
+      <div className="sw1-banner sw1-banner--empty">
+        {showAdvertise ? (
+          <a
+            className="sw1-banner__empty"
+            href={resolveAdvertiseHref(advertiseHref)}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <span className="sw1-banner__empty-main">Advertise with us here</span>
+            <span className="sw1-banner__empty-sub">Your business in front of the whole club — every team, every round</span>
+          </a>
+        ) : (
+          <span className="sw1-banner__empty sw1-banner__empty--quiet" aria-hidden="true" />
+        )}
+      </div>
+    );
+  }
+
   const inner = active.bannerUrl ? (
     <img
       className="sw1-banner__img"

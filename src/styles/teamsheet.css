@@ -2878,3 +2878,70 @@
   line-height: 1;
 }
 .sw1-oppdir__del:hover { background: #fee2e2; color: #b91c1c; }
+
+/* ===================================================================== */
+/* Drop 1 additions: step numbers, search header, help dot, sponsor      */
+/* empty-state, and the Match Centre upgrade panel.                      */
+/* ===================================================================== */
+
+/* (#2) Match-form step numbers */
+.sw1-step {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 18px; height: 18px; margin-right: 7px; border-radius: 50%;
+  background: #0f172a; color: #fff; font-size: 11px; font-weight: 800;
+  line-height: 1; vertical-align: 1px; flex: 0 0 auto;
+}
+
+/* (#5) Squad search header */
+.sw1-squad__searchhead {
+  font-size: 12px; font-weight: 800; letter-spacing: .02em;
+  color: #0f172a; margin: 0 0 6px;
+}
+
+/* (#6) Inline help dot */
+.sw1-helpdot {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 15px; height: 15px; margin-right: 6px; border-radius: 50%;
+  background: #1d4ed8; color: #fff; font-size: 10px; font-weight: 800;
+  font-style: normal; line-height: 1; vertical-align: 1px;
+}
+
+/* (#3) Sponsor space empty-state CTA */
+.sw1-banner--empty { display: flex; align-items: stretch; }
+.sw1-banner__empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; width: 100%; height: 100%; text-decoration: none; text-align: center;
+  border: 2px dashed #cbd5e1; border-radius: var(--radius); padding: 8px 14px;
+}
+.sw1-banner__empty-main {
+  font-weight: 900; font-size: clamp(15px, 2.4vw, 20px);
+  letter-spacing: .04em; text-transform: uppercase; color: #0f172a;
+}
+.sw1-banner__empty-sub { font-size: clamp(11px, 1.4vw, 13px); font-weight: 600; color: #64748b; }
+.sw1-banner__empty--quiet { border-color: #e2e8f0; }
+.sw1-exporting .sw1-banner__empty { border: none; }
+
+/* (#9) Match Centre upgrade panel (admin only, never exported) */
+.sw1-upgrade {
+  margin-top: 16px; padding: 16px; border-radius: var(--radius);
+  background: linear-gradient(135deg, #0b1220, #14233b);
+  color: #fff; display: flex; flex-direction: column; gap: 12px;
+}
+.sw1-upgrade__head strong { display: block; font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+.sw1-upgrade__head span { font-size: 12.5px; color: rgba(255,255,255,.8); line-height: 1.5; }
+.sw1-upgrade__list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+.sw1-upgrade__list li {
+  font-size: 12.5px; color: rgba(255,255,255,.92); line-height: 1.5;
+  padding-left: 18px; position: relative;
+}
+.sw1-upgrade__list li::before {
+  content: ""; position: absolute; left: 0; top: 6px;
+  width: 8px; height: 8px; border-radius: 50%; background: #1faf57;
+}
+.sw1-upgrade__list strong { color: #fff; }
+.sw1-upgrade__btn {
+  align-self: flex-start; background: #1faf57; color: #04220f; font-weight: 800;
+  font-size: 13px; text-decoration: none; padding: 10px 16px; border-radius: 9px;
+}
+.sw1-upgrade__btn:hover { filter: brightness(1.05); }
+.sw1-exporting .sw1-upgrade { display: none; }

@@ -166,11 +166,15 @@ export default function SquadList({
               className="sw1-squad__editno"
               value={editNo}
               inputMode="numeric"
+              placeholder="Jumper No."
+              aria-label="Jumper number"
               onChange={(e) => setEditNo(e.target.value)}
             />
             <input
               className="sw1-squad__editname"
               value={editName}
+              placeholder="Player name"
+              aria-label="Player name"
               onChange={(e) => setEditName(e.target.value)}
             />
           </div>
@@ -321,11 +325,12 @@ export default function SquadList({
 
       {players.length > 6 && (
         <div className="sw1-squad__search">
+          <div className="sw1-squad__searchhead">Find a player in your squad</div>
           <input
             type="search"
             className="sw1-squad__searchinput"
             value={search}
-            placeholder="Search players by name or number…"
+            placeholder="Search by name or number…"
             onChange={(e) => setSearch(e.target.value)}
           />
           {search && (

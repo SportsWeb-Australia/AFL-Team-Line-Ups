@@ -1380,6 +1380,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     return <div className={`sw1-root ${embed ? 'sw1-root--embed' : ''}`} style={themeVars} aria-busy="true" />;
   }
 
+  // Where the "Upgrade" button points. Swap this one line for the exact
+  // marketing upgrade-plan URL when it's live.
+  const UPGRADE_URL = 'https://sportsweb.com.au';
+
   return (
     <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
       {admin && (
@@ -1739,6 +1743,22 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       </div>
       </div>
       </div>
+
+      {admin && (
+        <div className="sw1-upgrade">
+          <div className="sw1-upgrade__head">
+            <strong>Upgrade to the full Match Centre</strong>
+            <span>Your line-ups are just the start — add live match coverage your supporters check every week, all embedded on your site.</span>
+          </div>
+          <ul className="sw1-upgrade__list">
+            <li><strong>Live Scores + Match Report</strong> — a live scoreboard through the game, then an auto-drafted match report to publish.</li>
+            <li><strong>Fixtures &amp; Ladders</strong> — your draw and ladder, embedded and always up to date.</li>
+          </ul>
+          <a className="sw1-upgrade__btn" href={UPGRADE_URL} target="_blank" rel="noopener noreferrer">
+            See upgrade plans &rarr;
+          </a>
+        </div>
+      )}
 
       {/* Print sheet — the captured PUBLIC graphic on a single A3 page, plus a QR
           and a note about screens / posters. Only visible while printing. */}
