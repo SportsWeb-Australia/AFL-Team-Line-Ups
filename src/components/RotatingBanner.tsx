@@ -72,6 +72,7 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
           >
             <span className="sw1-banner__empty-main">Advertise with us here</span>
             <span className="sw1-banner__empty-sub">Your business in front of the whole club — every team, every round</span>
+            <span className="sw1-banner__empty-tag">Click here to book this ad →</span>
           </a>
         ) : (
           <span className="sw1-banner__empty sw1-banner__empty--quiet" aria-hidden="true" />

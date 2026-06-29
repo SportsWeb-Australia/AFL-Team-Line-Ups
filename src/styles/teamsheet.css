@@ -1344,7 +1344,15 @@
 .sw1-brand__logos input[type='file'] { font-size: 11px; }
 
 /* Competition / extra logos uploader (admin) */
-.sw1-complogos { margin: 4px 0 10px; }
+.sw1-complogos { margin: 16px 0 10px; padding-top: 14px; border-top: 1px solid #e2e8f0; }
+.sw1-complogos__summary {
+  cursor: pointer; font-weight: 800; font-size: 13px; color: #0f172a;
+  list-style: none; display: flex; align-items: center; gap: 8px;
+}
+.sw1-complogos__summary::-webkit-details-marker { display: none; }
+.sw1-complogos__summary::before { content: "\25B8"; color: #64748b; font-size: 11px; }
+.sw1-complogos[open] .sw1-complogos__summary::before { content: "\25BE"; }
+.sw1-complogos__add { margin-top: 12px; }
 .sw1-complogos__add { display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; }
 .sw1-complogos__add input[type='file'] { font-size: 11px; font-weight: 400; }
 .sw1-complogos__list { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
@@ -1762,21 +1770,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.sw1-upgrade {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 14px 16px;
-  border-radius: 14px;
-  text-decoration: none;
-  text-align: center;
-  border: 1px solid transparent;
-  background:
-    linear-gradient(135deg, #1f6fff 0%, #0a2a66 100%) padding-box,
-    linear-gradient(135deg, #e6ecf3, #9aa6b2 50%, #4a5560) border-box;
-}
-.sw1-upgrade strong { color: #fff; font-size: 14px; font-weight: 800; }
-.sw1-upgrade span { color: #cfe0ff; font-size: 12.5px; }
 .sw1-swfoot__link {
   text-align: center;
   font-size: 12px;
@@ -2918,6 +2911,11 @@
   letter-spacing: .04em; text-transform: uppercase; color: #0f172a;
 }
 .sw1-banner__empty-sub { font-size: clamp(11px, 1.4vw, 13px); font-weight: 600; color: #64748b; }
+.sw1-banner__empty-tag {
+  margin-top: 6px; display: inline-block; padding: 4px 12px; border-radius: 999px;
+  background: #1faf57; color: #04220f; font-size: clamp(10px, 1.3vw, 12px); font-weight: 800;
+}
+.sw1-exporting .sw1-banner__empty-tag { display: none; }
 .sw1-banner__empty--quiet { border-color: #e2e8f0; }
 .sw1-exporting .sw1-banner__empty { border: none; }
 
@@ -2925,7 +2923,7 @@
 .sw1-upgrade {
   margin-top: 16px; padding: 16px; border-radius: var(--radius);
   background: linear-gradient(135deg, #0b1220, #14233b);
-  color: #fff; display: flex; flex-direction: column; gap: 12px;
+  color: #fff; display: flex; flex-direction: column; gap: 12px; text-align: left;
 }
 .sw1-upgrade__head strong { display: block; font-size: 15px; font-weight: 800; margin-bottom: 4px; }
 .sw1-upgrade__head span { font-size: 12.5px; color: rgba(255,255,255,.8); line-height: 1.5; }

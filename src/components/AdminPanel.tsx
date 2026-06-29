@@ -226,6 +226,7 @@ export default function AdminPanel({
   const [oppBusy, setOppBusy] = useState(false);
   const [addLogo, setAddLogo] = useState<string | null>(null);
   const [addBusy, setAddBusy] = useState(false);
+  const [gradeNew, setGradeNew] = useState(false);
 
 
   const openQuickStart = () => {
@@ -666,16 +667,37 @@ export default function AdminPanel({
             </select>
           </label>
           <label><span className="sw1-step">4</span>Grade
-            <input
-              list="sw1-grade-list"
-              value={match.grade}
-              placeholder="e.g. Seniors, Reserves, U18"
-              onChange={(e) => onMatch({ grade: e.target.value })}
-            />
-            {pastGrades.length > 0 && (
-              <datalist id="sw1-grade-list">
-                {pastGrades.map((g) => (<option key={g} value={g} />))}
-              </datalist>
+            {gradeNew || (pastGrades.length === 0 && !match.grade.trim()) ? (
+              <input
+                value={match.grade}
+                placeholder="e.g. Seniors, Reserves, U18"
+                autoFocus={gradeNew}
+                onChange={(e) => onMatch({ grade: e.target.value })}
+                onBlur={() => {
+                  if (pastGrades.length > 0 && !match.grade.trim()) setGradeNew(false);
+                }}
+              />
+            ) : (
+              <select
+                value={match.grade}
+                onChange={(e) => {
+                  if (e.target.value === '__new__') {
+                    onMatch({ grade: '' });
+                    setGradeNew(true);
+                  } else {
+                    onMatch({ grade: e.target.value });
+                  }
+                }}
+              >
+                <option value="">Select grade…</option>
+                {match.grade && !pastGrades.includes(match.grade) && (
+                  <option value={match.grade}>{match.grade}</option>
+                )}
+                {pastGrades.map((g) => (
+                  <option key={g} value={g}>{g}</option>
+                ))}
+                <option value="__new__">➕ Add a new grade…</option>
+              </select>
             )}
           </label>
           <label><span className="sw1-step">5</span>Date<input
@@ -764,11 +786,13 @@ export default function AdminPanel({
           </label>
         </div>
 
-        {/* Competition / extra logos — top-right of the header. Any number; a club
-            can also use this space for an additional sponsor logo. */}
-        <div className="sw1-complogos">
+        {/* Competition / extra logos — its own collapsible action, separated from
+            the Home/Away uploads so it reads as a distinct step. */}
+        <details className="sw1-complogos">
+          <summary className="sw1-complogos__summary">
+            Competition / extra logos (top-right){competitionLogos.length > 0 ? ` · ${competitionLogos.length}` : ''}
+          </summary>
           <label className="sw1-complogos__add">
-            Competition / extra logos (top-right)
             <input type="file" accept="image/*" multiple onChange={uploadCompetitionLogos} />
             <span className="sw1-admin__hint">Add your league/competition logo — or pop another sponsor's logo up here. Add as many as you like; they sit top-right of the header.</span>
           </label>
@@ -789,7 +813,7 @@ export default function AdminPanel({
               ))}
             </div>
           )}
-        </div>
+        </details>
 
         <div className="sw1-sponsorpanel">
           <div className="sw1-sponsorpanel__head">
