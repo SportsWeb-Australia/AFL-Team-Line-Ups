@@ -429,6 +429,7 @@ export interface SavedSheet {
   dateText: string | null;
   grade: string | null;
   opponent: string | null;
+  venue: string | null;
 }
 
 /**
@@ -447,7 +448,7 @@ export async function listSavedSheets(clubId: string | null): Promise<SavedSheet
   const clubName = (club as any)?.name as string | undefined;
 
   const run = (withDateText: boolean, byName: boolean) => {
-    const cols = `id, round,${withDateText ? ' match_date_text,' : ''} opponent_name, created_at, team:teams!inner ( name, club:clubs!inner ( name ) )`;
+    const cols = `id, round,${withDateText ? ' match_date_text,' : ''} opponent_name, venue:venues ( name ), created_at, team:teams!inner ( name, club:clubs!inner ( name ) )`;
     let q = sb.from('fixtures').select(cols);
     q = byName && clubName ? q.eq('team.club.name', clubName) : q.eq('team.club_id', clubId);
     return q.order('created_at', { ascending: false });
@@ -466,6 +467,7 @@ export async function listSavedSheets(clubId: string | null): Promise<SavedSheet
     dateText: f.match_date_text ?? null,
     grade: f.team?.name ?? null,
     opponent: f.opponent_name ?? null,
+    venue: f.venue?.name ?? null,
   }));
   return rows;
 }
