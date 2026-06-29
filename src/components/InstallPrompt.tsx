@@ -67,7 +67,7 @@ export default function InstallPrompt() {
     <div className="sw1-install" role="dialog" aria-label="Install app">
       <div className="sw1-install__txt">
         {deferred ? (
-          <>Install <strong>AFL Team Line Ups</strong> for quick game-day access.</>
+          <>Install <strong>Footy Team Line Ups</strong> for quick game-day access.</>
         ) : (
           <>Install this app: tap <strong>Share</strong> then <strong>Add to Home Screen</strong>.</>
         )}

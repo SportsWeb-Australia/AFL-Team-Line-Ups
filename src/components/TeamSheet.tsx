@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
 import type {
@@ -33,6 +33,8 @@ import {
   deleteTeamSheet,
   loadPreviousSelections,
   listOpponentClubs,
+  addOpponentClub,
+  deleteOpponentClub,
   EMPTY_REFS,
   type DbRefs,
   type SavedSheet,
@@ -126,6 +128,16 @@ function useIsNarrow(bp = 760) {
 }
 
 /**
+ * Followers are exactly three labelled slots — Ruck, Ruck Rover, Rover (indexes
+ * 0/1/2). We store them as a fixed-length-3 array with '' for an empty slot, so a
+ * player can be dropped straight into (say) Rover without first filling Ruck.
+ * Older saves may hold a packed array; to3() normalises either shape.
+ */
+function to3(a?: string[]): string[] {
+  return [a?.[0] ?? '', a?.[1] ?? '', a?.[2] ?? ''];
+}
+
+/**
  * A stable signature of just the embed-relevant content (line-up, roster,
  * match, sponsors, advertise tag). Compared against the last *published*
  * signature so the editor can warn when the draft is ahead of what the public
@@ -145,7 +157,7 @@ function buildSig(p: {
   const pos = p.positions || {};
   const posStr = Object.keys(pos).sort().map((k) => `${k}=${pos[k] ?? ''}`).join(',');
   const bench = [
-    `f:${(p.followers || []).join('|')}`,
+    `f:${to3(p.followers).join('|')}`,
     `i:${(p.interchange || []).join('|')}`,
     `e:${(p.emergencies || []).join('|')}`,
     `u:${(p.unavailable || []).join('|')}`,
@@ -171,7 +183,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [positions, setPositions] = useState<Partial<Record<PositionKey, string>>>(
     data.lineup.positions,
   );
-  const [followers, setFollowers] = useState<string[]>(data.lineup.followers);
+  const [followers, setFollowers] = useState<string[]>(to3(data.lineup.followers));
   const [interchange, setInterchange] = useState<string[]>(data.lineup.interchange);
   const [emergencies, setEmergencies] = useState<string[]>(data.lineup.emergencies);
   const [unavailable, setUnavailable] = useState<string[]>(data.lineup.unavailable);
@@ -233,9 +245,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       });
       return next;
     });
-    (Object.keys(setterFor) as BenchArea[]).forEach((area) =>
-      setterFor[area]((prev) => prev.filter((x) => x !== id)),
-    );
+    (Object.keys(setterFor) as BenchArea[]).forEach((area) => {
+      if (area === 'followers') {
+        // Keep the three slots intact — just empty the one this player held.
+        setFollowers((prev) => to3(prev).map((x) => (x === id ? '' : x)));
+      } else {
+        setterFor[area]((prev) => prev.filter((x) => x !== id));
+      }
+    });
   }
 
   type Loc =
@@ -308,7 +325,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       return next;
     });
-    if (from.kind === 'bench') setterFor[from.area]((prev) => prev.filter((x) => x !== id));
+    if (from.kind === 'bench') {
+      if (from.area === 'followers') {
+        setFollowers((prev) => to3(prev).map((x) => (x === id ? '' : x)));
+      } else {
+        setterFor[from.area]((prev) => prev.filter((x) => x !== id));
+      }
+    }
     setSelectedPlayerId(null);
   }
 
@@ -316,13 +339,40 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // Pulling someone out of Unavailable into a playing group: confirm + clear tag.
     if (area !== 'unavailable' && !confirmLeaveUnavailable(id)) return;
     clearEverywhere(id);
-    setterFor[area]((prev) => [...prev, id]);
+    if (area === 'followers') {
+      // Generic follower drop with no specific slot → first free of Ruck/RR/Rover.
+      setFollowers((prev) => {
+        const a = to3(prev);
+        const i = a.findIndex((x) => !x);
+        if (i >= 0) a[i] = id;
+        return a;
+      });
+    } else {
+      setterFor[area]((prev) => [...prev, id]);
+    }
     setSelectedPlayerId(null);
   }
 
-  /** Quick-place from the squad list dropdown: a field position or a bench group. */
-  function quickPlace(id: string, target: PositionKey | 'interchange' | 'emergencies' | 'followers') {
-    if (target === 'interchange' || target === 'emergencies' || target === 'followers') {
+  /** Place a player into a specific follower slot (0 Ruck / 1 Ruck Rover / 2 Rover). */
+  function placeFollower(idx: number, id: string) {
+    if (!confirmLeaveUnavailable(id)) return;
+    clearEverywhere(id);
+    setFollowers((prev) => {
+      const a = to3(prev).map((x) => (x === id ? '' : x));
+      a[idx] = id;
+      return a;
+    });
+    setSelectedPlayerId(null);
+  }
+
+  /** Quick-place from the squad list dropdown: a field position, a follower slot, or a bench group. */
+  function quickPlace(
+    id: string,
+    target: PositionKey | 'interchange' | 'emergencies' | 'followers' | 'follower0' | 'follower1' | 'follower2',
+  ) {
+    if (target === 'follower0' || target === 'follower1' || target === 'follower2') {
+      placeFollower(Number(target.slice(-1)), id);
+    } else if (target === 'interchange' || target === 'emergencies' || target === 'followers') {
       assignToArea(target, id);
     } else {
       placeIntoSlot(target, id);
@@ -369,7 +419,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function lineupFilledCount() {
     return (
       Object.values(positions).filter(Boolean).length +
-      followers.length +
+      followers.filter(Boolean).length +
       interchange.length +
       emergencies.length +
       unavailable.length
@@ -463,7 +513,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function applyData(d: TeamSheetData) {
     setPlayers(d.players);
     setPositions(d.lineup.positions);
-    setFollowers(d.lineup.followers);
+    setFollowers(to3(d.lineup.followers));
     setInterchange(d.lineup.interchange);
     setEmergencies(d.lineup.emergencies);
     setUnavailable(d.lineup.unavailable);
@@ -941,7 +991,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       const id = positions[k];
       if (id) m.set(id, k);
     });
-    followers.forEach((id) => m.set(id, 'Ruck/Rov'));
+    followers.forEach((id) => id && m.set(id, 'Ruck/Rov'));
     interchange.forEach((id) => m.set(id, 'Interch'));
     emergencies.forEach((id) => m.set(id, 'Emerg'));
     unavailable.forEach((id) => m.set(id, 'Unavail'));
@@ -1144,6 +1194,32 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       cancelled = true;
     };
   }, [dbRefs.clubId, club.name, mode]);
+
+  // Media-officer opposition directory: add/remove, then refresh the picker list.
+  const refreshOpponentClubs = useCallback(async () => {
+    try {
+      const rows = await listOpponentClubs(dbRefs.clubId, club.name);
+      setOpponentClubs(rows);
+    } catch {
+      /* leave the existing list in place */
+    }
+  }, [dbRefs.clubId, club.name]);
+
+  const handleAddOpponentClub = useCallback(
+    async (name: string, logoUrl: string | null) => {
+      await addOpponentClub(name, logoUrl);
+      await refreshOpponentClubs();
+    },
+    [refreshOpponentClubs],
+  );
+
+  const handleDeleteOpponentClub = useCallback(
+    async (id: string) => {
+      await deleteOpponentClub(id);
+      await refreshOpponentClubs();
+    },
+    [refreshOpponentClubs],
+  );
 
   useEffect(() => {
     const done = () => setPrintImage(null);
@@ -1455,6 +1531,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onCopyEmbed={copyEmbedCode}
             onCopyTeamEmbed={copyTeamEmbedCode}
             opponentClubs={opponentClubs}
+            onAddOpponentClub={handleAddOpponentClub}
+            onDeleteOpponentClub={handleDeleteOpponentClub}
             onClone={cloneToNewRound}
             insOuts={insOuts}
             onRefreshInsOuts={() => refreshPrevWeek(dbRefs.clubId, match.grade, dbRefs.fixtureId)}
@@ -1583,7 +1661,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           </div>
 
           {/* Followers (ruck division) sit centred directly under the oval */}
-          {(admin || benchByArea.followers.length > 0) && (
+          {(admin || benchByArea.followers.some(Boolean)) && (
             <div className="sw1-followers-wrap">
               <div className="sw1-grouplabel">Followers</div>
               <div className="sw1-followers">
@@ -1599,7 +1677,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                       }`}
                       onClick={() => {
                         if (!admin) return;
-                        if (selectedPlayerId) assignToArea('followers', selectedPlayerId);
+                        if (selectedPlayerId) placeFollower(idx, selectedPlayerId);
                         else if (id) setSelectedPlayerId(id);
                       }}
                       onDragOver={(e) => admin && e.preventDefault()}
@@ -1607,7 +1685,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                         if (!admin) return;
                         e.preventDefault();
                         const dropped = e.dataTransfer.getData('text/plain') || selectedPlayerId;
-                        if (dropped) assignToArea('followers', dropped);
+                        if (dropped) placeFollower(idx, dropped);
                       }}
                     >
                       {player ? (

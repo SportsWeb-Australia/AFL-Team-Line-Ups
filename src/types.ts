@@ -1,5 +1,5 @@
 /**
- * SportsWeb One — AFL Team Line Up
+ * SportsWeb One — Footy Team Line Up
  * Core data contract.
  *
  * Everything in the widget is driven by a single `TeamSheetData` object.
@@ -34,7 +34,7 @@ export type VisualMode = 'jumper' | 'headshot' | 'none';
 
 /**
  * Where a player record comes from / who owns it. Future-safe for three modes:
- *  - 'standalone'   : created inside AFL Team Line Ups; this app owns the record.
+ *  - 'standalone'   : created inside Footy Team Line Ups; this app owns the record.
  *  - 'sportsweb_one': synced from a SportsWeb One club/team DB; SW1 is the source
  *                     of truth and we must NOT duplicate these records.
  *  - 'fantasy_afl'  : read-only public AFL player (future fantasy stream only).

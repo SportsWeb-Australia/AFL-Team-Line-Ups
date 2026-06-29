@@ -1,5 +1,5 @@
 /* ===========================================================================
-   SportsWeb One — AFL Team Line Up
+   SportsWeb One — Footy Team Line Up
    All styles are prefixed `sw1-` and scoped under `.sw1-root` so the widget
    can be dropped into any club website without clashing. Club colours arrive
    as CSS custom properties set by TeamSheet:
@@ -761,6 +761,22 @@
   filter: drop-shadow(0 6px 10px rgba(12, 20, 40, 0.28));
 }
 .sw1-plate__art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+/* Followers, Interchange and Emergencies sit OUTSIDE the oval, so they don't get
+   the on-field .sw1-slot sizing and were rendering at full 58px while the field
+   plates scale down with the container. Match them to the field plate size so a
+   jumper/headshot is the same size everywhere on the graphic. */
+.sw1-follower .sw1-plate__art,
+.sw1-interchange .sw1-plate__art,
+.sw1-emergencies .sw1-plate__art {
+  width: clamp(40px, 11cqw, 58px);
+  height: clamp(40px, 11cqw, 58px);
+}
+.sw1-follower .sw1-plate--headshot .sw1-plate__art,
+.sw1-interchange .sw1-plate--headshot .sw1-plate__art,
+.sw1-emergencies .sw1-plate--headshot .sw1-plate__art {
+  width: clamp(46px, 12.5cqw, 70px);
+  height: clamp(60px, 16.5cqw, 88px);
+}
 /* headshots are transparent cut-outs that stand above the name plate, like a
    real team graphic. A taller, narrower box suits head-and-shoulders portraits. */
 .sw1-plate--headshot .sw1-plate__art {
@@ -1602,7 +1618,7 @@
 }
 .sw1-section[open] > summary::after { transform: rotate(90deg); }
 
-/* ── App brand header (AFL Team Line Ups · powered by SportsWeb One) ─────── */
+/* ── App brand header (Footy Team Line Ups · powered by SportsWeb One) ─────── */
 .sw1-appbrand {
   display: flex;
   align-items: center;
@@ -2185,6 +2201,44 @@
   overflow-y: auto;
   padding-right: 2px;
 }
+/* Squad search — sticks to the top of the (scrolling) squad list so it stays
+   reachable on a long list. */
+.sw1-squad__search {
+  position: sticky;
+  top: 0;
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 0 6px;
+  background: linear-gradient(#ffffff 78%, rgba(255, 255, 255, 0));
+}
+.sw1-squad__searchinput {
+  flex: 1;
+  min-width: 0;
+  padding: 9px 12px;
+  border: 1px solid #d7dee8;
+  border-radius: 9px;
+  font-size: 15px;
+  background: #f8fafc;
+}
+.sw1-squad__searchinput:focus {
+  outline: none;
+  border-color: var(--club-primary, #0c213a);
+  background: #fff;
+}
+.sw1-squad__searchclear {
+  flex: 0 0 auto;
+  width: 34px;
+  height: 34px;
+  border: 1px solid #d7dee8;
+  border-radius: 9px;
+  background: #fff;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  color: #64748b;
+}
 
 /* Ins & Outs vs last week (admin reference) */
 .sw1-inouts { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
@@ -2610,6 +2664,21 @@
   color: #334155;
   letter-spacing: 0.02em;
 }
+.sw1-db__teamsearch {
+  width: 100%;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  padding: 9px 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background: #f8fafc;
+  color: #0f172a;
+}
+.sw1-db__teamsearch:focus {
+  outline: none;
+  border-color: var(--club-primary, #0c213a);
+  background: #fff;
+}
 .sw1-db__select {
   width: 100%;
   border: 1px solid #cbd5e1;
@@ -2721,3 +2790,91 @@
   padding: 8px 10px;
 }
 .sw1-login__note { margin: 2px 0 0; font-size: 11px; color: #94a3b8; }
+
+/* ---- Opposition clubs directory (media officer) ---- */
+.sw1-oppdir {
+  margin: 10px 0 4px;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 8px 12px;
+  background: #f8fafc;
+}
+.sw1-oppdir > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #1f2a37;
+  font-size: 13px;
+  list-style: none;
+}
+.sw1-oppdir > summary::-webkit-details-marker { display: none; }
+.sw1-oppdir > summary::before { content: '\25B8'; margin-right: 6px; color: #64748b; }
+.sw1-oppdir[open] > summary::before { content: '\25BE'; }
+.sw1-oppdir__hint { margin: 8px 0; font-size: 12px; line-height: 1.4; color: #64748b; }
+.sw1-oppdir__add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sw1-oppdir__name {
+  flex: 1 1 160px;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 14px;
+}
+.sw1-oppdir__logo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  cursor: pointer;
+  overflow: hidden;
+  font-size: 11px;
+  color: #64748b;
+  background: #fff;
+  flex: 0 0 auto;
+}
+.sw1-oppdir__logo img { width: 100%; height: 100%; object-fit: contain; }
+.sw1-oppdir__logo input { display: none; }
+.sw1-oppdir__list {
+  list-style: none;
+  margin: 10px 0 2px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sw1-oppdir__list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+}
+.sw1-oppdir__empty { justify-content: center; color: #94a3b8; font-size: 13px; font-style: italic; }
+.sw1-oppdir__crest {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.sw1-oppdir__crest img { width: 100%; height: 100%; object-fit: contain; }
+.sw1-oppdir__noLogo { color: #cbd5e1; }
+.sw1-oppdir__cname { flex: 1 1 auto; font-size: 14px; color: #1f2a37; }
+.sw1-oppdir__del {
+  flex: 0 0 auto;
+  border: none;
+  background: #f1f5f9;
+  color: #64748b;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+}
+.sw1-oppdir__del:hover { background: #fee2e2; color: #b91c1c; }

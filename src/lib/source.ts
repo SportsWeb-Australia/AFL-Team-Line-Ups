@@ -160,7 +160,12 @@ export async function loadTeamSheet(
         status,
       });
       if (r.position_key) positions[r.position_key as PositionKey] = p.id;
-      else if (r.bench_area) bench[r.bench_area].push(p.id);
+      else if (r.bench_area === 'followers') {
+        // Followers are three labelled slots (Ruck/RR/Rover). Restore each to the
+        // exact slot it was saved in (sort_order = slot index), leaving gaps empty
+        // so a Rover saved with no Ruck doesn't slide up into the Ruck slot.
+        bench.followers[r.sort_order ?? bench.followers.length] = p.id;
+      } else if (r.bench_area) bench[r.bench_area].push(p.id);
     }
   }
 
@@ -335,30 +340,86 @@ export interface OpponentClub {
   id: string;
   name: string;
   logoUrl?: string | null;
+  /** 'club' = a real row in the clubs table (links via opponent_club_id FK).
+   *  'directory' = a media-officer entry in opponent_clubs (name + logo only). */
+  source?: 'club' | 'directory';
 }
 
 /**
- * Every club in the store except the current home club — powers the opponent
- * dropdown so picking a known club preloads its name + logo. Excludes the home
- * club by id and (defensively) by name, so a duplicate home-club row never shows
- * up as a selectable opponent. Returns [] when the DB isn't configured.
+ * Opponent picker options = real clubs in the `clubs` table PLUS the media
+ * officer's lightweight `opponent_clubs` directory (name + logo). The home club
+ * is excluded by id and (defensively) by name. Returns [] when the DB isn't
+ * configured. If the opponent_clubs table hasn't been created yet, that half is
+ * silently skipped so the picker still works.
  */
 export async function listOpponentClubs(
   homeClubId: string | null,
   homeClubName?: string | null,
 ): Promise<OpponentClub[]> {
   if (!supabase) return [];
-  const { data, error } = await supabase
+  const homeLc = (homeClubName ?? '').trim().toLowerCase();
+  const out: OpponentClub[] = [];
+  const seen = new Set<string>();
+
+  const { data: clubRows, error: clubErr } = await supabase
     .from('clubs')
     .select('id, name, logo_url')
     .order('name', { ascending: true });
+  if (clubErr) throw clubErr;
+  for (const c of (clubRows as any[]) ?? []) {
+    const nameLc = String(c.name ?? '').trim().toLowerCase();
+    if (c.id === homeClubId || (homeLc && nameLc === homeLc)) continue;
+    seen.add(nameLc);
+    out.push({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null, source: 'club' });
+  }
+
+  try {
+    const { data: oppRows } = await supabase
+      .from('opponent_clubs')
+      .select('id, name, logo_url')
+      .order('name', { ascending: true });
+    for (const c of (oppRows as any[]) ?? []) {
+      const nameLc = String(c.name ?? '').trim().toLowerCase();
+      if (homeLc && nameLc === homeLc) continue;
+      if (seen.has(nameLc)) continue; // a real club of the same name wins
+      seen.add(nameLc);
+      out.push({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null, source: 'directory' });
+    }
+  } catch {
+    /* opponent_clubs table not created yet — skip the directory half */
+  }
+
+  out.sort((a, b) => a.name.localeCompare(b.name));
+  return out;
+}
+
+/** Add a media-officer opposition club (name + optional logo data URL). */
+export async function addOpponentClub(
+  name: string,
+  logoUrl?: string | null,
+): Promise<OpponentClub | null> {
+  if (!supabase) return null;
+  const clean = name.trim();
+  if (!clean) return null;
+  const { data, error } = await supabase
+    .from('opponent_clubs')
+    .insert({ name: clean, logo_url: logoUrl ?? null })
+    .select('id, name, logo_url')
+    .single();
   if (error) throw error;
-  const homeLc = (homeClubName ?? '').trim().toLowerCase();
-  return ((data as any[]) ?? [])
-    .filter(
-      (c) => c.id !== homeClubId && (!homeLc || String(c.name ?? '').trim().toLowerCase() !== homeLc),
-    )
-    .map((c) => ({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null }));
+  return {
+    id: (data as any).id,
+    name: (data as any).name,
+    logoUrl: (data as any).logo_url ?? null,
+    source: 'directory',
+  };
+}
+
+/** Remove a media-officer opposition club from the directory. */
+export async function deleteOpponentClub(id: string): Promise<void> {
+  if (!supabase) return;
+  const { error } = await supabase.from('opponent_clubs').delete().eq('id', id);
+  if (error) throw error;
 }
 
 /** A saved team in the recall list (one per fixture = round/date/grade). */

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import poster from '../assets/splash-poster.png';
 
 /**
- * Branded launch screen — the AFL Team Line Ups poster, full-bleed on a dark
+ * Branded launch screen — the Footy Team Line Ups poster, full-bleed on a dark
  * stadium wash, then fades away. Skipped inside club embeds.
  */
 export default function Splash() {
@@ -22,7 +22,7 @@ export default function Splash() {
 
   return (
     <div className={`sw1-splash ${hide ? 'is-hidden' : ''}`} aria-hidden="true">
-      <img src={poster} alt="AFL Team Line Ups" className="sw1-splash__poster" />
+      <img src={poster} alt="Footy Team Line Ups" className="sw1-splash__poster" />
     </div>
   );
 }

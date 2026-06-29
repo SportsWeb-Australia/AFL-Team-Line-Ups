@@ -39,7 +39,7 @@ export default function LoginGate() {
           submit();
         }}
       >
-        <img className="sw1-login__logo" src={appIcon} alt="AFL Team Line Ups" />
+        <img className="sw1-login__logo" src={appIcon} alt="Footy Team Line Ups" />
         <h1 className="sw1-login__title">Team Line Ups</h1>
         <p className="sw1-login__sub">Sign in to manage your club&rsquo;s teams.</p>
 

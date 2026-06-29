@@ -5,7 +5,7 @@
  *    available, published teams appear on the club's own site, and (later)
  *    player names can deep-link to player profile pages on that site.
  *
- *  • 'app'       — the standalone AFL Team Line Ups app on a SportsWeb One
+ *  • 'app'       — the standalone Footy Team Line Ups app on a SportsWeb One
  *    subdomain. No embed codes (the app IS the destination); published teams
  *    appear on the team's page in the app; player names are plain text.
  *

@@ -6,7 +6,6 @@ import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { SHOW_EMBED } from '../lib/config';
 import { SPORTSWEB_MODULES } from './SportsWebModules';
-import sportswebOneLogo from '../assets/sportsweb-one-logo.png';
 import appLogo from '../assets/app-logo.png';
 
 /** Outbound SportsWeb links (single place to update the domain). */
@@ -114,6 +113,9 @@ interface Props {
   onCopyTeamEmbed?: () => void;
   /** Every other club on file — picking one preloads the opponent name + logo. */
   opponentClubs?: OpponentClub[];
+  /** Media-officer opposition directory management. */
+  onAddOpponentClub?: (name: string, logoUrl: string | null) => void | Promise<void>;
+  onDeleteOpponentClub?: (id: string) => void | Promise<void>;
   onClone?: () => void;
   /** Ins & Outs vs last week (admin reference only). Null until a prior round exists. */
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
@@ -192,6 +194,8 @@ export default function AdminPanel({
   onCopyEmbed,
   onCopyTeamEmbed,
   opponentClubs = [],
+  onAddOpponentClub,
+  onDeleteOpponentClub,
   onClone,
   insOuts,
   onRefreshInsOuts,
@@ -207,8 +211,14 @@ export default function AdminPanel({
   const [name, setName] = useState('');
   const [bulk, setBulk] = useState('');
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const [teamSearch, setTeamSearch] = useState('');
   const quickRef = useRef<HTMLDetailsElement>(null);
   const [moduleIdx, setModuleIdx] = useState(0);
+  // Opposition-clubs directory (media officer)
+  const [oppName, setOppName] = useState('');
+  const [oppLogo, setOppLogo] = useState<string | null>(null);
+  const [oppBusy, setOppBusy] = useState(false);
 
   useEffect(() => {
     const t = window.setInterval(
@@ -296,15 +306,12 @@ export default function AdminPanel({
 
   return (
     <aside className="sw1-admin">
-      {/* App branding — AFL Team Line Ups, powered by SportsWeb One */}
+      {/* App branding — Footy Team Line Ups, powered by SportsWeb One */}
       <header className="sw1-appbrand">
         <div className="sw1-appbrand__id">
           <img className="sw1-appbrand__logo" src={appLogo} alt="" />
           <div className="sw1-appbrand__idtext">
-            <strong className="sw1-appbrand__title">AFL Team Line Ups</strong>
-            <a className="sw1-appbrand__by" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
-              <img src={sportswebOneLogo} alt="SportsWeb One" />
-            </a>
+            <strong className="sw1-appbrand__title">Footy Team Line Ups</strong>
           </div>
         </div>
         <div className="sw1-appbrand__tools">
@@ -325,7 +332,7 @@ export default function AdminPanel({
             {QUICKSTART_VIDEO_URL ? (
               <iframe
                 src={QUICKSTART_VIDEO_URL}
-                title="AFL Team Line Ups — quick start"
+                title="Footy Team Line Ups — quick start"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
               />
@@ -388,7 +395,7 @@ export default function AdminPanel({
               onClick={onLoadFromDb}
               disabled={dbState === 'loading' || dbState === 'saving'}
             >
-              {dbState === 'loading' ? 'Loading…' : 'Load last week & edit'}
+              {dbState === 'loading' ? 'Loading…' : 'Resume latest team'}
             </button>
           </div>
         )}
@@ -408,17 +415,31 @@ export default function AdminPanel({
           <div className="sw1-db__saved">
             <label className="sw1-db__savedlabel">
               Recent teams
+              {savedSheets.length > 6 && (
+                <input
+                  type="search"
+                  className="sw1-db__teamsearch"
+                  value={teamSearch}
+                  placeholder="Filter by round, grade, date or opponent…"
+                  onChange={(e) => setTeamSearch(e.target.value)}
+                />
+              )}
               <select
                 className="sw1-db__select"
                 value={currentFixtureId ?? ''}
                 onChange={(e) => e.target.value && onLoadSheet?.(e.target.value)}
               >
                 <option value="">Pick a recent team to load &amp; edit…</option>
-                {savedSheets.map((s) => (
-                  <option key={s.fixtureId} value={s.fixtureId}>
-                    {savedSheetLabel(s)}
-                  </option>
-                ))}
+                {savedSheets
+                  .filter((s) => {
+                    const term = teamSearch.trim().toLowerCase();
+                    return !term || savedSheetLabel(s).toLowerCase().includes(term);
+                  })
+                  .map((s) => (
+                    <option key={s.fixtureId} value={s.fixtureId}>
+                      {savedSheetLabel(s)}
+                    </option>
+                  ))}
               </select>
             </label>
             {currentFixtureId && (
@@ -468,32 +489,40 @@ export default function AdminPanel({
         <div className="sw1-brand__grid">
           <label>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
           <label>Opponent
-            {opponentClubs.length > 0 && (
-              <select
-                className="sw1-opponent-pick"
-                value={match.opponentClubId ?? ''}
-                onChange={(e) => {
-                  const id = e.target.value;
-                  if (!id) {
-                    // "Type a new opponent" — keep the typed name, drop the store link.
-                    onMatch({ opponentClubId: null });
-                    return;
-                  }
-                  const c = opponentClubs.find((o) => o.id === id);
-                  if (c) onMatch({ opponent: c.name, opponentLogoUrl: c.logoUrl ?? null, opponentClubId: c.id });
-                }}
-              >
-                <option value="">Type a new opponent…</option>
-                {opponentClubs.map((c) => (
-                  <option key={c.id} value={c.id}>{c.name}</option>
-                ))}
-              </select>
-            )}
+            {/* Type to search saved opposition clubs (or pick from the dropdown the
+                browser shows). When the typed/picked name matches a saved club, its
+                logo loads automatically. Any other text is a brand-new opponent. */}
             <input
+              list="sw1-opponent-list"
               value={match.opponent}
-              placeholder="Opponent name"
-              onChange={(e) => onMatch({ opponent: e.target.value, opponentClubId: null })}
+              placeholder="Opponent — type to search saved clubs"
+              onChange={(e) => {
+                const name = e.target.value;
+                const hit = opponentClubs.find(
+                  (c) => c.name.trim().toLowerCase() === name.trim().toLowerCase(),
+                );
+                if (hit) {
+                  onMatch({
+                    opponent: hit.name,
+                    opponentLogoUrl: hit.logoUrl ?? null,
+                    // Only a real clubs row can be linked via the opponent_club_id FK.
+                    // Directory entries are name+logo only, so leave the link null.
+                    opponentClubId: hit.source === 'club' ? hit.id : null,
+                  });
+                } else {
+                  // New opponent: keep whatever logo is set so a manual upload isn't
+                  // wiped mid-edit; just drop the store link.
+                  onMatch({ opponent: name, opponentClubId: null });
+                }
+              }}
             />
+            {opponentClubs.length > 0 && (
+              <datalist id="sw1-opponent-list">
+                {opponentClubs.map((c) => (
+                  <option key={c.id} value={c.name} />
+                ))}
+              </datalist>
+            )}
           </label>
           <label>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
           <label>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
@@ -530,6 +559,78 @@ export default function AdminPanel({
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
         </div>
 
+        {onAddOpponentClub && dbConfigured && (
+          <details className="sw1-oppdir">
+            <summary>Opposition clubs ({opponentClubs.filter((c) => c.source === 'directory').length})</summary>
+            <p className="sw1-oppdir__hint">
+              Add the clubs you play against and their logos once — they then appear in the Opponent
+              picker above for every round. (For the media officer / team manager.)
+            </p>
+            <div className="sw1-oppdir__add">
+              <input
+                className="sw1-oppdir__name"
+                value={oppName}
+                placeholder="Opposition club name"
+                onChange={(e) => setOppName(e.target.value)}
+              />
+              <label className="sw1-oppdir__logo">
+                {oppLogo ? <img src={oppLogo} alt="" /> : 'Logo'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={async (e) => {
+                    const f = e.target.files?.[0];
+                    if (f) setOppLogo(await readAsDataUrl(f));
+                    e.currentTarget.value = '';
+                  }}
+                />
+              </label>
+              <button
+                type="button"
+                className="sw1-btn sw1-btn--primary"
+                disabled={!oppName.trim() || oppBusy}
+                onClick={async () => {
+                  if (!oppName.trim() || !onAddOpponentClub) return;
+                  setOppBusy(true);
+                  try {
+                    await onAddOpponentClub(oppName.trim(), oppLogo);
+                    setOppName('');
+                    setOppLogo(null);
+                  } finally {
+                    setOppBusy(false);
+                  }
+                }}
+              >
+                {oppBusy ? 'Adding…' : 'Add club'}
+              </button>
+            </div>
+            <ul className="sw1-oppdir__list">
+              {opponentClubs.filter((c) => c.source === 'directory').length === 0 && (
+                <li className="sw1-oppdir__empty">No opposition clubs added yet.</li>
+              )}
+              {opponentClubs
+                .filter((c) => c.source === 'directory')
+                .map((c) => (
+                  <li key={c.id}>
+                    <span className="sw1-oppdir__crest">
+                      {c.logoUrl ? <img src={c.logoUrl} alt="" /> : <span className="sw1-oppdir__noLogo">—</span>}
+                    </span>
+                    <span className="sw1-oppdir__cname">{c.name}</span>
+                    {onDeleteOpponentClub && (
+                      <button
+                        type="button"
+                        className="sw1-oppdir__del"
+                        aria-label={`Remove ${c.name}`}
+                        onClick={() => onDeleteOpponentClub(c.id)}
+                      >
+                        ✕
+                      </button>
+                    )}
+                  </li>
+                ))}
+            </ul>
+          </details>
+        )}
         {onVsStyle && (
           <div className="sw1-vsstyle">
             <span className="sw1-vsstyle__label">Centre "VS" style</span>

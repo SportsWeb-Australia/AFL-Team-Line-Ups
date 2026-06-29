@@ -1,7 +1,7 @@
 {
-  "name": "AFL Team Line Ups",
+  "name": "Footy Team Line Ups",
   "short_name": "Line Ups",
-  "description": "Build and publish a club-branded AFL team line-up.",
+  "description": "Build and publish a club-branded footy team line-up.",
   "start_url": "/?admin",
   "scope": "/",
   "display": "standalone",

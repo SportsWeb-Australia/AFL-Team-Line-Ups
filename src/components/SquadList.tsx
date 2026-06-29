@@ -15,11 +15,23 @@ const REASON_LABEL: Record<string, string> = Object.fromEntries(
 );
 
 /** Bench groups a player can be dropped into from the quick-place menu. */
-export type QuickTarget = PositionKey | 'interchange' | 'emergencies' | 'followers';
+export type QuickTarget =
+  | PositionKey
+  | 'interchange'
+  | 'emergencies'
+  | 'followers'
+  | 'follower0'
+  | 'follower1'
+  | 'follower2';
+/** Followers sit just below the field lines — the three ruck-division roles. */
+const FOLLOWER_TARGETS: { value: QuickTarget; label: string }[] = [
+  { value: 'follower0', label: 'Ruck' },
+  { value: 'follower1', label: 'Ruck Rover' },
+  { value: 'follower2', label: 'Rover' },
+];
 const BENCH_TARGETS: { value: QuickTarget; label: string }[] = [
   { value: 'interchange', label: 'Interchange' },
   { value: 'emergencies', label: 'Emergencies' },
-  { value: 'followers', label: 'Followers' },
 ];
 
 /** One-tap honour badges. C/VC are one-per-team; debut/milestone are unlimited. */
@@ -66,6 +78,7 @@ export default function SquadList({
   const [editNo, setEditNo] = useState('');
   const [editName, setEditName] = useState('');
   const [bgBusy, setBgBusy] = useState(false);
+  const [search, setSearch] = useState('');
 
   const numOf = (s: string) => {
     const n = parseInt(s, 10);
@@ -95,6 +108,15 @@ export default function SquadList({
     ...availablePool.filter(hasNum).sort(byNumber),
   ];
   const unavailable = players.filter((p) => reasonOf(p)).sort(byNumber);
+
+  // Player search — narrows both lists by name or guernsey number. Handy once a
+  // squad runs long on a phone.
+  const q = search.trim().toLowerCase();
+  const matchesSearch = (p: Player) =>
+    !q || p.name.toLowerCase().includes(q) || (p.number || '').toLowerCase().includes(q);
+  const availableShown = available.filter(matchesSearch);
+  const unavailableShown = unavailable.filter(matchesSearch);
+  const nothingFound = q !== '' && availableShown.length === 0 && unavailableShown.length === 0;
 
   const startEdit = (p: Player) => {
     setEditId(p.id);
@@ -254,6 +276,13 @@ export default function SquadList({
               })}
             </optgroup>
           ))}
+          <optgroup label="FOLLOWERS">
+            {FOLLOWER_TARGETS.map((f) => (
+              <option key={f.value} value={f.value}>
+                {f.label}
+              </option>
+            ))}
+          </optgroup>
           <optgroup label="Bench">
             {BENCH_TARGETS.map((b) => (
               <option key={b.value} value={b.value}>
@@ -290,15 +319,41 @@ export default function SquadList({
         <p className="sw1-admin__hint">No players yet — add them below.</p>
       )}
 
-      {available.map(renderRow)}
+      {players.length > 6 && (
+        <div className="sw1-squad__search">
+          <input
+            type="search"
+            className="sw1-squad__searchinput"
+            value={search}
+            placeholder="Search players by name or number…"
+            onChange={(e) => setSearch(e.target.value)}
+          />
+          {search && (
+            <button
+              type="button"
+              className="sw1-squad__searchclear"
+              onClick={() => setSearch('')}
+              title="Clear search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+      )}
 
-      {unavailable.length > 0 && (
+      {availableShown.map(renderRow)}
+
+      {unavailableShown.length > 0 && (
         <>
           <div className="sw1-squad__divider">
-            Unavailable <span>({unavailable.length})</span>
+            Unavailable <span>({unavailableShown.length})</span>
           </div>
-          {unavailable.map(renderRow)}
+          {unavailableShown.map(renderRow)}
         </>
+      )}
+
+      {nothingFound && (
+        <p className="sw1-admin__hint">No players match "{search}".</p>
       )}
     </div>
   );
