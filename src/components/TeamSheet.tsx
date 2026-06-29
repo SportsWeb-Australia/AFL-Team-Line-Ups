@@ -203,7 +203,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [opponentClubs, setOpponentClubs] = useState<OpponentClub[]>([]);
 
   // Background watermark behind the oval (club/sponsor name or logo).
-  type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
+  type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
   const [wmSource, setWmSource] = useState<WmSource>('clubName');
   const [wmSponsorName, setWmSponsorName] = useState('');
   const [wmSponsorLogo, setWmSponsorLogo] = useState<string | null>(null);
@@ -1050,7 +1050,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const wmLogo =
     wmSource === 'clubLogo' ? club.logoUrl : wmSource === 'sponsorLogo' ? wmSponsorLogo : null;
   const wmText =
-    wmSource === 'sponsorName' || wmSource === 'sponsorLogo'
+    wmSource === 'specialRound'
+      ? wmSponsorName || 'Special round'
+      : wmSource === 'sponsorName' || wmSource === 'sponsorLogo'
       ? wmSponsorName || 'Sponsor'
       : fieldName;
 

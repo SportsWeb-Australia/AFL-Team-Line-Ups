@@ -1,17 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
 import type { SavedSheet, OpponentClub } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { SHOW_EMBED } from '../lib/config';
-import { SPORTSWEB_MODULES } from './SportsWebModules';
 import appLogo from '../assets/app-logo.png';
 
 /** Outbound SportsWeb links (single place to update the domain). */
-const SPORTSWEB_URL = 'https://sportsweb.com.au';
 const SPORTSWEB_CONTACT = 'https://sportsweb.com.au/contact';
-const SPORTSWEB_UPGRADE = 'https://sportsweb.com.au/premium-websites';
 
 /** Click Sports Media — media days, sports photography & banner artwork. */
 const CLICK_SPORTS_MEDIA_URL = 'https://clicksportsmedia.com/media-days';
@@ -26,6 +23,14 @@ const QUICKSTART_VIDEO_URL = '';
 type LogoTarget = 'home' | 'away';
 
 /** 8:00 AM → 7:45 PM in 15-minute steps, for the kick-off time dropdown. */
+const ROUND_OPTIONS: string[] = [
+  'Round 1', 'Round 2', 'Round 3', 'Round 4', 'Round 5', 'Round 6', 'Round 7', 'Round 8',
+  'Round 9', 'Round 10', 'Round 11', 'Round 12', 'Round 13', 'Round 14', 'Round 15', 'Round 16',
+  'Round 17', 'Round 18', 'Round 19', 'Round 20', 'Round 21', 'Round 22', 'Round 23',
+  'Elimination Final', 'Qualifying Final', 'Semi Final', 'Preliminary Final', 'Grand Final',
+  'Practice match',
+];
+
 const TIME_OPTIONS: string[] = (() => {
   const out: string[] = [];
   for (let h = 8; h <= 19; h++) {
@@ -121,8 +126,8 @@ interface Props {
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
   onRefreshInsOuts?: () => void;
   // background watermark
-  wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
-  onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo') => void;
+  wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
+  onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound') => void;
   wmSponsorName: string;
   onWmSponsorName: (v: string) => void;
   onWmSponsorLogo: (dataUrl: string) => void;
@@ -211,22 +216,15 @@ export default function AdminPanel({
   const [name, setName] = useState('');
   const [bulk, setBulk] = useState('');
   const [addMsg, setAddMsg] = useState<{ ok: boolean; text: string } | null>(null);
+  const [showBulk, setShowBulk] = useState(false);
 
   const [teamSearch, setTeamSearch] = useState('');
   const quickRef = useRef<HTMLDetailsElement>(null);
-  const [moduleIdx, setModuleIdx] = useState(0);
   // Opposition-clubs directory (media officer)
   const [oppName, setOppName] = useState('');
   const [oppLogo, setOppLogo] = useState<string | null>(null);
   const [oppBusy, setOppBusy] = useState(false);
 
-  useEffect(() => {
-    const t = window.setInterval(
-      () => setModuleIdx((i) => (i + 1) % SPORTSWEB_MODULES.length),
-      3400,
-    );
-    return () => window.clearInterval(t);
-  }, []);
 
   const openQuickStart = () => {
     const el = quickRef.current;
@@ -524,7 +522,17 @@ export default function AdminPanel({
               </datalist>
             )}
           </label>
-          <label><span className="sw1-step">3</span>Round<input value={match.round} onChange={(e) => onMatch({ round: e.target.value })} /></label>
+          <label><span className="sw1-step">3</span>Round
+            <select value={match.round} onChange={(e) => onMatch({ round: e.target.value })}>
+              <option value="">Select round…</option>
+              {match.round && !ROUND_OPTIONS.includes(match.round) && (
+                <option value={match.round}>{match.round}</option>
+              )}
+              {ROUND_OPTIONS.map((r) => (
+                <option key={r} value={r}>{r}</option>
+              ))}
+            </select>
+          </label>
           <label><span className="sw1-step">4</span>Grade<input value={match.grade} onChange={(e) => onMatch({ grade: e.target.value })} /></label>
           <label><span className="sw1-step">5</span>Date<input
             type="date"
@@ -795,7 +803,7 @@ export default function AdminPanel({
         {/* Background watermark behind the oval */}
         <div className="sw1-watermarkpanel">
           <strong>Background behind the oval</strong>
-          <p className="sw1-admin__hint">The faint graphic shown behind the players. Use your <strong>club name or logo</strong>, a <strong>sponsor&rsquo;s name or logo</strong> &mdash; or type a <strong>special-round note</strong> like <strong>ANZAC DAY</strong> or <strong>FINAL</strong> in the name field below.</p>
+          <p className="sw1-admin__hint">The faint graphic shown behind the players. Show your <strong>club name or logo</strong>, a <strong>sponsor&rsquo;s name or logo</strong> &mdash; or choose <strong>Special round</strong> to type a note like <strong>ANZAC DAY</strong> or <strong>FINAL</strong>.</p>
           <div className="sw1-brand__grid">
             <label>
               Show
@@ -807,16 +815,17 @@ export default function AdminPanel({
                 <option value="clubLogo">Club logo</option>
                 <option value="sponsorName">Sponsor name</option>
                 <option value="sponsorLogo">Sponsor logo</option>
+                <option value="specialRound">Special round (text)</option>
               </select>
             </label>
-            {(wmSource === 'sponsorName' || wmSource === 'sponsorLogo') && (
+            {(wmSource === 'sponsorName' || wmSource === 'sponsorLogo' || wmSource === 'specialRound') && (
               <label>
-                Sponsor name
+                {wmSource === 'specialRound' ? 'Special round note' : 'Sponsor name'}
                 <input
                   type="text"
                   value={wmSponsorName}
                   onChange={(e) => onWmSponsorName(e.target.value)}
-                  placeholder="e.g. Riverton Motors — or a note like ANZAC DAY"
+                  placeholder={wmSource === 'specialRound' ? 'e.g. ANZAC DAY' : 'e.g. Riverton Motors'}
                 />
               </label>
             )}
@@ -942,7 +951,7 @@ export default function AdminPanel({
           </div>
           <p className="sw1-admin__hint sw1-teamjumper__help">
             <span className="sw1-helpdot" title="How to get a jumper image" aria-hidden="true">i</span>
-            <strong>Where do I get a jumper image?</strong> Photograph the front of a guernsey laid flat on a plain background, or ask your supplier for a product shot. Best result: a <strong>square PNG with a see-through (transparent) background, about 600&times;600&nbsp;px</strong>. More in the Quick Start &amp; Help guide.
+            <strong>Where do I get a jumper image?</strong> Ask your jumper supplier for a product shot, or reach out to us at SportsWeb and for a small fee we&rsquo;ll generate it for you. Best result: a <strong>square PNG with a see-through (transparent) background, about 600&times;600&nbsp;px</strong>. More in the Quick Start &amp; Help guide.
           </p>
           <p className="sw1-admin__hint">
             <strong>One jumper for the whole team</strong> — shown on every player when the mode above is set to
@@ -979,7 +988,27 @@ export default function AdminPanel({
           Load example team
         </button>
         <button className="sw1-btn" onClick={onLoadBlank}>Clear selections</button>
+        <button className="sw1-btn" onClick={() => setShowBulk((v) => !v)} aria-expanded={showBulk}>
+          {showBulk ? 'Hide bulk import' : 'Bulk import'}
+        </button>
       </div>
+
+      {showBulk && (
+        <div className="sw1-admin__bulk">
+          <p className="sw1-admin__hint sw1-admin__hint--links">
+            One player per line as <strong>number, name</strong> — and optionally a headshot image
+            URL as a third column. Paste straight from a spreadsheet (CSV) saved as
+            <em> number, name, headshot URL</em>.{' '}
+            <a href={BULK_IMPORT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See the bulk-import guide →</a>
+          </p>
+          <textarea
+            value={bulk}
+            onChange={(e) => setBulk(e.target.value)}
+            placeholder={'17, Jack Reardon, https://yourclub.com/photos/reardon.jpg\n10, Tom Wallis'}
+          />
+          <button className="sw1-btn" onClick={importRows}>Import players</button>
+        </div>
+      )}
 
       <div className="sw1-admin__add">
         <input value={num} onChange={(e) => setNum(e.target.value)} placeholder="No. (optional)" inputMode="numeric" />
@@ -1004,54 +1033,8 @@ export default function AdminPanel({
         onSetPlayerImage={onSetPlayerImage}
         onUpdatePlayer={onUpdatePlayer}
       />
-
-      <details name="sw1adm" className="sw1-admin__bulk">
-        <summary>Bulk import</summary>
-        <p className="sw1-admin__hint sw1-admin__hint--links">
-          One player per line as <strong>number, name</strong> — and optionally a headshot image
-          URL as a third column. Paste straight from a spreadsheet (CSV) saved as
-          <em> number, name, headshot URL</em>.{' '}
-          <a href={BULK_IMPORT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See the bulk-import guide →</a>
-        </p>
-        <textarea
-          value={bulk}
-          onChange={(e) => setBulk(e.target.value)}
-          placeholder={'17, Jack Reardon, https://yourclub.com/photos/reardon.jpg\n10, Tom Wallis'}
-        />
-        <button className="sw1-btn" onClick={importRows}>Import players</button>
-      </details>
       </details>
 
-      {/* SportsWeb One platform footer — one scrolling promo button */}
-      <footer className="sw1-swfoot">
-        <a
-          className="sw1-swpromo"
-          href={SPORTSWEB_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          title="The SportsWeb One platform"
-        >
-          <span className="sw1-swpromo__head">The SportsWeb One platform</span>
-          <span className="sw1-swpromo__item" key={moduleIdx}>
-            <span className="sw1-swpromo__icon">{SPORTSWEB_MODULES[moduleIdx].icon}</span>
-            <span className="sw1-swpromo__label">{SPORTSWEB_MODULES[moduleIdx].label}</span>
-          </span>
-          <span className="sw1-swpromo__dots" aria-hidden>
-            {SPORTSWEB_MODULES.map((m, i) => (
-              <span key={m.key} className={i === moduleIdx ? 'is-on' : ''} />
-            ))}
-          </span>
-        </a>
-
-        <a className="sw1-upgrade" href={SPORTSWEB_UPGRADE} target="_blank" rel="noopener noreferrer">
-          <strong>Upgrade to a premium SportsWeb One website</strong>
-          <span>One home for your whole club — site, team apps &amp; this tool, included free →</span>
-        </a>
-
-        <a className="sw1-swfoot__link" href={SPORTSWEB_URL} target="_blank" rel="noopener noreferrer">
-          sportsweb.com.au
-        </a>
-      </footer>
     </aside>
   );
 }

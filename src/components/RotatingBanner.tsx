@@ -30,7 +30,12 @@ function resolveAdvertiseHref(value?: string): string {
  * revenue hook) — NOT one of the rotating banners.
  */
 export default function RotatingBanner({ sponsors, interval = 3800, showAdvertise = true, advertiseHref }: Props) {
-  const slides = sponsors && sponsors.length > 0 ? sponsors : [{ name: 'Banner 1' }];
+  // Only slots with a real banner/logo/name count — the editor seeds placeholder
+  // "Banner N" slots, and those shouldn't suppress the empty-state CTA.
+  const real = (sponsors ?? []).filter(
+    (s) => s.bannerUrl || s.logoUrl || (s.name && !/^banner \d+$/i.test(s.name.trim())),
+  );
+  const slides = real.length > 0 ? real : [{ name: 'Banner 1' }];
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
   // Wide banners (≈4:1 or wider) fill the strip; small/square logos stay contained
@@ -55,7 +60,7 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
 
   // Empty state: no sponsors yet — fill the strip with an "Advertise with us here"
   // call-to-action instead of a blank placeholder, so the space sells itself.
-  if (!(sponsors && sponsors.length > 0)) {
+  if (real.length === 0) {
     return (
       <div className="sw1-banner sw1-banner--empty">
         {showAdvertise ? (

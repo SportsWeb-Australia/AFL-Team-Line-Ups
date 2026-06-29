@@ -2945,3 +2945,6 @@
 }
 .sw1-upgrade__btn:hover { filter: brightness(1.05); }
 .sw1-exporting .sw1-upgrade { display: none; }
+
+/* Drop 1.1: spacing between the Upload jumper button and its help text */
+.sw1-teamjumper__help { margin-top: 14px; }
