@@ -444,6 +444,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     );
   }
 
+  function loadDemo() {
     if (
       lineupFilledCount() > 0 &&
       !window.confirm(
