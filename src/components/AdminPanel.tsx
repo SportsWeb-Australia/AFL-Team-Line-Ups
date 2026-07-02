@@ -404,6 +404,7 @@ export default function AdminPanel({
           ['5', 'Publish', progress.step5],
         ];
         const ready = progress.done === progress.total;
+        const nextIdx = steps.findIndex(([, , done]) => !done); // first incomplete = "do this next"
         return (
           <div className={`sw1-progress ${ready ? 'is-ready' : ''}`}>
             <div className="sw1-progress__track">
@@ -413,8 +414,13 @@ export default function AdminPanel({
               />
             </div>
             <div className="sw1-progress__steps">
-              {steps.map(([n, label, done]) => (
-                <span key={n} className={`sw1-progress__step ${done ? 'is-done' : ''}`}>
+              {steps.map(([n, label, done], i) => (
+                <span
+                  key={n}
+                  className={`sw1-progress__step ${done ? 'is-done' : ''} ${
+                    !ready && i === nextIdx ? 'is-next' : ''
+                  }`}
+                >
                   <span className="sw1-progress__dot">{done ? '✓' : n}</span>
                   <span className="sw1-progress__label">{label}</span>
                 </span>
@@ -435,6 +441,11 @@ export default function AdminPanel({
                   {progress.done} of {progress.total} done
                   {progress.done >= 4 && !progress.step5 ? ' — Publish to finish' : ''}
                 </span>
+              )}
+              {onNewTeam && (
+                <button type="button" className="sw1-progress__reset" onClick={onNewTeam}>
+                  ↺ Start fresh
+                </button>
               )}
             </div>
           </div>

@@ -515,7 +515,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const step2 = players.length > 0;
     const step3 = startersPlaced() >= 18;
     const step4 = realBanners > 0 || noSponsors;
-    const step5 = publishStatus === 'live' || publishStatus === 'stale';
+    // Publish is the culmination: it only counts when everything before it is
+    // done AND the live page matches the current team. Editing a published team
+    // (status 'stale') correctly un-ticks it until you re-publish — so the bar
+    // never shows the impossible "published but no side picked" state.
+    const step5 = publishStatus === 'live' && step1 && step2 && step3 && step4;
     const done = [step1, step2, step3, step4, step5].filter(Boolean).length;
     return { step1, step2, step3, step4, step5, done, total: 5 };
   })();

@@ -3043,3 +3043,17 @@
 /* Forced no-sponsors choice */
 .sw1-nosponsors { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: #475569; margin: 4px 0 10px; }
 .sw1-nosponsors input { width: 16px; height: 16px; }
+
+/* Progress: highlight the next step to do + a Start-fresh reset */
+.sw1-progress__status { position: relative; }
+.sw1-progress__reset {
+  position: absolute; right: 0; top: 50%; transform: translateY(-50%);
+  border: 1px solid #e2e8f0; background: #fff; color: #64748b;
+  border-radius: 999px; padding: 3px 10px; font-size: 11px; font-weight: 700; cursor: pointer;
+}
+.sw1-progress__reset:hover { color: #b42318; border-color: #f0c9c4; background: #fff5f4; }
+.sw1-progress__step.is-next .sw1-progress__dot {
+  border-color: #0C2340; color: #0C2340;
+  box-shadow: 0 0 0 3px rgba(12,35,64,0.16);
+}
+.sw1-progress__step.is-next .sw1-progress__label { color: #0C2340; }
