@@ -46,7 +46,7 @@ import {
   type ClubPlayer,
 } from '../lib/source';
 import { isSupabaseConfigured } from '../lib/supabase';
-import { SHOW_EMBED, PUBLISH_TARGET_LABEL } from '../lib/config';
+import { PUBLISH_TARGET_LABEL } from '../lib/config';
 import '../styles/teamsheet.css';
 
 export interface TeamSheetProps {
@@ -497,6 +497,28 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     : currentSig !== publishedSig
     ? 'stale'
     : 'live';
+
+  // "Progress you can feel": the five things that make a team ready. Each ticks
+  // only when genuinely satisfied, so the checklist never lies.
+  const [noSponsors, setNoSponsors] = useState(false);
+  const progress = (() => {
+    const DEF_P = '#0c2340'; // sample default navy
+    const DEF_S = '#f5b301'; // sample default gold
+    const coloursSet =
+      (club.primaryColor || '').toLowerCase() !== DEF_P ||
+      (club.secondaryColor || '').toLowerCase() !== DEF_S;
+    const realBanners = (sponsors?.rotating ?? []).filter(
+      (s) => s.bannerUrl || s.logoUrl || (s.name && !/^banner \d+$/i.test(s.name.trim())),
+    ).length;
+    const step1 =
+      !!club.name.trim() && !!match.opponent.trim() && !!match.round.trim() && coloursSet;
+    const step2 = players.length > 0;
+    const step3 = startersPlaced() >= 18;
+    const step4 = realBanners > 0 || noSponsors;
+    const step5 = publishStatus === 'live' || publishStatus === 'stale';
+    const done = [step1, step2, step3, step4, step5].filter(Boolean).length;
+    return { step1, step2, step3, step4, step5, done, total: 5 };
+  })();
   const [savedSheets, setSavedSheets] = useState<SavedSheet[]>([]);
   const [copyMsg, setCopyMsg] = useState('');
   const [shareOpen, setShareOpen] = useState(false);
@@ -1582,6 +1604,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             bannerLibrary={sponsors?.library ?? []}
             onAddSavedBanner={addSavedBanner}
             onRemoveLibraryBanner={removeLibraryBanner}
+            progress={progress}
+            noSponsors={noSponsors}
+            onNoSponsors={setNoSponsors}
+            liveUrl={shareUrl()}
             onRotationMs={setRotationMs}
             rotationMs={sponsors?.rotationMs ?? 3800}
             advertiseHref={sponsors?.advertiseHref}

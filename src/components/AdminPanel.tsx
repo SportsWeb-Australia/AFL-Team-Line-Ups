@@ -102,6 +102,15 @@ interface Props {
   bannerLibrary?: Sponsor[];
   onAddSavedBanner?: (b: Sponsor) => void;
   onRemoveLibraryBanner?: (id: string) => void;
+  /** "Progress you can feel" — the five completion ticks + count. */
+  progress?: {
+    step1: boolean; step2: boolean; step3: boolean; step4: boolean; step5: boolean;
+    done: number; total: number;
+  };
+  noSponsors?: boolean;
+  onNoSponsors?: (v: boolean) => void;
+  /** Public link to the live published page, for the "View live page" action. */
+  liveUrl?: string | null;
   onRotationMs: (ms: number) => void;
   advertiseHref?: string;
   onAdvertiseHref?: (href: string) => void;
@@ -190,6 +199,10 @@ export default function AdminPanel({
   bannerLibrary = [],
   onAddSavedBanner,
   onRemoveLibraryBanner,
+  progress,
+  noSponsors,
+  onNoSponsors,
+  liveUrl,
   onRotationMs,
   rotationMs = 3800,
   advertiseHref,
@@ -380,6 +393,54 @@ export default function AdminPanel({
         </div>
       </header>
 
+      {/* Progress you can feel — the five steps to a live team. Ticks only when
+          each is genuinely done; flips to "Live" + a view link at 5/5. */}
+      {progress && (() => {
+        const steps: [string, string, boolean][] = [
+          ['1', 'Match', progress.step1],
+          ['2', 'Squad', progress.step2],
+          ['3', 'Side', progress.step3],
+          ['4', 'Sponsors', progress.step4],
+          ['5', 'Publish', progress.step5],
+        ];
+        const ready = progress.done === progress.total;
+        return (
+          <div className={`sw1-progress ${ready ? 'is-ready' : ''}`}>
+            <div className="sw1-progress__track">
+              <span
+                className="sw1-progress__fill"
+                style={{ width: `${(progress.done / progress.total) * 100}%` }}
+              />
+            </div>
+            <div className="sw1-progress__steps">
+              {steps.map(([n, label, done]) => (
+                <span key={n} className={`sw1-progress__step ${done ? 'is-done' : ''}`}>
+                  <span className="sw1-progress__dot">{done ? '✓' : n}</span>
+                  <span className="sw1-progress__label">{label}</span>
+                </span>
+              ))}
+            </div>
+            <div className="sw1-progress__status">
+              {ready ? (
+                <>
+                  <strong>Live ✓</strong>
+                  {liveUrl && (
+                    <a href={liveUrl} target="_blank" rel="noopener noreferrer">
+                      View live page ↗
+                    </a>
+                  )}
+                </>
+              ) : (
+                <span>
+                  {progress.done} of {progress.total} done
+                  {progress.done >= 4 && !progress.step5 ? ' — Publish to finish' : ''}
+                </span>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Quick start — guide + walkthrough video (collapsed on mobile) */}
       <details name="sw1adm" className="sw1-section sw1-quick" ref={quickRef}>
         <summary>Quick Start Guide</summary>
@@ -397,14 +458,11 @@ export default function AdminPanel({
             )}
           </div>
           <ol className="sw1-quick__steps">
-            <li><strong>Match &amp; branding</strong> — open that section and fill in the round, grade, opponent, date and venue. Set your club colours, upload your home &amp; away logos, and pick your <em>VS style</em> (Chrome or Two-tone).</li>
-            <li><strong>Pick the team's look</strong> — in <em>Team Squad</em>, choose <em>Jumper</em>, <em>Headshot</em> or <em>No image</em>. For Jumper, upload one team jumper image. For Headshots, add them per player (<em>✎ Edit</em>) or in bulk — or book a Click Sports Media media day.</li>
-            <li><strong>Add your squad</strong> — type players in, or use <em>Bulk import</em> (one per line: <em>number, name</em>, and an optional photo URL on the end).</li>
-            <li><strong>Pick the side</strong> — tap a player, then tap a spot on the ground (or use <em>Add to position</em>). Fill the 15 field spots, the 3 Followers, then Interchange and Emergencies.</li>
-            <li><strong>Roles &amp; availability</strong> — use the C / VC / Debut / Milestone chips, and the availability dropdown for ins, outs and injuries.</li>
-            <li><strong>Sponsors (optional)</strong> — add rotating sponsor banners (design them at 4:1, around 1200×300 so they read on phones) and paste each sponsor's link. They rotate above the ground — real exposure you can sell.</li>
-            <li><strong>Save or Publish</strong> — <em>Save draft</em> keeps it private; <em>Publish</em> makes it live on your website. Each round is saved on its own.</li>
-            <li><strong>Share it everywhere</strong> — <em>Download graphic</em> or the <em>Instagram</em> image for socials, copy the <em>auto-updating</em> embed onto your club site, <em>Print</em> an A3 for the rooms (with a QR), or cast the public link to club TV screens.</li>
+            <li><strong>1 · Match &amp; branding</strong> — pick the opponent, round, grade and venue from the dropdowns (or choose <em>Add a new…</em> to enter one). Set your club colours — the graphic is built from them — upload your home &amp; away logos, and pick your <em>VS style</em>. This step ticks once the club, opponent, round and colours are set.</li>
+            <li><strong>2 · Team Squad</strong> — choose the look (<em>Jumper</em>, <em>Headshot</em> or <em>No image</em>), then add players: type them in, or use <em>Bulk import</em> (one per line: <em>number, name</em>, optional photo URL). Ticks once you have at least one player. You can also pull in a player from another team at your club via search.</li>
+            <li><strong>3 · Pick the side</strong> — tap a player, then tap a spot on the ground (or <em>Add to position</em>). Fill the 15 field spots and the 3 Followers, then Interchange &amp; Emergencies. Ticks at a full 18 — if you export or publish with fewer, the app checks you're sure. Use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
+            <li><strong>4 · Sponsors</strong> — add rotating banners (design at 4:1, ~1200×300) and paste each sponsor's link, or <em>Re-use a saved banner</em> from your library. No sponsors this week? Tick <em>No sponsors for this team</em> — the step needs a choice either way.</li>
+            <li><strong>5 · Publish</strong> — <em>Save draft</em> keeps your progress private; <em>Publish</em> makes this round live. At all-done the bar flips to <em>Live ✓</em> with a <em>View live page</em> link. Then share it: <em>Download graphic</em> or the <em>Instagram</em> image for socials, copy the <em>auto-updating embed</em> onto your club site, or cast the public link to club TV screens.</li>
           </ol>
           <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
             Need a hand? Chat with the SportsWeb team →
@@ -422,7 +480,7 @@ export default function AdminPanel({
             <li><strong>Embed on your own site</strong> — paste one auto-updating snippet into your existing website; publish each round and it refreshes itself.</li>
             <li><strong>Get a site with us</strong> — we'll build and set it all up for you. On the <strong>Premium Website plan the app is included free</strong>.</li>
           </ul>
-          <p className="sw1-hosting__rooms"><strong>In the rooms:</strong> Print an A3 for the change rooms, or cast the public link to your club TV screens — more eyes on your sponsors.</p>
+          <p className="sw1-hosting__rooms"><strong>In the rooms:</strong> cast the public link to your club TV screens — more eyes on your sponsors.</p>
           <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
             Set up hosting with SportsWeb →
           </a>
@@ -532,7 +590,7 @@ export default function AdminPanel({
 
       {/* Match & branding */}
       <details name="sw1adm" className="sw1-brand sw1-section">
-        <summary>Match &amp; branding</summary>
+        <summary>Match &amp; branding{progress?.step1 ? <span className="sw1-tick">✓</span> : null}</summary>
 
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
@@ -881,10 +939,19 @@ export default function AdminPanel({
         <div className="sw1-sponsorpanel">
           <div className="sw1-sponsorpanel__head">
             <div>
-              <strong>Sponsor banner rotation</strong>
+              <strong>Sponsor banner rotation{progress?.step4 ? <span className="sw1-tick">✓</span> : null}</strong>
               <span>Upload sold banner ads to rotate above the ground</span>
             </div>
           </div>
+
+          <label className="sw1-nosponsors">
+            <input
+              type="checkbox"
+              checked={!!noSponsors}
+              onChange={(e) => onNoSponsors?.(e.target.checked)}
+            />
+            No sponsors for this team
+          </label>
 
           <p className="sw1-admin__hint sw1-admin__hint--links">
             Design banners at a <strong>4:1 ratio</strong> — e.g. <strong>1200 × 300&nbsp;px</strong> in
@@ -1153,7 +1220,7 @@ export default function AdminPanel({
 
       {/* Team Squad */}
       <details name="sw1adm" className="sw1-section">
-        <summary>Team Squad</summary>
+        <summary>Team Squad{progress?.step2 ? <span className="sw1-tick">✓</span> : null}</summary>
 
       <div className="sw1-admin__modes">
         {(['jumper', 'headshot', 'none'] as VisualMode[]).map((m) => (
