@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
 import { toPng } from 'html-to-image';
 import type {
   BenchArea,
@@ -202,7 +201,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
-  const [printImage, setPrintImage] = useState<string | null>(null);
   // Opponent store: every other club on file, for the Match & branding dropdown.
   const [opponentClubs, setOpponentClubs] = useState<OpponentClub[]>([]);
   // Players from other teams at this club, for the opt-in cross-team search.
@@ -827,26 +825,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       .filter(Boolean)
       .join(' ') || 'Team line-up';
   }
-  function openShare(target: 'facebook' | 'x' | 'whatsapp' | 'email') {
-    const url = shareUrl();
-    const title = shareTitle();
-    if (!url) {
-      setDbMsg('Publish this team first to get a shareable link for socials.');
-      setShareOpen(false);
-      return;
-    }
-    const u = encodeURIComponent(url);
-    const t = encodeURIComponent(title);
-    let href = '';
-    if (target === 'facebook') href = `https://www.facebook.com/sharer/sharer.php?u=${u}`;
-    else if (target === 'x') href = `https://twitter.com/intent/tweet?text=${t}&url=${u}`;
-    else if (target === 'whatsapp') href = `https://wa.me/?text=${encodeURIComponent(title + ' ' + url)}`;
-    else if (target === 'email')
-      href = `mailto:?subject=${t}&body=${encodeURIComponent(buildTeamListText() + '\n\n' + url)}`;
-    if (target === 'email') window.location.href = href;
-    else window.open(href, '_blank', 'noopener,noreferrer,width=620,height=640');
-    setShareOpen(false);
-  }
   function copyShareLink() {
     const url = shareUrl();
     if (!url) {
@@ -1255,37 +1233,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setSponsors((s) => ({ ...s, advertiseEnabled: on }));
   }
 
-  // ── Print poster (A3, club-room) ────────────────────────────────────────────
-  // Prints the PUBLIC graphic (captured as an image) so the editor chrome never
-  // shows, and the whole team sheet fits on a single A3 page with a scannable QR.
-  const printUrl = dbRefs.fixtureId
-    ? `${window.location.origin}/?fixture=${dbRefs.fixtureId}`
-    : window.location.href;
-  const qrSrc = (url: string) =>
-    `https://api.qrserver.com/v1/create-qr-code/?size=360x360&margin=0&data=${encodeURIComponent(url)}`;
-
-  async function printPoster() {
-    setDownloading(true);
-    try {
-      const shot = await captureGraphicPng();
-      if (!shot) return;
-      // Preload the QR so it's painted before the print dialog opens.
-      await new Promise<void>((resolve) => {
-        const q = new Image();
-        q.onload = q.onerror = () => resolve();
-        q.src = qrSrc(printUrl);
-      });
-      setPrintImage(shot);
-      // Let React paint the print sheet, then open the dialog.
-      window.setTimeout(() => window.print(), 80);
-    } catch (err) {
-      console.error('Print failed', err);
-      alert('Could not prepare the print here. As a fallback, take a screenshot of the graphic.');
-    } finally {
-      setDownloading(false);
-    }
-  }
-
   // Load the opponent store (every other club on file) for the Match dropdown.
   // Re-runs when the home club identity changes so it never lists the home club.
   useEffect(() => {
@@ -1345,12 +1292,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     },
     [refreshOpponentClubs],
   );
-
-  useEffect(() => {
-    const done = () => setPrintImage(null);
-    window.addEventListener('afterprint', done);
-    return () => window.removeEventListener('afterprint', done);
-  }, []);
 
   // ── PNG export ─────────────────────────────────────────────────────────────
   // Captures the graphic region only (the toolbar sits outside it). html-to-image
@@ -1540,9 +1481,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       )}
       {admin && (
         <div className="sw1-toolbar">
-          <button className="sw1-btn" onClick={printPoster}>
-            Print
-          </button>
           <button className="sw1-btn" onClick={copyTeamList}>
             {copyMsg || 'Copy team list to text'}
           </button>
@@ -1554,17 +1492,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               <>
                 <div className="sw1-share__backdrop" onClick={() => setShareOpen(false)} />
                 <div className="sw1-share__menu" role="menu">
-                  <button role="menuitem" onClick={() => openShare('facebook')}>Facebook</button>
-                  <button role="menuitem" onClick={() => openShare('x')}>X / Twitter</button>
-                  <button role="menuitem" onClick={() => openShare('whatsapp')}>WhatsApp</button>
-                  <button role="menuitem" onClick={() => openShare('email')}>Email</button>
                   <button role="menuitem" onClick={copyShareLink}>Copy public link</button>
                   <div className="sw1-share__sep" />
                   <button role="menuitem" onClick={() => { setShareOpen(false); copyTeamList(); }}>Copy team list (text)</button>
                   <button role="menuitem" onClick={downloadInstagram}>Instagram (share / save 1080×1350)</button>
                   <button role="menuitem" onClick={() => { setShareOpen(false); downloadPng(); }}>Download full graphic (PNG)</button>
-                  <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>More / device share…</button>
-                  <p className="sw1-share__tip">Tip: <strong>Print</strong> an A3 for the club rooms &amp; change rooms, or cast the public link to club TV screens — more eyes on your sponsors.</p>
+                  <button role="menuitem" onClick={() => { setShareOpen(false); shareTeam(); }}>Share to Facebook, WhatsApp, more…</button>
+                  <p className="sw1-share__tip">Tip: cast the public link to club TV screens — more eyes on your sponsors.</p>
                 </div>
               </>
             )}
@@ -1656,7 +1590,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             dbConfigured={isSupabaseConfigured}
             dbState={dbState}
             dbMsg={dbMsg}
-            onLoadFromDb={loadFromDatabase}
             onNewTeam={startNewTeam}
             savedSheets={savedSheets}
             currentFixtureId={dbRefs.fixtureId}
@@ -1892,22 +1825,6 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         </div>
       )}
 
-      {/* Print sheet — the captured PUBLIC graphic on a single A3 page, plus a QR
-          and a note about screens / posters. Only visible while printing. */}
-      {printImage &&
-        createPortal(
-          <div className="sw1-printsheet" aria-hidden="true">
-            <img className="sw1-printsheet__img" src={printImage} alt="" />
-            <div className="sw1-printsheet__foot">
-              <img className="sw1-printsheet__qr" src={qrSrc(printUrl)} alt="" />
-              <div className="sw1-printsheet__cap">
-                <strong>See the live team online</strong>
-                <span>Scan to view selections, ins &amp; outs and fixtures. Print A3 for the club rooms &amp; change rooms, or cast the link to club screens — great exposure for your sponsors.</span>
-              </div>
-            </div>
-          </div>,
-          document.body,
-        )}
     </div>
   );
 }

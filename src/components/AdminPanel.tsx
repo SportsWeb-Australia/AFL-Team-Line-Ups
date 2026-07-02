@@ -112,7 +112,6 @@ interface Props {
   dbConfigured: boolean;
   dbState: 'idle' | 'loading' | 'saving' | 'ok' | 'error';
   dbMsg: string;
-  onLoadFromDb: () => void;
   onNewTeam?: () => void;
   savedSheets?: SavedSheet[];
   currentFixtureId?: string | null;
@@ -200,7 +199,6 @@ export default function AdminPanel({
   dbConfigured,
   dbState,
   dbMsg,
-  onLoadFromDb,
   onNewTeam,
   savedSheets = [],
   currentFixtureId,
@@ -447,14 +445,6 @@ export default function AdminPanel({
                 + New team
               </button>
             )}
-            <button
-              type="button"
-              className="sw1-btn"
-              onClick={onLoadFromDb}
-              disabled={dbState === 'loading' || dbState === 'saving'}
-            >
-              {dbState === 'loading' ? 'Loading…' : 'Resume latest team'}
-            </button>
           </div>
         )}
 
