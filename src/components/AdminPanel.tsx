@@ -675,15 +675,20 @@ export default function AdminPanel({
                 className="sw1-btn sw1-btn--primary"
                 disabled={addBusy}
                 onClick={async () => {
-                  if (!onAddOpponentClub) return;
                   const name = match.opponent.trim();
+                  // Apply the crest to THIS match first, so the header updates
+                  // immediately even if saving to the shared directory fails
+                  // (e.g. an RLS insert block on opponent_clubs). The save below
+                  // is best-effort and never blocks the logo.
+                  if (addLogo) onMatch({ opponentLogoUrl: addLogo });
+                  setOppNew(false);
                   setAddBusy(true);
                   try {
-                    await onAddOpponentClub(name, addLogo);
-                    if (addLogo) onMatch({ opponentLogoUrl: addLogo });
-                    setAddLogo(null);
-                    setOppNew(false);
+                    if (onAddOpponentClub) await onAddOpponentClub(name, addLogo);
+                  } catch {
+                    /* directory save failed — crest already applied to this match */
                   } finally {
+                    setAddLogo(null);
                     setAddBusy(false);
                   }
                 }}
