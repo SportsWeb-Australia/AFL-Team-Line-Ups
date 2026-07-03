@@ -499,8 +499,8 @@ export default function AdminPanel({
       </details>
 
       {/* Saved teams — load & manage (collapsible). Saving/publishing lives in the top bar. */}
-      <details name="sw1adm" className="sw1-section sw1-section--start">
-        <summary><span className="sw1-starthere">Start here</span>New &amp; Saved teams — load, recall &amp; embed</summary>
+      <details name="sw1adm" className="sw1-section">
+        <summary>New &amp; Saved teams — load, recall &amp; embed</summary>
       <div className={`sw1-db sw1-db--${dbState}`}>
         <div className="sw1-db__row">
           <span className={`sw1-db__dot ${dbConfigured ? 'is-on' : 'is-off'}`} />
@@ -600,8 +600,8 @@ export default function AdminPanel({
       </details>
 
       {/* Match & branding */}
-      <details name="sw1adm" className="sw1-brand sw1-section">
-        <summary>Match &amp; branding{progress?.step1 ? <span className="sw1-tick">✓</span> : null}</summary>
+      <details name="sw1adm" className="sw1-brand sw1-section sw1-section--start">
+        <summary><span className="sw1-starthere">Start here</span><span className="sw1-stepnum">1</span>Match &amp; branding{progress?.step1 ? <span className="sw1-tick">✓</span> : null}</summary>
 
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
@@ -950,7 +950,7 @@ export default function AdminPanel({
         <div className="sw1-sponsorpanel">
           <div className="sw1-sponsorpanel__head">
             <div>
-              <strong>Sponsor banner rotation{progress?.step4 ? <span className="sw1-tick">✓</span> : null}</strong>
+              <strong><span className="sw1-stepnum sw1-stepnum--sm">4</span>Sponsor banner rotation{progress?.step4 ? <span className="sw1-tick">✓</span> : null}</strong>
               <span>Upload sold banner ads to rotate above the ground</span>
             </div>
           </div>
@@ -1158,80 +1158,8 @@ export default function AdminPanel({
         <p className="sw1-admin__hint">Uploaded logos &amp; banners are embedded, so they appear in the downloaded PNG too.</p>
       </details>
 
-      {/* Playing list — read-only summary of the on-field selections */}
       <details name="sw1adm" className="sw1-section">
-        <summary>Playing list</summary>
-        {playingList}
-      </details>
-
-      {/* Ins & Outs vs last week — admin reference only (never on the public graphic) */}
-      <details name="sw1adm" className="sw1-section">
-        <summary>Ins &amp; Outs vs last week</summary>
-        {!dbConfigured ? (
-          <p className="sw1-admin__hint">
-            Connect the SportsWeb One database to compare rounds — this reads the previous
-            saved round for this grade and shows who's changed.
-          </p>
-        ) : !insOuts ? (
-          <div className="sw1-inouts">
-            <p className="sw1-admin__hint">
-              Save at least two rounds for this grade and the changes since the previous
-              round will show here.
-            </p>
-            {onRefreshInsOuts && (
-              <button type="button" className="sw1-btn" onClick={onRefreshInsOuts}>
-                Check for last round
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="sw1-inouts">
-            <p className="sw1-inouts__vs">
-              Compared with {insOuts.round ? <strong>{insOuts.round}</strong> : 'the previous round'}.
-              Field + bench, excluding Unavailable.
-            </p>
-            <div className="sw1-inouts__cols">
-              <div className="sw1-inouts__col">
-                <span className="sw1-inouts__head sw1-inouts__head--in">
-                  In <span className="sw1-inouts__count">{insOuts.ins.length}</span>
-                </span>
-                {insOuts.ins.length === 0 ? (
-                  <span className="sw1-inouts__empty">No changes in</span>
-                ) : (
-                  insOuts.ins.map((p, i) => (
-                    <span key={`in-${i}`} className="sw1-inouts__chip sw1-inouts__chip--in">
-                      {p.number && <b>{p.number}</b>} {p.name}
-                    </span>
-                  ))
-                )}
-              </div>
-              <div className="sw1-inouts__col">
-                <span className="sw1-inouts__head sw1-inouts__head--out">
-                  Out <span className="sw1-inouts__count">{insOuts.outs.length}</span>
-                </span>
-                {insOuts.outs.length === 0 ? (
-                  <span className="sw1-inouts__empty">No changes out</span>
-                ) : (
-                  insOuts.outs.map((p, i) => (
-                    <span key={`out-${i}`} className="sw1-inouts__chip sw1-inouts__chip--out">
-                      {p.number && <b>{p.number}</b>} {p.name}
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-            {onRefreshInsOuts && (
-              <button type="button" className="sw1-btn sw1-inouts__refresh" onClick={onRefreshInsOuts}>
-                Refresh
-              </button>
-            )}
-          </div>
-        )}
-      </details>
-
-      {/* Team Squad */}
-      <details name="sw1adm" className="sw1-section">
-        <summary>Team Squad{progress?.step2 ? <span className="sw1-tick">✓</span> : null}</summary>
+        <summary><span className="sw1-stepnum">2</span>Team Squad{progress?.step2 ? <span className="sw1-tick">✓</span> : null}</summary>
 
       <div className="sw1-admin__modes">
         {(['jumper', 'headshot', 'none'] as VisualMode[]).map((m) => (
@@ -1345,6 +1273,79 @@ export default function AdminPanel({
         onAddClubPlayer={onAddClubPlayer}
       />
       </details>
+
+      {/* Playing list — read-only summary of the on-field selections */}
+      <details name="sw1adm" className="sw1-section">
+        <summary><span className="sw1-stepnum">3</span>Playing list</summary>
+        {playingList}
+      </details>
+
+      {/* Ins & Outs vs last week — admin reference only (never on the public graphic) */}
+      <details name="sw1adm" className="sw1-section">
+        <summary>Ins &amp; Outs vs last week</summary>
+        {!dbConfigured ? (
+          <p className="sw1-admin__hint">
+            Connect the SportsWeb One database to compare rounds — this reads the previous
+            saved round for this grade and shows who's changed.
+          </p>
+        ) : !insOuts ? (
+          <div className="sw1-inouts">
+            <p className="sw1-admin__hint">
+              Save at least two rounds for this grade and the changes since the previous
+              round will show here.
+            </p>
+            {onRefreshInsOuts && (
+              <button type="button" className="sw1-btn" onClick={onRefreshInsOuts}>
+                Check for last round
+              </button>
+            )}
+          </div>
+        ) : (
+          <div className="sw1-inouts">
+            <p className="sw1-inouts__vs">
+              Compared with {insOuts.round ? <strong>{insOuts.round}</strong> : 'the previous round'}.
+              Field + bench, excluding Unavailable.
+            </p>
+            <div className="sw1-inouts__cols">
+              <div className="sw1-inouts__col">
+                <span className="sw1-inouts__head sw1-inouts__head--in">
+                  In <span className="sw1-inouts__count">{insOuts.ins.length}</span>
+                </span>
+                {insOuts.ins.length === 0 ? (
+                  <span className="sw1-inouts__empty">No changes in</span>
+                ) : (
+                  insOuts.ins.map((p, i) => (
+                    <span key={`in-${i}`} className="sw1-inouts__chip sw1-inouts__chip--in">
+                      {p.number && <b>{p.number}</b>} {p.name}
+                    </span>
+                  ))
+                )}
+              </div>
+              <div className="sw1-inouts__col">
+                <span className="sw1-inouts__head sw1-inouts__head--out">
+                  Out <span className="sw1-inouts__count">{insOuts.outs.length}</span>
+                </span>
+                {insOuts.outs.length === 0 ? (
+                  <span className="sw1-inouts__empty">No changes out</span>
+                ) : (
+                  insOuts.outs.map((p, i) => (
+                    <span key={`out-${i}`} className="sw1-inouts__chip sw1-inouts__chip--out">
+                      {p.number && <b>{p.number}</b>} {p.name}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+            {onRefreshInsOuts && (
+              <button type="button" className="sw1-btn sw1-inouts__refresh" onClick={onRefreshInsOuts}>
+                Refresh
+              </button>
+            )}
+          </div>
+        )}
+      </details>
+
+      {/* Team Squad */}
 
     </aside>
   );

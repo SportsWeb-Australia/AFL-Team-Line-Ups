@@ -3057,3 +3057,7 @@
   box-shadow: 0 0 0 3px rgba(12,35,64,0.16);
 }
 .sw1-progress__step.is-next .sw1-progress__label { color: #0C2340; }
+
+/* Step-number badges on admin sections — mirror the 1-5 start-fresh sequence */
+.sw1-stepnum{flex:0 0 auto;width:24px;height:24px;border-radius:999px;background:#0C2340;color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
+.sw1-stepnum--sm{width:20px;height:20px;font-size:12px;margin-right:8px}
