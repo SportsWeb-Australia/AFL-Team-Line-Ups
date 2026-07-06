@@ -3072,3 +3072,83 @@
 .sw1-showcase-toggle input, .sw1-showbanner input { margin-top: 2px; flex: 0 0 auto; }
 .sw1-showcase-toggle strong, .sw1-showbanner strong { color: #0c2340; }
 .sw1-showcase-toggle em { color: #64748b; font-style: normal; }
+
+/* ================================================================
+   PRE-LAUNCH POLISH — calmer, more spacious, brand-coherent admin.
+   Appended last so it refines the panel without touching any JSX.
+   ================================================================ */
+/* Container: more breathing room + softer frame */
+.sw1-admin { padding: 22px; border-radius: 16px; background: #f5f8fc; box-shadow: 0 10px 30px -12px rgba(15, 23, 42, 0.12); }
+@container (min-width: 520px) { .sw1-admin { padding: 26px; } }
+
+/* Section rhythm: more air between cards */
+.sw1-section { margin-bottom: 15px; }
+.sw1-section--start { margin-top: 20px; }
+
+/* Section header: one clean navy card, subtle border, calm shadow
+   (replaces the green-black gradient + metallic border + heavy shadow) */
+.sw1-section > summary {
+  padding: 18px 20px 18px 22px;
+  color: #eaf1fa;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(135deg, #0c2a1b 0%, #06120c 100%);
+  box-shadow: 0 8px 18px -12px rgba(4, 14, 9, 0.6);
+  letter-spacing: -0.01em;
+}
+.sw1-section[open] > summary {
+  margin-bottom: 16px;
+  border-color: rgba(126, 224, 166, 0.4);
+}
+/* soft neutral left bar (was metallic); gold accent only when open */
+.sw1-section > summary::before {
+  background: rgba(148, 163, 184, 0.5);
+  width: 3px; top: 12px; bottom: 12px;
+}
+.sw1-section[open] > summary::before { background: linear-gradient(180deg, #7fe0a6, #35c07d); }
+/* calmer chevron */
+.sw1-section > summary::after { color: #7fe0a6; }
+.sw1-section[open] > summary::after { color: #9df0c0; }
+
+/* Step numbers = the navigation anchor: gold on navy, brand-coherent.
+   Leads the eye down the 1→5 build path and sets the numbered build
+   steps apart from the utility sections (which have no number). */
+.sw1-stepnum {
+  background: linear-gradient(180deg, #f7c327, #f0a800);
+  color: #22160a;
+  width: 26px; height: 26px; font-size: 13px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+}
+.sw1-stepnum--sm { width: 21px; height: 21px; font-size: 12px; }
+
+/* Top app-brand bar: onto the same navy for coherence (was pure black) */
+.sw1-appbrand {
+  padding: 15px 18px; margin-bottom: 16px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: linear-gradient(135deg, #0a100c 0%, #000 100%);
+  box-shadow: 0 8px 20px -12px rgba(0, 0, 0, 0.55);
+}
+
+/* Roomier, cleaner form fields across the whole panel */
+.sw1-admin input[type='text'],
+.sw1-admin input:not([type]),
+.sw1-admin select,
+.sw1-admin textarea {
+  padding: 11px 13px;
+  border-radius: 10px;
+  border: 1px solid #d6dfea;
+  background: #fff;
+}
+.sw1-admin input[type='text']:focus,
+.sw1-admin input:not([type]):focus,
+.sw1-admin select:focus,
+.sw1-admin textarea:focus {
+  border-color: #12854b;
+  outline: 3px solid rgba(18, 133, 75, 0.14);
+  outline-offset: 0;
+}
+.sw1-brand label,
+.sw1-brand__logos label { gap: 6px; letter-spacing: 0.06em; }
+.sw1-brand__logos { gap: 14px; }
+
+/* Progress card: a little more padding to match the roomier feel */
+.sw1-progress { padding: 16px 18px; border-radius: 14px; }
