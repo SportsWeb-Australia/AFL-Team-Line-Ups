@@ -150,6 +150,10 @@ export interface TeamSheetData {
   jumperImageUrl?: string;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
   vsStyle?: 'chrome' | 'split';
+  /** Showcase team (e.g. Team of the Century): no opponent — a title instead of a fixture. */
+  showcase?: boolean;
+  /** Remove the sponsor banner strip from the graphic entirely. */
+  hideSponsors?: boolean;
   /** Logos shown top-right of the header — competition/league logos or an extra
    *  sponsor. Any number; rendered in a row. Persisted so embeds match the editor. */
   competitionLogos?: string[];

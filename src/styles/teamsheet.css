@@ -3061,3 +3061,14 @@
 /* Step-number badges on admin sections — mirror the 1-5 start-fresh sequence */
 .sw1-stepnum{flex:0 0 auto;width:24px;height:24px;border-radius:999px;background:#0C2340;color:#fff;font-size:13px;font-weight:800;display:inline-flex;align-items:center;justify-content:center;line-height:1}
 .sw1-stepnum--sm{width:20px;height:20px;font-size:12px;margin-right:8px}
+
+/* Showcase team (no opponent) + sponsor banner on/off */
+.sw1-brand--showcase .sw1-hide-showcase { display: none; }
+.sw1-header__crests--solo { justify-content: center; }
+.sw1-showcase-toggle, .sw1-showbanner {
+  display: flex; align-items: flex-start; gap: 9px; margin: 10px 0 6px;
+  font-size: 13.5px; color: #1e293b; cursor: pointer; line-height: 1.4;
+}
+.sw1-showcase-toggle input, .sw1-showbanner input { margin-top: 2px; flex: 0 0 auto; }
+.sw1-showcase-toggle strong, .sw1-showbanner strong { color: #0c2340; }
+.sw1-showcase-toggle em { color: #64748b; font-style: normal; }

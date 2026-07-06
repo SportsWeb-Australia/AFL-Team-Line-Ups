@@ -64,6 +64,7 @@ interface Props {
   squadLocation: Map<string, string>;
   fieldSlots: SlotDef[];
   positions: Partial<Record<PositionKey, string>>;
+  followers?: string[];
   onQuickPlace: (id: string, target: QuickTarget) => void;
   visualMode: VisualMode;
   selectedPlayerId: string | null;
@@ -73,6 +74,10 @@ interface Props {
   onTeamJumper?: (dataUrl: string) => void;
   vsStyle?: 'chrome' | 'split';
   onVsStyle?: (s: 'chrome' | 'split') => void;
+  showcase?: boolean;
+  onShowcase?: (v: boolean) => void;
+  hideSponsors?: boolean;
+  onHideSponsors?: (v: boolean) => void;
   /** Competition / extra logos shown top-right of the header (any number). */
   competitionLogos?: string[];
   onAddCompetitionLogo?: (dataUrl: string) => void;
@@ -165,6 +170,7 @@ export default function AdminPanel({
   squadLocation,
   fieldSlots,
   positions,
+  followers,
   onQuickPlace,
   visualMode,
   selectedPlayerId,
@@ -173,6 +179,10 @@ export default function AdminPanel({
   onTeamJumper,
   vsStyle,
   onVsStyle,
+  showcase,
+  onShowcase,
+  hideSponsors,
+  onHideSponsors,
   competitionLogos = [],
   onAddCompetitionLogo,
   onRemoveCompetitionLogo,
@@ -600,12 +610,25 @@ export default function AdminPanel({
       </details>
 
       {/* Match & branding */}
-      <details name="sw1adm" className="sw1-brand sw1-section sw1-section--start">
+      <details name="sw1adm" className={`sw1-brand sw1-section sw1-section--start${showcase ? ' sw1-brand--showcase' : ''}`}>
         <summary><span className="sw1-starthere">Start here</span><span className="sw1-stepnum">1</span>Match &amp; branding{progress?.step1 ? <span className="sw1-tick">✓</span> : null}</summary>
+        {onShowcase && (
+          <label className="sw1-showcase-toggle">
+            <input
+              type="checkbox"
+              checked={!!showcase}
+              onChange={(e) => onShowcase(e.target.checked)}
+            />
+            <span>
+              <strong>Showcase team — no opponent</strong>
+              <em> Team of the Century, Team of the Year… (the Grade field becomes the title)</em>
+            </span>
+          </label>
+        )}
 
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
-          <label><span className="sw1-step">2</span>Opponent
+          <label className="sw1-hide-showcase"><span className="sw1-step">2</span>Opponent
             {/* A real dropdown (not a type-to-filter box): the whole opponent
                 list is always visible. Each option carries its logo — directory
                 clubs and past opponents alike — so picking one loads the right
@@ -771,7 +794,7 @@ export default function AdminPanel({
             </details>
           )}
 
-          <label><span className="sw1-step">3</span>Round
+          <label className="sw1-hide-showcase"><span className="sw1-step">3</span>Round
             <select value={match.round} onChange={(e) => onMatch({ round: e.target.value })}>
               <option value="">Select round…</option>
               {match.round && !ROUND_OPTIONS.includes(match.round) && (
@@ -782,7 +805,7 @@ export default function AdminPanel({
               ))}
             </select>
           </label>
-          <label><span className="sw1-step">4</span>Grade
+          <label><span className="sw1-step">4</span>{showcase ? 'Title' : 'Grade'}
             {gradeNew || (pastGrades.length === 0 && !match.grade.trim()) ? (
               <input
                 value={match.grade}
@@ -959,6 +982,19 @@ export default function AdminPanel({
               <span>Upload sold banner ads to rotate above the ground</span>
             </div>
           </div>
+
+          {onHideSponsors && (
+            <label className="sw1-showbanner">
+              <input
+                type="checkbox"
+                checked={!hideSponsors}
+                onChange={(e) => onHideSponsors(!e.target.checked)}
+              />
+              <span>
+                <strong>Show sponsor banner</strong> — turn off to remove the whole strip from the graphic
+              </span>
+            </label>
+          )}
 
           <label className="sw1-nosponsors">
             <input
@@ -1266,6 +1302,7 @@ export default function AdminPanel({
         location={squadLocation}
         fieldSlots={fieldSlots}
         positions={positions}
+        followers={followers}
         selectedPlayerId={selectedPlayerId}
         onSelect={onSelect}
         onSetAvailability={onSetAvailability}

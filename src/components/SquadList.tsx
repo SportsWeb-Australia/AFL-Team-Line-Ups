@@ -51,6 +51,8 @@ interface Props {
   fieldSlots: SlotDef[];
   /** Current on-field assignments, so the menu can show who's where. */
   positions: Partial<Record<PositionKey, string>>;
+  /** Current follower (ruck-division) assignments as [ruck, ruckRover, rover]. */
+  followers?: string[];
   selectedPlayerId: string | null;
   onSelect: (id: string) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
@@ -69,6 +71,7 @@ export default function SquadList({
   location,
   fieldSlots,
   positions,
+  followers = [],
   selectedPlayerId,
   onSelect,
   onSetAvailability,
@@ -305,11 +308,16 @@ export default function SquadList({
             </optgroup>
           ))}
           <optgroup label="FOLLOWERS">
-            {FOLLOWER_TARGETS.map((f) => (
-              <option key={f.value} value={f.value}>
-                {f.label}
-              </option>
-            ))}
+            {FOLLOWER_TARGETS.map((f, i) => {
+              const occ = followers[i];
+              const taken = occ && occ !== p.id ? ` \u00B7 ${nameOf(occ)}` : '';
+              return (
+                <option key={f.value} value={f.value}>
+                  {f.label}
+                  {taken}
+                </option>
+              );
+            })}
           </optgroup>
           <optgroup label="Bench">
             {BENCH_TARGETS.map((b) => (

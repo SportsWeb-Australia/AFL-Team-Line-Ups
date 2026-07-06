@@ -105,7 +105,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style');
@@ -276,6 +277,8 @@ export async function loadTeamSheet(
     watermarkText: (lineup && (lineup as any).watermark_text) || undefined,
     watermarkLogoUrl: (lineup && (lineup as any).watermark_logo_url) || undefined,
     competitionLogos: parseLogoList(lineup && (lineup as any).competition_logos),
+    showcase: !!(lineup && (lineup as any).showcase),
+    hideSponsors: !!(lineup && (lineup as any).hide_sponsors),
   };
 
   return {
@@ -709,6 +712,8 @@ export async function saveTeamSheet(
     const wmtext = d.watermarkText ?? null;
     const wmlogo = d.watermarkLogoUrl ?? null;
     const complogos = JSON.stringify(d.competitionLogos ?? []);
+    const showcase = !!(d as any).showcase;
+    const hideSponsors = !!(d as any).hideSponsors;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
@@ -719,7 +724,7 @@ export async function saveTeamSheet(
       // is genuinely missing. A real failure (RLS, payload) is thrown, not swallowed —
       // otherwise a failed publish silently leaves the old, jumper-less row live.
       const patches: Record<string, any>[] = [
-        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, ...live },
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, ...live },
@@ -738,7 +743,7 @@ export async function saveTeamSheet(
     } else {
       const live = { published: publish };
       const inserts: Record<string, any>[] = [
-        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos },
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper },

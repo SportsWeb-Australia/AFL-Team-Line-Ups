@@ -201,6 +201,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
+  const [showcase, setShowcase] = useState<boolean>(data.showcase ?? false);
+  const [hideSponsors, setHideSponsors] = useState<boolean>(data.hideSponsors ?? false);
+  // Turning showcase on defaults the sponsor banner off; it can be switched back on.
+  const setShowcaseMode = (v: boolean) => {
+    setShowcase(v);
+    if (v) setHideSponsors(true);
+  };
   // Opponent store: every other club on file, for the Match & branding dropdown.
   const [opponentClubs, setOpponentClubs] = useState<OpponentClub[]>([]);
   // Players from other teams at this club, for the opt-in cross-team search.
@@ -510,11 +517,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const realBanners = (sponsors?.rotating ?? []).filter(
       (s) => s.bannerUrl || s.logoUrl || (s.name && !/^banner \d+$/i.test(s.name.trim())),
     ).length;
-    const step1 =
-      !!club.name.trim() && !!match.opponent.trim() && !!match.round.trim() && coloursSet;
+    const step1 = showcase
+      ? !!club.name.trim() && !!match.grade.trim() && coloursSet
+      : !!club.name.trim() && !!match.opponent.trim() && !!match.round.trim() && coloursSet;
     const step2 = players.length > 0;
     const step3 = startersPlaced() >= 18;
-    const step4 = realBanners > 0 || noSponsors;
+    const step4 = realBanners > 0 || noSponsors || hideSponsors;
     // Publish is the culmination: it only counts when everything before it is
     // done AND the live page matches the current team. Editing a published team
     // (status 'stale') correctly un-ticks it until you re-publish — so the bar
@@ -571,6 +579,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setJumperImageUrl(d.jumperImageUrl);
     setCompetitionLogos(d.competitionLogos ?? []);
     if (d.vsStyle) setVsStyle(d.vsStyle);
+    setShowcase(d.showcase ?? false);
+    setHideSponsors(d.hideSponsors ?? false);
     setSelectedPlayerId(null);
   }
 
@@ -588,6 +598,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       vsStyle,
+      showcase,
+      hideSponsors,
       competitionLogos,
     };
   }
@@ -1574,6 +1586,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             squadLocation={playerLocation}
             fieldSlots={slots}
             positions={positions}
+            followers={followers}
             onQuickPlace={quickPlace}
             visualMode={visualMode}
             selectedPlayerId={selectedPlayerId}
@@ -1585,6 +1598,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onTeamJumper={setTeamJumper}
             vsStyle={vsStyle}
             onVsStyle={setVsStyle}
+            showcase={showcase}
+            onShowcase={setShowcaseMode}
+            hideSponsors={hideSponsors}
+            onHideSponsors={setHideSponsors}
             onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
             onAddPlayer={addPlayer}
             onImport={importPlayers}
@@ -1674,14 +1691,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} vsStyle={vsStyle} />
+        <MatchHeader club={club} match={match} vsStyle={vsStyle} showcase={showcase} />
 
-        <RotatingBanner
-          sponsors={sponsors?.rotating}
-          interval={sponsors?.rotationMs ?? 3800}
-          showAdvertise={sponsors?.advertiseEnabled !== false}
-          advertiseHref={sponsors?.advertiseHref}
-        />
+        {!hideSponsors && (
+          <RotatingBanner
+            sponsors={sponsors?.rotating}
+            interval={sponsors?.rotationMs ?? 3800}
+            showAdvertise={sponsors?.advertiseEnabled !== false}
+            advertiseHref={sponsors?.advertiseHref}
+          />
+        )}
 
         <div className="sw1-stage">
           {competitionLogos.length > 0 && (

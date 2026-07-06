@@ -32,32 +32,39 @@ interface Props {
   club: Club;
   match: MatchInfo;
   vsStyle?: 'chrome' | 'split';
+  showcase?: boolean;
 }
 
-export default function MatchHeader({ club, match, vsStyle = 'chrome' }: Props) {
+export default function MatchHeader({ club, match, vsStyle = 'chrome', showcase = false }: Props) {
   return (
     <header className="sw1-header">
       {/* faint crests bleeding off each side */}
       {club.logoUrl && <img className="sw1-header__ghost sw1-header__ghost--l" src={club.logoUrl} alt="" />}
-      {match.opponentLogoUrl && (
+      {!showcase && match.opponentLogoUrl && (
         <img className="sw1-header__ghost sw1-header__ghost--r" src={match.opponentLogoUrl} alt="" />
       )}
 
-      <div className="sw1-header__crests">
+      <div className={`sw1-header__crests${showcase ? ' sw1-header__crests--solo' : ''}`}>
         <Crest name={club.name} logoUrl={club.logoUrl} color={club.secondaryColor} />
-        <div className={`sw1-header__v sw1-header__v--${vsStyle}`} aria-hidden>
-          <span className="sw1-header__bolt" />
-          <span className="sw1-header__vs">VS</span>
-        </div>
-        <Crest name={match.opponent} logoUrl={match.opponentLogoUrl} color="#64748b" />
+        {!showcase && (
+          <>
+            <div className={`sw1-header__v sw1-header__v--${vsStyle}`} aria-hidden>
+              <span className="sw1-header__bolt" />
+              <span className="sw1-header__vs">VS</span>
+            </div>
+            <Crest name={match.opponent} logoUrl={match.opponentLogoUrl} color="#64748b" />
+          </>
+        )}
       </div>
 
       <div className="sw1-fixture">
-        {match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
+        {!showcase && match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
         <div className="sw1-fixture__grade">{match.grade}</div>
-        <div className="sw1-fixture__when">
-          {formatDate(match.date)} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
-        </div>
+        {!showcase && (
+          <div className="sw1-fixture__when">
+            {formatDate(match.date)} &nbsp;•&nbsp; {match.time} &nbsp;•&nbsp; {match.venue}
+          </div>
+        )}
         {match.competition && <div className="sw1-fixture__comp">{match.competition}</div>}
       </div>
     </header>
