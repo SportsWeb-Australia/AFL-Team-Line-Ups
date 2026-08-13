@@ -3152,3 +3152,7 @@
 
 /* Progress card: a little more padding to match the roomier feel */
 .sw1-progress { padding: 16px 18px; border-radius: 14px; }
+
+/* Import from Fixtures & Ladder — only shows once a matching club is found there */
+.sw1-import-fixture { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+.sw1-import-fixture select { padding: 10px 12px; border-radius: 10px; border: 1px solid #d7dbe3; font-size: 14px; }

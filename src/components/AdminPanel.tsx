@@ -4,6 +4,7 @@ import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, Visua
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
+import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
 import { SHOW_EMBED } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
 
@@ -625,6 +626,8 @@ export default function AdminPanel({
             </span>
           </label>
         )}
+
+        {!showcase && <ImportFromFixturesLadder clubName={club.name} onImport={onMatch} />}
 
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
