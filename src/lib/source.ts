@@ -1047,3 +1047,24 @@ export async function loadPreviousSelections(
 
   return { fixtureId: prev.id, round: prev.round ?? null, players };
 }
+
+/**
+ * Why a club can or can't edit, straight from the database.
+ *
+ * club_entitlement() already returns a human-readable reason ("Free trial has
+ * ended.", "…not switched on for this club in SportsWeb One."), so a blocked
+ * save can tell the user what actually happened instead of leaking the raw
+ * row-level-security error.
+ */
+export async function getClubEntitlement(
+  clubId: string,
+): Promise<{ entitled: boolean; source: string; reason: string } | null> {
+  if (!supabase) return null;
+  const { data, error } = await supabase.rpc('club_entitlement', { p_club: clubId });
+  if (error) {
+    console.error('Entitlement lookup failed', error);
+    return null;
+  }
+  const row = Array.isArray(data) ? data[0] : data;
+  return row ? { entitled: !!row.entitled, source: row.source, reason: row.reason } : null;
+}

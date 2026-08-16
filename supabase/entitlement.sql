@@ -60,3 +60,24 @@ alter table public.clubs
 --  link_sportsweb_club() now also deletes any complimentary (non-Stripe)
 --  subscription on link, honouring "never billed by both". Stripe-backed rows
 --  are left alone so a real customer is cancelled deliberately, not silently.
+
+-- ============================================================
+--  ENFORCEMENT (applied 16 Aug 2026) — migration enforce_entitlement_on_writes
+-- ============================================================
+--  public.club_is_entitled(uuid) -> boolean wraps club_entitlement() so policies
+--  stay readable. Write policies now require it:
+--
+--    teams / players / sponsors      via club_id
+--    fixtures                        via teams.club_id (the OWNING team's club,
+--                                    never fixtures.opponent_club_id)
+--    lineups                         via fixtures -> teams.club_id
+--    lineup_positions                via lineups -> fixtures -> teams.club_id
+--    clubs                           update/delete gated; INSERT stays open to
+--                                    any signed-in user, since a club can't be
+--                                    entitled before it exists
+--    venues / opponent_clubs         shared reference data, no owning club, so
+--                                    still plain signed-in write — gating them
+--                                    would stop an entitled club naming a ground
+--
+--  Public read is untouched everywhere: losing entitlement stops you EDITING, it
+--  does not pull published line-ups off the club's website.

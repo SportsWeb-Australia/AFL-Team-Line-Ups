@@ -28,6 +28,7 @@ import {
   loadLatestTeamSheet,
   loadLatestForClubGrade,
   resolveClubIdFromSportsWeb,
+  getClubEntitlement,
   loadTeamSheet,
   listSavedSheets,
   saveTeamSheet,
@@ -962,9 +963,21 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } catch (err: any) {
       console.error('Database save failed', err);
       setDbState('error');
+      // A row-level-security refusal now means the club isn't entitled (expired
+      // trial, or the module switched off in SportsWeb One) — not a setup step.
+      // club_entitlement() already phrases the reason for a human, so ask it
+      // rather than showing the raw Postgres error.
+      const blocked = err?.message?.includes('row-level security') || err?.code === '42501';
+      if (blocked && dbRefs.clubId) {
+        const ent = await getClubEntitlement(dbRefs.clubId).catch(() => null);
+        if (ent && !ent.entitled) {
+          setDbMsg(`Can't save — ${ent.reason}`);
+          return;
+        }
+      }
       setDbMsg(
-        err?.message?.includes('row-level security') || err?.code === '42501'
-          ? 'Save blocked by row-level security — run supabase/enable-writes.sql first.'
+        blocked
+          ? "Can't save — this club doesn't currently have access to Team Line-Ups."
           : err?.message ?? 'Could not save to the database.',
       );
     }
