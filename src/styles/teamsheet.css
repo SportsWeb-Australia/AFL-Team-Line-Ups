@@ -2724,12 +2724,14 @@
   background: radial-gradient(120% 90% at 50% 32%, #0e3a24 0%, #06120c 64%, #04100a 100%);
 }
 .sw1-login__card {
-  width: min(100%, 360px);
+  width: min(100%, 400px);
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 12px;
-  padding: 28px 24px 22px;
+  gap: 14px;
+  /* Roomier than the fields need, so the inputs don't read as running into the
+     card edge — the gutter should be clearly wider than the input's own padding. */
+  padding: 34px 32px 26px;
   border-radius: 18px;
   background: #ffffff;
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6);
@@ -2763,7 +2765,8 @@
 }
 .sw1-login__field input {
   width: 100%;
-  padding: 11px 12px;
+  box-sizing: border-box;
+  padding: 12px 13px;
   border-radius: 10px;
   border: 1px solid #cbd5e1;
   background: #fff;
@@ -2783,6 +2786,55 @@
   padding: 8px 10px;
 }
 .sw1-login__note { margin: 2px 0 0; font-size: 11px; color: #94a3b8; }
+
+/* Password field with an inline show/hide toggle. */
+.sw1-login__pw { position: relative; display: block; }
+.sw1-login__pw input { padding-right: 64px; }
+.sw1-login__peek {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: 0;
+  background: transparent;
+  padding: 6px 8px;
+  border-radius: 7px;
+  font: inherit;
+  font-size: 11.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #0f766e;
+  cursor: pointer;
+}
+.sw1-login__peek:hover { background: #f1f5f9; }
+.sw1-login__peek:focus-visible { outline: 2px solid #0f766e; outline-offset: 1px; }
+
+/* Text-button links (forgot password / back), styled to not look like inputs. */
+.sw1-login__link {
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #0f766e;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.sw1-login__link:hover { color: #115e59; }
+
+.sw1-login__ok {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: #14532d;
+  background: #e8f6ec;
+  border: 1px solid #bfe3ca;
+  border-radius: 8px;
+  padding: 8px 10px;
+}
 
 /* ---- Opposition clubs directory (media officer) ---- */
 .sw1-oppdir {

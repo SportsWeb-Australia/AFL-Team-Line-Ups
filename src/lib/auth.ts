@@ -40,3 +40,39 @@ export async function signOut(): Promise<void> {
 export function sessionEmail(session: Session | null): string | null {
   return session?.user?.email ?? null;
 }
+
+/**
+ * Email a password-reset link. The link returns the user to `redirectTo` with a
+ * recovery token, which supabase-js exchanges for a short-lived session and
+ * reports as a PASSWORD_RECOVERY event — see onPasswordRecovery below.
+ *
+ * NOTE: the target must be allow-listed under Supabase → Authentication → URL
+ * Configuration, or the emailed link falls back to the project's Site URL.
+ */
+export async function sendPasswordReset(email: string): Promise<void> {
+  if (!supabase) throw new Error('The database is not connected yet — add your Supabase keys first.');
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo: `${window.location.origin}/?admin`,
+  });
+  if (error) throw error;
+}
+
+/** Set a new password for the signed-in (or recovery) session. */
+export async function updatePassword(password: string): Promise<void> {
+  if (!supabase) throw new Error('The database is not connected yet — add your Supabase keys first.');
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) throw error;
+}
+
+/**
+ * Fires when the user arrives from a reset link. Without this the recovery
+ * session would drop them straight into the editor with the OLD password still
+ * set, and they'd never get to choose a new one.
+ */
+export function onPasswordRecovery(cb: () => void): () => void {
+  if (!supabase) return () => {};
+  const { data } = supabase.auth.onAuthStateChange((event) => {
+    if (event === 'PASSWORD_RECOVERY') cb();
+  });
+  return () => data.subscription.unsubscribe();
+}
