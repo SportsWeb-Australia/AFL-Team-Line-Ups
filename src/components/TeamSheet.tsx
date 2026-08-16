@@ -470,6 +470,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   // ── SportsWeb One database (Supabase) ─────────────────────────────────────
+  const [linkError, setLinkError] = useState<string | null>(null);
   const [dbState, setDbState] = useState<'idle' | 'loading' | 'saving' | 'ok' | 'error'>('idle');
   // Public/embed views shouldn't flash the bundled sample before the real team
   // loads — hold rendering until the first DB load settles.
@@ -623,11 +624,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         if (!clubParam) {
           // Deliberately not falling through to "latest from any club": a club
           // arriving from SportsWeb One must never be shown someone else's team.
-          setDbState('error');
-          setDbMsg(
+          const msg =
             "This club isn't linked to Team Line-Ups yet, so there's nothing to show. " +
-              'Create the club here first, then link it from SportsWeb One.',
-          );
+            'Create the club here first, then link it from SportsWeb One.';
+          setDbState('error');
+          setDbMsg(msg);
+          // dbMsg only renders inside the admin panel, so the public and embed
+          // views need their own signal or they keep showing the demo team.
+          setLinkError(msg);
           return;
         }
       }
@@ -1507,6 +1511,20 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   // Where the "Upgrade" button points. Swap this one line for the exact
   // marketing upgrade-plan URL when it's live.
   const UPGRADE_URL = 'https://sportsweb.com.au';
+
+  // A club arrived from SportsWeb One that isn't linked here yet. dbMsg only
+  // reaches the admin panel, so without this the public/embed view would sit on
+  // the bundled demo team — which reads as a real, wrong line-up for that club.
+  if (linkError) {
+    return (
+      <div className={`sw1-root ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
+        <div className="sw1-linkerror" role="status">
+          <h2>Team Line-Ups isn&apos;t set up for this club yet</h2>
+          <p>{linkError}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
