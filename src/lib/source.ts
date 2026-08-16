@@ -309,6 +309,34 @@ export async function loadLatestTeamSheet(
 }
 
 /**
+ * Resolve a SportsWeb One club id to this app's own club id.
+ *
+ * SportsWeb One links a club by passing `?sw1club=<its uuid>`; that value only
+ * means something to SportsWeb One, so it is looked up against the
+ * `clubs.sportsweb_club_id` column rather than used directly. Standalone
+ * customers have no link and are unaffected.
+ *
+ * Returns null when the club has not been linked yet. Callers must treat that as
+ * "no data for this club" and NOT fall back to the latest sheet from any club —
+ * a club arriving from SportsWeb One must never be shown another club's line-up.
+ */
+export async function resolveClubIdFromSportsWeb(sw1ClubId: string): Promise<string | null> {
+  if (!supabase) throw new Error('Database is not configured.');
+  const trimmed = sw1ClubId.trim();
+  if (!trimmed) return null;
+  const { data, error } = await supabase
+    .from('clubs')
+    .select('id')
+    .eq('sportsweb_club_id', trimmed)
+    .maybeSingle();
+  if (error) {
+    console.error('SportsWeb club link lookup failed', error);
+    return null;
+  }
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+/**
  * Latest team sheet for a club (optionally a single grade), newest first. This
  * powers the auto-updating embed: a club page embeds by club+grade rather than a
  * pinned fixture, so it always shows whatever is currently published for that

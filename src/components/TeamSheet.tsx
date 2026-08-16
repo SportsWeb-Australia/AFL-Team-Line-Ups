@@ -27,6 +27,7 @@ const AVAIL_STATUSES: PlayerStatus[] = ['injured', 'concussion', 'personal', 'su
 import {
   loadLatestTeamSheet,
   loadLatestForClubGrade,
+  resolveClubIdFromSportsWeb,
   loadTeamSheet,
   listSavedSheets,
   saveTeamSheet,
@@ -612,8 +613,24 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       const publishedOnly = mode !== 'admin';
       const qp = new URLSearchParams(window.location.search);
       const fixtureParam = qp.get('fixture');
-      const clubParam = qp.get('club');
       const gradeParam = qp.get('grade');
+      // ?sw1club is a SportsWeb One club id, meaningless to this app until it has
+      // been linked, so it resolves to our own club id first.
+      const sw1Param = qp.get('sw1club');
+      let clubParam = qp.get('club');
+      if (!clubParam && sw1Param) {
+        clubParam = await resolveClubIdFromSportsWeb(sw1Param);
+        if (!clubParam) {
+          // Deliberately not falling through to "latest from any club": a club
+          // arriving from SportsWeb One must never be shown someone else's team.
+          setDbState('error');
+          setDbMsg(
+            "This club isn't linked to Team Line-Ups yet, so there's nothing to show. " +
+              'Create the club here first, then link it from SportsWeb One.',
+          );
+          return;
+        }
+      }
       // Embed-by-club+grade auto-updates each round; ?fixture pins one team; else latest.
       const res = clubParam
         ? await loadLatestForClubGrade(clubParam, gradeParam, { publishedOnly })
