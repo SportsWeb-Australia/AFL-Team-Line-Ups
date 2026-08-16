@@ -5,7 +5,19 @@ dev SQL lets the public key write). This guide switches to **login-required**: o
 signed-in club admins can create, edit or publish a team, while the public page and
 embeds keep working unchanged.
 
-It's a one-off, ~5 minutes. Two halves — the database, then the app.
+It's a one-off, ~5 minutes.
+
+> **Order matters.** Do the app flag (step 4) BEFORE the database lock-down
+> (step 3). Locking the database first leaves a window where the editor still
+> looks open but every save fails silently, because the login screen hasn't
+> appeared yet. Flag first, database last, and there is never a moment where you
+> can edit with no way to save.
+>
+> **DONE on the live project (16 Aug 2026):** login created, `VITE_REQUIRE_AUTH=true`
+> deployed, and `enable-auth.sql` applied. Verified after: anon write blocked
+> (HTTP 401), anon read still works, and SportsWeb One's `link_sportsweb_club()`
+> still works — it is SECURITY DEFINER and the tables don't FORCE row level
+> security, so it runs as the owner.
 
 ## 1. Enable email auth in Supabase
 
