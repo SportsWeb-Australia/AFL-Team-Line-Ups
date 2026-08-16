@@ -31,3 +31,32 @@ alter table public.clubs
 --   public.link_sportsweb_club(uuid, text, boolean default true) -> uuid
 --     Create-or-link from SportsWeb One and mirror entitlement. Idempotent.
 --     Creates NO lineup_subscriptions row: never bill a SportsWeb-billed club here.
+
+-- ============================================================
+--  APPLIED LATER (16 Aug 2026)
+-- ============================================================
+--
+--  grandfather_existing_clubs
+--    Every club predating billing got status='active' with NO stripe id.
+--    club_entitlement() reports those as source='complimentary', so a
+--    grandfathered club is never mistaken for revenue.
+--
+--  public.adopt_lineups_club_for_sportsweb(p_local_club, p_sw1_club_id, p_entitled)
+--    Attach an EXISTING line-ups club to a SportsWeb One club.
+--
+--    Needed because link_sportsweb_club() only finds a club by its existing
+--    link — so a standalone club that later joins SportsWeb One would get a
+--    brand-new EMPTY club created, stranding every team, player and line-up
+--    on the old row. Run this FIRST, then switch the module on.
+--
+--    Deliberately not automatic. Matching by name is the obvious shortcut and
+--    is unsafe here: five rows in this table are called "Geelong", so a guess
+--    would silently attach the wrong history.
+--
+--    Example — bring an existing club onto SportsWeb One:
+--      select public.adopt_lineups_club_for_sportsweb(
+--               '<line-ups club uuid>', '<sportsweb club uuid>', true);
+--
+--  link_sportsweb_club() now also deletes any complimentary (non-Stripe)
+--  subscription on link, honouring "never billed by both". Stripe-backed rows
+--  are left alone so a real customer is cancelled deliberately, not silently.
