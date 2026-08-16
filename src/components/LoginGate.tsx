@@ -14,8 +14,15 @@ type View = 'signin' | 'forgot' | 'reset';
  * without that the user would be dropped into the editor with their old password
  * still set and no way to change it.
  */
-export default function LoginGate() {
-  const [view, setView] = useState<View>('signin');
+export default function LoginGate({
+  recoveryMode = false,
+  onRecovered,
+}: { recoveryMode?: boolean; onRecovered?: () => void } = {}) {
+  // Start straight on the reset view when we arrived from a reset link. The
+  // PASSWORD_RECOVERY event below is a fallback for when it fires late enough
+  // for this component to still catch it; the flag is what makes it reliable,
+  // because that event usually fires before React has mounted anything.
+  const [view, setView] = useState<View>(recoveryMode ? 'reset' : 'signin');
   const [email, setEmail] = useState('');
   const [pw, setPw] = useState('');
   const [showPw, setShowPw] = useState(false);
@@ -73,7 +80,10 @@ export default function LoginGate() {
     try {
       await updatePassword(pw);
       setBusy(false);
-      setOk('Password updated. Signing you in…');
+      setOk('Password updated. Taking you in…');
+      // Hands control back to App, which drops the recovery flag and renders the
+      // editor — the recovery session is already a valid signed-in session.
+      onRecovered?.();
     } catch (e) {
       fail(e, "Couldn't update your password. The link may have expired — request a new one.");
     }

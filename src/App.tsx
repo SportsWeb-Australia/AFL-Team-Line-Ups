@@ -3,6 +3,7 @@ import TeamSheet from './components/TeamSheet';
 import Splash from './components/Splash';
 import InstallPrompt from './components/InstallPrompt';
 import LoginGate from './components/LoginGate';
+import { arrivedFromRecoveryLink } from './lib/recovery';
 import { sampleTeam } from './data/sampleTeam';
 import { REQUIRE_AUTH } from './lib/config';
 import { getSession, onAuthChange, signOut, sessionEmail } from './lib/auth';
@@ -37,6 +38,8 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(
     isAdminSession && REQUIRE_AUTH ? undefined : null,
   );
+  // Cleared once a new password is saved, which hands control back to the editor.
+  const [recovering, setRecovering] = useState(arrivedFromRecoveryLink && isAdminSession);
   useEffect(() => {
     if (!isAdminSession || !REQUIRE_AUTH) return;
     let active = true;
@@ -91,6 +94,10 @@ export default function App() {
 
   // Gate the editor behind login when required.
   if (isAdminSession && REQUIRE_AUTH) {
+    // A reset link creates a real session, so this must be checked BEFORE the
+    // session test below — otherwise the user is silently signed in with their
+    // old password and never gets to choose a new one.
+    if (recovering) return <LoginGate recoveryMode onRecovered={() => setRecovering(false)} />;
     if (session === undefined) return null; // brief: checking the saved session
     if (!session) return <LoginGate />;
   }
