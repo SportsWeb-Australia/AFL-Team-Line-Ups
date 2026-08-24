@@ -3856,7 +3856,7 @@
    meets the player below the shoulder line instead of across the arms. */
 .sw1-plate--headshot .sw1-plate__art {
   width: 112px;
-  height: 66px;
+  height: 72px;
   margin-bottom: -2px;
 }
 .sw1-slot .sw1-plate--headshot .sw1-plate__art,
@@ -3864,7 +3864,7 @@
 .sw1-interchange .sw1-plate--headshot .sw1-plate__art,
 .sw1-emergencies .sw1-plate--headshot .sw1-plate__art {
   width: clamp(76px, 21cqw, 112px);
-  height: clamp(45px, 12.4cqw, 66px);
+  height: clamp(49px, 13.5cqw, 72px);
 }
 .sw1-plate--headshot .sw1-plate__art img {
   width: 100%;
