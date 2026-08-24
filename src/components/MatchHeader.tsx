@@ -58,24 +58,28 @@ export default function MatchHeader({
     <header className="sw1-header">
       {finals && (
         <div className="sw1-occasion" aria-hidden>
-          {matchTier === 'grand-final' ? (
-            /* One week a year: the plate is struck entirely from gold, with no
-               dark half to share it with. */
-            <span className="sw1-occasion__final">
-              <b>Grand Final</b>
-            </span>
-          ) : (
-            <>
-              <span className="sw1-occasion__tier">
-                <b>Finals</b>
+          {/* Outer element is the frame; the inner one is the face it holds, so
+              the plate reads as a machined part rather than a coloured bar. */}
+          <span className="sw1-occasion__inner">
+            {matchTier === 'grand-final' ? (
+              /* One week a year: the face is struck entirely from gold, with no
+                 dark half to share it with. */
+              <span className="sw1-occasion__final">
+                <b>Grand Final</b>
               </span>
-              {plateName && (
-                <span className="sw1-occasion__final">
-                  <b>{plateName}</b>
+            ) : (
+              <>
+                <span className="sw1-occasion__tier">
+                  <b>Finals</b>
                 </span>
-              )}
-            </>
-          )}
+                {plateName && (
+                  <span className="sw1-occasion__final">
+                    <b>{plateName}</b>
+                  </span>
+                )}
+              </>
+            )}
+          </span>
         </div>
       )}
       {/* faint crests bleeding off each side */}
