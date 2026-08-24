@@ -3474,13 +3474,81 @@
 /* Showcase team (no opponent) + sponsor banner on/off */
 .sw1-brand--showcase .sw1-hide-showcase { display: none; }
 .sw1-header__crests--solo { justify-content: center; }
-.sw1-showcase-toggle, .sw1-showbanner {
+.sw1-showbanner {
   display: flex; align-items: flex-start; gap: 9px; margin: 10px 0 6px;
   font-size: 13.5px; color: #1e293b; cursor: pointer; line-height: 1.4;
 }
-.sw1-showcase-toggle input, .sw1-showbanner input { margin-top: 2px; flex: 0 0 auto; }
-.sw1-showcase-toggle strong, .sw1-showbanner strong { color: #0c2340; }
-.sw1-showcase-toggle em { color: #64748b; font-style: normal; }
+.sw1-showbanner input { margin-top: 2px; flex: 0 0 auto; }
+.sw1-showbanner strong { color: #0c2340; }
+
+/* Showcase toggle.
+ *
+ * Scoped with .sw1-brand deliberately. This is a <label> inside .sw1-brand, so
+ * `.sw1-brand label` (0,1,1) was beating a bare `.sw1-showcase-toggle` (0,1,0)
+ * and forcing the field-label treatment on it -- column direction, 11px, 800
+ * weight, uppercase. That stacked the tickbox above its own sentence and
+ * shouted the copy in caps. Two classes (0,2,0) wins cleanly.
+ *
+ * It is styled as a mode card rather than a stray option because that is what
+ * it is: switching it on hides the opponent field and turns the grade into the
+ * graphic's title, so the form has to visibly change state.
+ */
+.sw1-brand .sw1-showcase-toggle {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0 0 16px;
+  padding: 13px 15px;
+  border: 1px solid #d9dfe8;
+  border-radius: 12px;
+  background: #fff;
+  cursor: pointer;
+  /* Undo the field-label inheritance. */
+  font-size: 13.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #475569;
+  line-height: 1.45;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+}
+.sw1-brand .sw1-showcase-toggle:hover { border-color: #b9c4d4; background: #fcfdff; }
+.sw1-brand .sw1-showcase-toggle input {
+  flex: 0 0 auto;
+  width: 17px;
+  height: 17px;
+  /* Optically level with the title's cap-height, not the line box. */
+  margin: 1px 0 0;
+  accent-color: #0c2340;
+  cursor: pointer;
+}
+.sw1-brand .sw1-showcase-toggle > span { display: block; }
+.sw1-brand .sw1-showcase-toggle strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: -0.005em;
+  color: #0c2340;
+}
+.sw1-brand .sw1-showcase-toggle em {
+  display: block;
+  margin-top: 3px;
+  font-style: normal;
+  font-size: 12.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #64748b;
+}
+/* Active state: the parent <details> already carries .sw1-brand--showcase when
+   this is on, so the mode is obvious without a :has() dependency. */
+.sw1-brand--showcase .sw1-showcase-toggle {
+  border-color: #7fe0a6;
+  background: #f2fbf6;
+}
+.sw1-brand--showcase .sw1-showcase-toggle strong { color: #10603a; }
 
 /* ================================================================
    PRE-LAUNCH POLISH — calmer, more spacious, brand-coherent admin.

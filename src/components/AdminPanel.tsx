@@ -626,7 +626,9 @@ export default function AdminPanel({
             />
             <span>
               <strong>Showcase team — no opponent</strong>
-              <em> Team of the Century, Team of the Year… (the Grade field becomes the title)</em>
+              {/* Its own line now, so the leading space and brackets it needed
+                  when it ran on inline are gone. */}
+              <em>Team of the Century, Team of the Year… the Grade field becomes the title.</em>
             </span>
           </label>
         )}
