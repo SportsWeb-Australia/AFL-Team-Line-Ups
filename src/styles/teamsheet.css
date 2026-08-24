@@ -3474,6 +3474,87 @@
 /* Showcase team (no opponent) + sponsor banner on/off */
 .sw1-brand--showcase .sw1-hide-showcase { display: none; }
 .sw1-header__crests--solo { justify-content: center; }
+/* THE FIX FOR A WHOLE CLASS OF BUG.
+ *
+ * `.sw1-brand label` gives every label in that subtree the stacked field-label
+ * treatment: column, 11px, 800 weight, uppercase. That is right for a label
+ * wrapping a text box or a select ("Rotate every", "Re-use a saved banner"),
+ * and completely wrong for one wrapping a CHECKBOX -- it stacked the tickbox
+ * above its own sentence and shouted the sentence in caps.
+ *
+ * Rather than patch each offender by name (showcase, show-banner, no-sponsors,
+ * advertise... and whichever gets added next), split on what the label actually
+ * contains. Any checkbox label, now or later, gets the inline row it wants.
+ */
+.sw1-brand label:has(> input[type='checkbox']) {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 10px;
+  font-size: 13.5px;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: normal;
+  line-height: 1.45;
+  color: #475569;
+  cursor: pointer;
+}
+.sw1-brand label:has(> input[type='checkbox']) > input {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  margin: 1px 0 0;
+  accent-color: #0c2340;
+  cursor: pointer;
+}
+.sw1-brand label:has(> input[type='checkbox']) strong {
+  font-size: 13.5px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #0c2340;
+}
+
+/* The sponsor panel already styles its own labels deliberately -- "Rotate every"
+ * is meant to sit inline beside its select, "Re-use a saved banner" stacked
+ * above its own. `.sw1-brand label` (0,1,1) was reaching in and overriding the
+ * details on both: 11px, 800 weight, uppercase, and in the first case flipping
+ * the row to a column. Restating them at (0,2,0) puts each component's stated
+ * intent back in charge.
+ */
+.sw1-sponsorpanel .sw1-sponsorpanel__speed {
+  display: inline-flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #475569;
+  white-space: nowrap;
+}
+.sw1-sponsorpanel .sw1-bannerlib__add {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: normal;
+  color: #475569;
+}
+/* A pasted URL is reference text, not a headline -- it was set at 600 weight and
+   inheriting the bold field treatment, which made every banner row shout. */
+.sw1-sponsorpanel .sw1-sponsorpanel__href {
+  font-size: 12.5px;
+  font-weight: 400;
+  color: #334155;
+}
+/* Bottom-align the add button with the speed control so they share a baseline
+   instead of floating at different heights. */
+.sw1-sponsorpanel .sw1-sponsorpanel__controls { align-items: flex-end; }
+
 .sw1-showbanner {
   display: flex; align-items: flex-start; gap: 9px; margin: 10px 0 6px;
   font-size: 13.5px; color: #1e293b; cursor: pointer; line-height: 1.4;
