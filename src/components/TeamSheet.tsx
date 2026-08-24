@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import type {
   BenchArea,
+  MatchTier,
   Player,
   PlayerStatus,
   PositionKey,
@@ -203,6 +204,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
+  const [matchTier, setMatchTier] = useState<MatchTier>(data.matchTier ?? 'home');
   const [showcase, setShowcase] = useState<boolean>(data.showcase ?? false);
   const [hideSponsors, setHideSponsors] = useState<boolean>(data.hideSponsors ?? false);
   // Turning showcase on defaults the sponsor banner off; it can be switched back on.
@@ -582,6 +584,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setJumperImageUrl(d.jumperImageUrl);
     setCompetitionLogos(d.competitionLogos ?? []);
     if (d.vsStyle) setVsStyle(d.vsStyle);
+    setMatchTier(d.matchTier ?? 'home');
     setShowcase(d.showcase ?? false);
     setHideSponsors(d.hideSponsors ?? false);
     setSelectedPlayerId(null);
@@ -601,6 +604,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       vsStyle,
+      matchTier,
       showcase,
       hideSponsors,
       competitionLogos,
@@ -1540,7 +1544,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   return (
-    <div className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''}`} style={themeVars}>
+    <div
+      className={`sw1-root ${admin ? 'sw1-root--admin' : ''} ${embed ? 'sw1-root--embed' : ''} ${
+        matchTier !== 'home' ? `sw1-root--${matchTier}` : ''
+      }`}
+      style={themeVars}
+    >
       {admin && (
         <div className="sw1-swhead">
           <a
@@ -1646,6 +1655,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onTeamJumper={setTeamJumper}
             vsStyle={vsStyle}
             onVsStyle={setVsStyle}
+            matchTier={matchTier}
+            onMatchTier={setMatchTier}
             showcase={showcase}
             onShowcase={setShowcaseMode}
             hideSponsors={hideSponsors}
@@ -1739,7 +1750,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} vsStyle={vsStyle} showcase={showcase} />
+        <MatchHeader club={club} match={match} vsStyle={vsStyle} showcase={showcase} matchTier={matchTier} />
 
         {!hideSponsors && (
           <RotatingBanner

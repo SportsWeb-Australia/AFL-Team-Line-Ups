@@ -1,4 +1,4 @@
-import type { Club, MatchInfo } from '../types';
+import type { Club, MatchInfo, MatchTier } from '../types';
 
 /** Show ISO dates (yyyy-mm-dd, what the date picker stores) as dd/mm/yyyy.
  *  Any other free-typed text is shown exactly as entered. */
@@ -33,11 +33,47 @@ interface Props {
   match: MatchInfo;
   vsStyle?: 'chrome' | 'split';
   showcase?: boolean;
+  matchTier?: MatchTier;
 }
 
-export default function MatchHeader({ club, match, vsStyle = 'chrome', showcase = false }: Props) {
+export default function MatchHeader({
+  club,
+  match,
+  vsStyle = 'chrome',
+  showcase = false,
+  matchTier = 'home',
+}: Props) {
+  const finals = matchTier === 'finals' || matchTier === 'grand-final';
+  // The plate names the occasion, so the round pill below would only repeat it.
+  const round = match.round?.trim();
+  // Grand final needs no second half: "GRAND FINAL" is the whole story. Finals
+  // weeks pair the series word with which final it actually is.
+  const plateName = matchTier === 'grand-final' ? null : round;
+
   return (
     <header className="sw1-header">
+      {finals && (
+        <div className="sw1-occasion" aria-hidden>
+          {matchTier === 'grand-final' ? (
+            /* One week a year: the plate is struck entirely from gold, with no
+               dark half to share it with. */
+            <span className="sw1-occasion__final">
+              <b>Grand Final</b>
+            </span>
+          ) : (
+            <>
+              <span className="sw1-occasion__tier">
+                <b>Finals</b>
+              </span>
+              {plateName && (
+                <span className="sw1-occasion__final">
+                  <b>{plateName}</b>
+                </span>
+              )}
+            </>
+          )}
+        </div>
+      )}
       {/* faint crests bleeding off each side */}
       {club.logoUrl && <img className="sw1-header__ghost sw1-header__ghost--l" src={club.logoUrl} alt="" />}
       {!showcase && match.opponentLogoUrl && (
@@ -58,7 +94,7 @@ export default function MatchHeader({ club, match, vsStyle = 'chrome', showcase 
       </div>
 
       <div className="sw1-fixture">
-        {!showcase && match.round?.trim() && <div className="sw1-fixture__round">{match.round}</div>}
+        {!showcase && !finals && round && <div className="sw1-fixture__round">{round}</div>}
         <div className="sw1-fixture__grade">{match.grade}</div>
         {!showcase && (
           <div className="sw1-fixture__when">

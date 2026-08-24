@@ -188,6 +188,125 @@
     drop-shadow(0 0 10px color-mix(in srgb, var(--club-secondary, #f5b301) 80%, transparent));
 }
 
+/* ── Occasion: finals + grand final ─────────────────────────────────────────
+   One set of tokens per tier, and every treated element draws from them, so the
+   plate, the bolt, the crest rings and the lettering are all struck from the
+   same metal instead of drifting apart. Home & away sets nothing and is
+   untouched. --club-primary/-secondary still drive the ground, so a club's
+   colours survive the whole way through. */
+.sw1-root--finals {
+  --tier-metal: linear-gradient(180deg, #ffffff 0%, #e4ecf4 34%, #a9bccf 56%, #f2f7fb 78%, #cbd8e5 100%);
+  --tier-edge: #cfdae7;
+  --tier-glow: rgba(206, 230, 255, 0.75);
+  --tier-ink: #0a1626;
+  --tier-dark: #0b1622;
+}
+.sw1-root--grand-final {
+  --tier-metal: linear-gradient(180deg, #fff6d8 0%, #f2d675 34%, #d4af37 58%, #9a7a1e 82%, #f0dc9a 100%);
+  --tier-edge: #d4af37;
+  --tier-glow: rgba(212, 175, 55, 0.85);
+  --tier-ink: #1a1405;
+  --tier-dark: #120d05;
+}
+
+/* Room for the plate. */
+.sw1-root--finals .sw1-header,
+.sw1-root--grand-final .sw1-header { padding-top: clamp(52px, 6.5vw, 74px); }
+
+/* The struck plate: sheared to the same angle the round pill is cut on, so it
+   belongs to the header rather than sitting on top of it. */
+.sw1-occasion {
+  position: absolute;
+  top: clamp(12px, 1.8vw, 20px);
+  left: clamp(14px, 2vw, 24px);
+  z-index: 3;
+  display: flex;
+  align-items: stretch;
+  height: clamp(26px, 3.4vw, 34px);
+  transform: skewX(-12deg);
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+}
+.sw1-occasion__tier,
+.sw1-occasion__final { display: flex; align-items: center; }
+.sw1-occasion__tier { padding: 0 clamp(10px, 1.3vw, 15px); background: var(--tier-dark); }
+.sw1-occasion__final { padding: 0 clamp(12px, 1.6vw, 18px); background-image: var(--tier-metal); }
+/* Un-skew the lettering so only the plate is raked, never the type. */
+.sw1-occasion__tier b,
+.sw1-occasion__final b {
+  transform: skewX(12deg);
+  font-weight: 900;
+  text-transform: uppercase;
+  font-size: clamp(10px, 1.15vw, 12px);
+  letter-spacing: 0.22em;
+  white-space: nowrap;
+}
+.sw1-occasion__tier b { color: var(--tier-edge); }
+.sw1-occasion__final b { color: var(--tier-ink); }
+/* Sheen raking across the plate. */
+.sw1-occasion::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.85) 46%, transparent 58%);
+  pointer-events: none;
+}
+
+/* The bolt is struck from the tier metal rather than the club's second colour. */
+.sw1-root--finals .sw1-header__bolt,
+.sw1-root--grand-final .sw1-header__bolt {
+  background-image: var(--tier-metal);
+  filter: drop-shadow(0 0 20px var(--tier-glow)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
+}
+
+/* Crest rings pick up the same metal. */
+.sw1-root--finals .sw1-crest__badge span,
+.sw1-root--grand-final .sw1-crest__badge span { border-color: var(--tier-edge); }
+
+/* Deepen the ground so the metal has something to sit against. Finals keeps the
+   club colour and darkens it; the grand final goes to a warm near-black, because
+   that is the one week the club colour can afford to step back. */
+.sw1-root--finals .sw1-header {
+  background:
+    radial-gradient(130% 120% at 50% -12%, color-mix(in srgb, var(--club-primary) 48%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg, color-mix(in srgb, var(--club-primary) 62%, #000000) 0%,
+      color-mix(in srgb, var(--club-primary) 88%, #000000) 46%,
+      color-mix(in srgb, var(--club-primary) 96%, #ffffff) 100%);
+}
+.sw1-root--grand-final .sw1-header {
+  background:
+    radial-gradient(130% 120% at 50% -12%, #2a2412 0%, transparent 55%),
+    linear-gradient(155deg, #0a0904 0%, #14110a 46%, #241d0d 100%);
+}
+/* Engraved frame — grand final only. */
+.sw1-root--grand-final .sw1-header::after {
+  content: '';
+  position: absolute;
+  inset: 10px;
+  border: 1px solid color-mix(in srgb, var(--tier-edge) 42%, transparent);
+  border-radius: 9px;
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* Grand final takes the VS itself; finals leaves the chrome alone, since chrome
+   already reads as finals and a second silver would just flatten the centre. */
+.sw1-root--grand-final .sw1-header__vs {
+  background-image: var(--tier-metal);
+  -webkit-text-stroke: 1.4px rgba(40, 28, 4, 0.5);
+}
+.sw1-root--grand-final .sw1-fixture__grade { color: #f7ecc4; }
+
+/* Floodlit ground: the oval art is a PNG, so it is graded rather than repainted.
+   Finals gets the cooler, higher-contrast look of a night final; the grand final
+   warms it to match the gold. */
+.sw1-root--finals .sw1-oval-img {
+  filter: drop-shadow(0 6px 14px rgba(16, 24, 40, 0.14)) saturate(1.12) contrast(1.06) brightness(0.97);
+}
+.sw1-root--grand-final .sw1-oval-img {
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.3)) saturate(1.06) contrast(1.08) brightness(0.93) sepia(0.08);
+}
+
 .sw1-crest { text-align: center; }
 .sw1-crest__badge {
   height: clamp(88px, 15vw, 158px);
@@ -1002,6 +1121,12 @@
   text-transform: uppercase;
   color: var(--muted);
   margin-bottom: 6px;
+}
+.sw1-vsstyle__hint {
+  margin: 7px 0 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--muted);
 }
 .sw1-admin__buttons { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
 
