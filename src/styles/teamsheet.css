@@ -3816,6 +3816,7 @@
     inset 0 1px 0 rgba(255, 255, 255, 0.85),
     inset 0 -1px 0 rgba(0, 0, 0, 0.3),
     0 3px 8px rgba(0, 0, 0, 0.28);
+}
 
 /* Home & away logos now sit inside the field grid, with the clubs they belong
    to (steps 1-2) rather than stranded below the colour pickers. Span the full
