@@ -2295,6 +2295,35 @@
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--club-primary) 28%, transparent);
 }
 
+/* The player you've currently picked up, lifted to the top of the squad so their
+   details and headshot button are reachable without scrolling the list. */
+.sw1-squad__pinned {
+  margin-bottom: 10px;
+  padding: 6px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--club-primary) 7%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--club-primary) 30%, #e7ecf1);
+}
+.sw1-squad__pinnedhead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 1px 4px 6px;
+}
+.sw1-squad__pinnedlabel {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--club-primary);
+}
+.sw1-squad__pinnedwhere {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* One-tap honour badges (Captain / VC / Debut / Milestone) */
 .sw1-squad__roles {
   display: flex;
