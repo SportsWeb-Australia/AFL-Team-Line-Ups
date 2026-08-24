@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Club, MatchInfo, MatchTier, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
+import type { Club, MatchInfo, MatchTier, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
@@ -149,8 +149,8 @@ interface Props {
   insOuts?: { round: string | null; ins: { number: string; name: string }[]; outs: { number: string; name: string }[] } | null;
   onRefreshInsOuts?: () => void;
   // background watermark
-  wmSource: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
-  onWmSource: (s: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound') => void;
+  wmSource: WatermarkSource;
+  onWmSource: (s: WatermarkSource) => void;
   wmSponsorName: string;
   onWmSponsorName: (v: string) => void;
   onWmSponsorLogo: (dataUrl: string) => void;

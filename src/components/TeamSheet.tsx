@@ -10,6 +10,7 @@ import type {
   Sponsor,
   TeamSheetData,
   VisualMode,
+  WatermarkSource,
 } from '../types';
 import { FIELD_SLOTS, FIELD_SLOTS_MOBILE, LINE_LABELS, BENCH_TITLES, FOLLOWER_LABELS } from '../lib/field';
 import MatchHeader from './MatchHeader';
@@ -218,8 +219,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [clubPlayers, setClubPlayers] = useState<ClubPlayer[]>([]);
 
   // Background watermark behind the oval (club/sponsor name or logo).
-  type WmSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
-  const [wmSource, setWmSource] = useState<WmSource>('clubName');
+  const [wmSource, setWmSource] = useState<WatermarkSource>('clubName');
   const [wmSponsorName, setWmSponsorName] = useState('');
   const [wmSponsorLogo, setWmSponsorLogo] = useState<string | null>(null);
 

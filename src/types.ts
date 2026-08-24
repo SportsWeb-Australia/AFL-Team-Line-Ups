@@ -32,6 +32,13 @@ export type PlayerStatus =
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
+/** What shows in the faint background behind the oval. Declared once and shared
+ *  by the data contract, the editor state and the admin control: it was
+ *  previously spelled out separately in all three, and they drifted --
+ *  'specialRound' was added to the editor and the picker but never to the saved
+ *  shape, so the contract quietly disagreed with the feature. */
+export type WatermarkSource = 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo' | 'specialRound';
+
 /** The occasion a team sheet is dressed for. 'home' is the ordinary club look;
  *  the other two swap the accent metal across the whole graphic and add the
  *  struck plate to the header. */
@@ -147,7 +154,7 @@ export interface TeamSheetData {
   /** How players render on the ground: 'jumper' | 'headshot' | 'none'. Persisted so embeds match the editor. */
   visualMode?: VisualMode;
   /** What shows in the faint background behind the oval. Persisted so embeds match the editor. */
-  watermarkSource?: 'clubName' | 'clubLogo' | 'sponsorName' | 'sponsorLogo';
+  watermarkSource?: WatermarkSource;
   /** Custom watermark sponsor name + logo (when watermarkSource is a sponsor one). Persisted. */
   watermarkText?: string;
   watermarkLogoUrl?: string;
