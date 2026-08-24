@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Club, MatchInfo, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
+import type { Club, MatchInfo, MatchTier, Player, PlayerStatus, PositionKey, Sponsor, VisualMode } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
@@ -75,6 +75,8 @@ interface Props {
   onTeamJumper?: (dataUrl: string) => void;
   vsStyle?: 'chrome' | 'split';
   onVsStyle?: (s: 'chrome' | 'split') => void;
+  matchTier?: MatchTier;
+  onMatchTier?: (t: MatchTier) => void;
   showcase?: boolean;
   onShowcase?: (v: boolean) => void;
   hideSponsors?: boolean;
@@ -180,6 +182,8 @@ export default function AdminPanel({
   onTeamJumper,
   vsStyle,
   onVsStyle,
+  matchTier,
+  onMatchTier,
   showcase,
   onShowcase,
   hideSponsors,
@@ -907,6 +911,32 @@ export default function AdminPanel({
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
         </div>
+
+        {onMatchTier && (
+          <div className="sw1-vsstyle">
+            <span className="sw1-vsstyle__label">Occasion</span>
+            <div className="sw1-admin__modes">
+              {([
+                ['home', 'Home & away'],
+                ['finals', 'Finals'],
+                ['grand-final', 'Grand Final'],
+              ] as [MatchTier, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`sw1-chip ${(matchTier ?? 'home') === key ? 'is-active' : ''}`}
+                  onClick={() => onMatchTier(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="sw1-vsstyle__hint">
+              Finals and Grand Final add the struck plate to the header and swap the accent metal
+              across the whole graphic. The plate uses whatever you typed in Round.
+            </p>
+          </div>
+        )}
 
         {onVsStyle && (
           <div className="sw1-vsstyle">

@@ -32,6 +32,11 @@ export type PlayerStatus =
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
+/** The occasion a team sheet is dressed for. 'home' is the ordinary club look;
+ *  the other two swap the accent metal across the whole graphic and add the
+ *  struck plate to the header. */
+export type MatchTier = 'home' | 'finals' | 'grand-final';
+
 /**
  * Where a player record comes from / who owns it. Future-safe for three modes:
  *  - 'standalone'   : created inside Footy Team Line Ups; this app owns the record.
@@ -150,6 +155,9 @@ export interface TeamSheetData {
   jumperImageUrl?: string;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
   vsStyle?: 'chrome' | 'split';
+  /** Which occasion the graphic is dressed for. Drives the struck plate and the
+   *  accent metal across the whole sheet. Absent/'home' is the ordinary look. */
+  matchTier?: MatchTier;
   /** Showcase team (e.g. Team of the Century): no opponent — a title instead of a fixture. */
   showcase?: boolean;
   /** Remove the sponsor banner strip from the graphic entirely. */
