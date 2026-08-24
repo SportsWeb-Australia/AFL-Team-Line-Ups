@@ -1570,6 +1570,30 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         matchTier !== 'home' ? `sw1-root--${matchTier}` : ''
       }`}
       style={themeVars}
+      /**
+       * Click away to put a player down.
+       *
+       * Picking someone up used to be a one-way door: the only way out was to
+       * click that exact player again, so a mis-tap left you holding them with
+       * nowhere obvious to let go. Clicking any empty space now releases.
+       *
+       * The guard matters. Clicks on a slot, a bench, the squad list or any
+       * control bubble up to here, and a pick-up would otherwise be cancelled by
+       * its own click on the way past. So this only fires when the click landed
+       * on nothing interactive.
+       */
+      onClick={(e) => {
+        if (!admin || !selectedPlayerId) return;
+        const el = e.target as HTMLElement | null;
+        if (
+          el?.closest(
+            '.sw1-slot, .sw1-follower__slot, .sw1-bench, .sw1-squad, .sw1-plate, button, input, select, textarea, label, a, details, summary',
+          )
+        ) {
+          return;
+        }
+        holdPlayer(null);
+      }}
     >
       {admin && (
         <div className="sw1-swhead">
