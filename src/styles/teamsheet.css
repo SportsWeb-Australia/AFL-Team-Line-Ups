@@ -3834,3 +3834,45 @@
   font-weight: 600;
   line-height: 1.35;
 }
+
+/* ── Headshot framing: head and shoulders, not head and folded arms ────────
+   The boxes above are TALLER than they are wide (70x88, ratio 0.80), and the
+   image was set to `contain`. A typical club portrait is roughly square
+   (~0.92) and shows the player from the waist up, very often with folded
+   arms -- so contain fitted the WHOLE person into the box and the name plate
+   then sat across the middle of them, slicing through the forearms. It read
+   as amputated arms, which is what it looked like on the ground.
+
+   Two changes fix it together, and they only work as a pair:
+
+   1. The box becomes wider than it is tall. That matters because `cover`
+      crops along whichever axis has the surplus -- with a portrait box the
+      surplus is horizontal and it eats the SHOULDERS, which is the opposite
+      of what we want. Landscape box, and the surplus becomes vertical.
+   2. `cover` anchored near the top, so the crop keeps the head and the full
+      width of the shoulders and lets the folded arms fall away below.
+
+   Net effect: shoulder-to-shoulder is always fully visible, and the plate now
+   meets the player below the shoulder line instead of across the arms. */
+.sw1-plate--headshot .sw1-plate__art {
+  width: 112px;
+  height: 66px;
+  margin-bottom: -2px;
+}
+.sw1-slot .sw1-plate--headshot .sw1-plate__art,
+.sw1-follower .sw1-plate--headshot .sw1-plate__art,
+.sw1-interchange .sw1-plate--headshot .sw1-plate__art,
+.sw1-emergencies .sw1-plate--headshot .sw1-plate__art {
+  width: clamp(76px, 21cqw, 112px);
+  height: clamp(45px, 12.4cqw, 66px);
+}
+.sw1-plate--headshot .sw1-plate__art img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: cover;
+  /* 6% down rather than flush top: a sliver of headroom so a portrait shot
+     tight to the crown does not lose the top of the head. */
+  object-position: 50% 6%;
+}
