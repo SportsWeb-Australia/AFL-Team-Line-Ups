@@ -230,10 +230,10 @@
   --tier-edge: #e6c869;
   --tier-glow: rgba(212, 175, 55, 0.85);
   --tier-ink: #1a1405;
-  /* Aged bronze rather than black -- the dark alloy of the gold family. */
+  /* Black chrome, not bronze -- neutral, so gold stays the only warm element. */
   --tier-dark: linear-gradient(177deg,
-    #6b5628 0%, #3a2f13 8%, #1d1608 17%, #4a3c19 27%, #140f05 38%,
-    #3b2f12 50%, #171006 62%, #55441c 76%, #191205 88%, #3c3013 100%);
+    #55575d 0%, #2e3036 8%, #17181c 17%, #3d4046 27%, #101115 38%,
+    #33353b 50%, #131418 62%, #4a4d54 76%, #15161a 88%, #34363c 100%);
   --tier-frame: linear-gradient(96deg,
     #fffaf0 0%, #d9b954 9%, #fff4cf 19%, #b18c2a 30%, #f4e3a4 42%,
     #fffdf4 52%, #c9a338 64%, #f3e2a0 76%, #a5811f 88%, #fdf3d4 100%);
@@ -408,23 +408,41 @@
 /* The ground is a rolled panel, not a smooth wash: the same fine grain the
    plate carries, plus faint horizontal banding, so the whole header belongs to
    the same material as the plate sitting on it. */
+/* The banding that makes the panel read as rolled metal. Pure white/black
+   alphas rather than colours, so it lies over ANY club's primary and turns it
+   into that club's metal instead of tinting everything one shared hue. */
+.sw1-root--finals .sw1-header,
+.sw1-root--grand-final .sw1-header {
+  --panel-grain: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0.04) 1px 3px);
+  --panel-bands: linear-gradient(172deg,
+    rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 6%, rgba(0, 0, 0, 0.17) 13%,
+    rgba(255, 255, 255, 0.07) 21%, rgba(0, 0, 0, 0.10) 29%, rgba(255, 255, 255, 0.13) 38%,
+    rgba(0, 0, 0, 0.19) 47%, rgba(255, 255, 255, 0.05) 56%, rgba(0, 0, 0, 0.13) 66%,
+    rgba(255, 255, 255, 0.10) 76%, rgba(0, 0, 0, 0.17) 86%, rgba(255, 255, 255, 0.06) 94%,
+    rgba(0, 0, 0, 0.11) 100%);
+}
 .sw1-root--finals .sw1-header {
   background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.028) 0 1px, rgba(0, 0, 0, 0.03) 1px 3px),
-    linear-gradient(184deg, rgba(255, 255, 255, 0.05) 0%, transparent 14%, rgba(0, 0, 0, 0.07) 34%,
-      transparent 52%, rgba(255, 255, 255, 0.04) 70%, transparent 86%),
+    var(--panel-grain),
+    /* Raking specular across the panel, the same light the plate catches. */
+    linear-gradient(104deg, transparent 27%, rgba(255, 255, 255, 0.11) 43%, transparent 56%),
+    var(--panel-bands),
     radial-gradient(130% 120% at 50% -12%, color-mix(in srgb, var(--club-primary) 48%, #ffffff) 0%, transparent 55%),
     linear-gradient(155deg, color-mix(in srgb, var(--club-primary) 62%, #000000) 0%,
       color-mix(in srgb, var(--club-primary) 88%, #000000) 46%,
       color-mix(in srgb, var(--club-primary) 96%, #ffffff) 100%);
 }
+/* Graphite, deliberately neutral. An earlier pass warmed this ground toward
+   bronze to "match" the gold and it just read brown -- gold reads richest
+   against a neutral dark, and staying neutral keeps the gold the only warm
+   thing on the graphic. */
 .sw1-root--grand-final .sw1-header {
   background:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, rgba(0, 0, 0, 0.035) 1px 3px),
-    linear-gradient(184deg, rgba(255, 220, 150, 0.06) 0%, transparent 14%, rgba(0, 0, 0, 0.09) 34%,
-      transparent 52%, rgba(255, 220, 150, 0.05) 70%, transparent 86%),
-    radial-gradient(130% 120% at 50% -12%, #2a2412 0%, transparent 55%),
-    linear-gradient(155deg, #0a0904 0%, #14110a 46%, #241d0d 100%);
+    var(--panel-grain),
+    linear-gradient(104deg, transparent 27%, rgba(255, 240, 205, 0.11) 43%, transparent 56%),
+    var(--panel-bands),
+    radial-gradient(130% 120% at 50% -12%, #2d2f34 0%, transparent 55%),
+    linear-gradient(155deg, #0a0a0c 0%, #17181c 46%, #26282d 100%);
 }
 
 /* The header's own bezel: the same alloy as the plate's frame, run as a ring
@@ -486,8 +504,10 @@
 .sw1-root--finals .sw1-oval-img {
   filter: drop-shadow(0 6px 14px rgba(16, 24, 40, 0.14)) saturate(1.12) contrast(1.06) brightness(0.97);
 }
+/* No sepia: it dragged the grass toward brown along with everything else. Just
+   deepened and held neutral, so the gold is the only warm thing on the page. */
 .sw1-root--grand-final .sw1-oval-img {
-  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.3)) saturate(1.06) contrast(1.08) brightness(0.93) sepia(0.08);
+  filter: drop-shadow(0 6px 16px rgba(0, 0, 0, 0.34)) saturate(1.04) contrast(1.09) brightness(0.9);
 }
 
 .sw1-crest { text-align: center; }
