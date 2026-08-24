@@ -14,7 +14,19 @@
  */
 export async function removeHeadshotBackground(file: Blob): Promise<string> {
   const { removeBackground } = await import('@imgly/background-removal');
-  const out = await removeBackground(file);
+  const out = await removeBackground(file, {
+    // ARMS. The library ships three models and defaults to the quantised one,
+    // which is the smallest download and much the worst at thin structures --
+    // it eats forearms, bat handles and anything narrow against a busy
+    // background, which is exactly why cut-out players looked like their arms
+    // had been lopped off. 'isnet' is the full-precision model and holds those
+    // edges. It is a bigger first download, but it is fetched on demand and
+    // then cached, so a club cutting out a whole squad pays it once.
+    model: 'isnet',
+    // PNG at full quality: anything lossy chews the alpha edge and re-introduces
+    // the halo the cut-out exists to remove.
+    output: { format: 'image/png', quality: 1 },
+  });
   return blobToDataUrl(out);
 }
 
