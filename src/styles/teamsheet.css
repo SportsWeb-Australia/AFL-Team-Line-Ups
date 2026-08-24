@@ -3759,9 +3759,12 @@
 }
 
 /* Name plate: a milled edge and a seated face, so the tab and the name read as
-   one machined part rather than two rectangles butted together. */
-.sw1-root--finals .sw1-plate,
-.sw1-root--grand-final .sw1-plate {
+   one machined part rather than two rectangles butted together.
+   .sw1-plate__row, NOT .sw1-plate -- the latter is the outer wrapper holding
+   BOTH the photo and the name plate, so a ring on it drew a rectangle around
+   the player image as well. That was the "glass frame" on every player. */
+.sw1-root--finals .sw1-plate__row,
+.sw1-root--grand-final .sw1-plate__row {
   box-shadow:
     0 0 0 1px color-mix(in srgb, var(--tier-edge) 55%, transparent),
     0 2px 8px rgba(12, 20, 40, 0.24);
