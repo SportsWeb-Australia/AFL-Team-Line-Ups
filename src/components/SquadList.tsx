@@ -176,6 +176,13 @@ export default function SquadList({
     setEditNo(p.number);
     setEditName(p.name);
   };
+  /** Commit as you type. The editor now opens automatically whenever a player is
+   *  picked up, which invites typing -- and requiring the tick meant a number
+   *  typed and then abandoned (by clicking the ground to place the player) was
+   *  silently thrown away. The tick now only closes the row. */
+  const commitEdit = (id: string, patch: { number?: string; name?: string }) => {
+    onUpdatePlayer(id, patch);
+  };
   const saveEdit = (id: string) => {
     onUpdatePlayer(id, { number: editNo.trim(), name: editName.trim() });
     setEditId(null);
@@ -221,14 +228,16 @@ export default function SquadList({
               inputMode="numeric"
               placeholder="Jumper No."
               aria-label="Jumper number"
-              onChange={(e) => setEditNo(e.target.value)}
+              onChange={(e) => { setEditNo(e.target.value); commitEdit(p.id, { number: e.target.value.trim() }); }}
+              onBlur={() => commitEdit(p.id, { number: editNo.trim() })}
             />
             <input
               className="sw1-squad__editname"
               value={editName}
               placeholder="Player name"
               aria-label="Player name"
-              onChange={(e) => setEditName(e.target.value)}
+              onChange={(e) => { setEditName(e.target.value); commitEdit(p.id, { name: e.target.value }); }}
+              onBlur={() => commitEdit(p.id, { name: editName.trim() })}
             />
           </div>
           {/* Photo + confirm live together so there's nothing to scroll across. */}

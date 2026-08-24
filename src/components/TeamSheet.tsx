@@ -196,7 +196,31 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [unavailable, setUnavailable] = useState<string[]>(data.lineup.unavailable);
 
   const [visualMode, setVisualMode] = useState<VisualMode>('none');
+  /**
+   * Two different jobs, deliberately two states -- they were one, and that was
+   * the bug that made placing a player leave them "in hand" so the next tap
+   * moved the same player again instead of picking up a new one.
+   *
+   *  selectedPlayerId : the player currently PICKED UP. Drives placement and the
+   *                     on-field highlight. Cleared the moment they are put down.
+   *  focusedPlayerId  : the player whose card is pinned to the top of the squad.
+   *                     Survives placement so you can keep working on them
+   *                     (headshot, number, name) without hunting for them again.
+   */
   const [selectedPlayerId, setSelectedPlayerId] = useState<string | null>(null);
+  const [focusedPlayerId, setFocusedPlayerId] = useState<string | null>(null);
+
+  /** Pick a player up: held for moving, and pinned for editing. */
+  const holdPlayer = useCallback((id: string | null) => {
+    setSelectedPlayerId(id);
+    if (id) setFocusedPlayerId(id);
+  }, []);
+
+  /** Put a player down. They stay pinned, but your hand is empty again. */
+  const releasePlayer = useCallback((id: string) => {
+    setSelectedPlayerId(null);
+    setFocusedPlayerId(id);
+  }, []);
 
   // Branding/match details are editable in admin so a club can be set up live.
   const [club, setClub] = useState(data.club);
@@ -344,10 +368,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         setterFor[from.area]((prev) => prev.filter((x) => x !== id));
       }
     }
-    // Keep them selected after placing, so their card stays pinned at the top of
-    // the squad list and you can keep working on them (headshot, number, name)
-    // without hunting them down again. Clicking empty space clears it.
-    setSelectedPlayerId(id);
+    releasePlayer(id);
   }
 
   function assignToArea(area: BenchArea, id: string) {
@@ -365,7 +386,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } else {
       setterFor[area]((prev) => [...prev, id]);
     }
-    setSelectedPlayerId(id);
+    releasePlayer(id);
   }
 
   /** Place a player into a specific follower slot (0 Ruck / 1 Ruck Rover / 2 Rover). */
@@ -377,7 +398,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       a[idx] = id;
       return a;
     });
-    setSelectedPlayerId(id);
+    releasePlayer(id);
   }
 
   /** Quick-place from the squad list dropdown: a field position, a follower slot, or a bench group. */
@@ -1197,7 +1218,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         enabled={admin}
         selectedPlayerId={selectedPlayerId}
         onAssign={assignToArea}
-        onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
+        onSelect={(id) => holdPlayer(selectedPlayerId === id ? null : id)}
         rowLayout={area === 'unavailable'}
       />
     );
@@ -1646,7 +1667,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             followers={followers}
             onQuickPlace={quickPlace}
             visualMode={visualMode}
-            selectedPlayerId={selectedPlayerId}
+            selectedPlayerId={focusedPlayerId}
             onVisualMode={setVisualMode}
             teamJumperUrl={jumperImageUrl}
             competitionLogos={competitionLogos}
@@ -1661,7 +1682,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onShowcase={setShowcaseMode}
             hideSponsors={hideSponsors}
             onHideSponsors={setHideSponsors}
-            onSelect={(id) => setSelectedPlayerId((cur) => (cur === id ? null : id))}
+            onSelect={(id) => holdPlayer(selectedPlayerId === id ? null : id)}
             onAddPlayer={addPlayer}
             onImport={importPlayers}
             onSetAvailability={setAvailability}
@@ -1802,7 +1823,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               {slots.map((slot) => {
                 const id = positions[slot.key];
                 const player = id ? playerMap.get(id) : null;
-                const picked = !!id && selectedPlayerId === id;
+                const picked = admin && !!id && selectedPlayerId === id;
                 return (
                   <div
                     key={slot.key}
@@ -1813,9 +1834,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                       if (!admin) return;
                       // Clicking the player who is already selected, in the slot they
                       // already hold, puts them down rather than re-placing them.
-                      if (selectedPlayerId && selectedPlayerId === id) setSelectedPlayerId(null);
+                      if (selectedPlayerId && selectedPlayerId === id) holdPlayer(null);
                       else if (selectedPlayerId) placeIntoSlot(slot.key, selectedPlayerId);
-                      else if (id) setSelectedPlayerId(id); // pick up a placed player
+                      else if (id) holdPlayer(id); // pick up a placed player
                     }}
                     onDragOver={(e) => admin && e.preventDefault()}
                     onDrop={(e) => {
@@ -1849,7 +1870,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               {[0, 1, 2].map((idx) => {
                 const id = benchByArea.followers[idx];
                 const player = id ? playerMap.get(id) : null;
-                const picked = !!id && selectedPlayerId === id;
+                const picked = admin && !!id && selectedPlayerId === id;
                 return (
                   <div key={idx} className="sw1-follower">
                     <div
@@ -1858,9 +1879,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                       }`}
                       onClick={() => {
                         if (!admin) return;
-                        if (selectedPlayerId && selectedPlayerId === id) setSelectedPlayerId(null);
+                        if (selectedPlayerId && selectedPlayerId === id) holdPlayer(null);
                         else if (selectedPlayerId) placeFollower(idx, selectedPlayerId);
-                        else if (id) setSelectedPlayerId(id);
+                        else if (id) holdPlayer(id);
                       }}
                       onDragOver={(e) => admin && e.preventDefault()}
                       onDrop={(e) => {
