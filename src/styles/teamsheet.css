@@ -195,18 +195,38 @@
    untouched. --club-primary/-secondary still drive the ground, so a club's
    colours survive the whole way through. */
 .sw1-root--finals {
-  --tier-metal: linear-gradient(180deg, #ffffff 0%, #e4ecf4 34%, #a9bccf 56%, #f2f7fb 78%, #cbd8e5 100%);
-  --tier-edge: #cfdae7;
+  /* Anisotropic banding, not a smooth ramp. Real rolled metal reads as tight
+     alternating light/dark bands (the environment reflected in a brushed
+     surface) -- that banding is the whole tell, so the stops are deliberately
+     uneven and close together rather than evenly spaced. */
+  --tier-metal: linear-gradient(177deg,
+    #ffffff 0%, #e9f1f8 6%, #b9c9d9 13%, #8ea4ba 20%, #dfe9f2 29%,
+    #ffffff 37%, #a8bbcd 46%, #7c92a8 54%, #cfdcea 63%, #f6fafd 71%,
+    #9fb3c6 83%, #d6e2ee 93%, #ffffff 100%);
+  --tier-edge: #dbe6f1;
   --tier-glow: rgba(206, 230, 255, 0.75);
   --tier-ink: #0a1626;
   --tier-dark: #0b1622;
+  /* Cool dichroic rim -- the modern anodised/titanium tell. */
+  --tier-irid: linear-gradient(102deg,
+    rgba(120, 220, 255, 0.42) 0%, rgba(150, 170, 255, 0.16) 26%,
+    rgba(255, 255, 255, 0) 48%, rgba(180, 150, 255, 0.18) 74%,
+    rgba(110, 240, 230, 0.34) 100%);
 }
 .sw1-root--grand-final {
-  --tier-metal: linear-gradient(180deg, #fff6d8 0%, #f2d675 34%, #d4af37 58%, #9a7a1e 82%, #f0dc9a 100%);
-  --tier-edge: #d4af37;
+  --tier-metal: linear-gradient(177deg,
+    #fffaf0 0%, #ffeeb8 6%, #f0cf72 13%, #c9a233 21%, #f7e5a8 30%,
+    #fffdf2 38%, #dcb945 47%, #9c7a1c 55%, #e8ce74 64%, #fff8dd 72%,
+    #c2992c 84%, #edd88f 94%, #fffbef 100%);
+  --tier-edge: #e6c869;
   --tier-glow: rgba(212, 175, 55, 0.85);
   --tier-ink: #1a1405;
   --tier-dark: #120d05;
+  /* Warm rim -- gold shifts toward rose and green, never blue. */
+  --tier-irid: linear-gradient(102deg,
+    rgba(255, 190, 120, 0.40) 0%, rgba(255, 140, 90, 0.16) 26%,
+    rgba(255, 255, 255, 0) 48%, rgba(255, 220, 130, 0.20) 74%,
+    rgba(190, 255, 170, 0.26) 100%);
 }
 
 /* Room for the plate. */
@@ -224,13 +244,40 @@
   align-items: stretch;
   height: clamp(26px, 3.4vw, 34px);
   transform: skewX(-12deg);
-  overflow: hidden;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  /* Machined chamfer on the leading and trailing corners. A drop-shadow filter
+     rather than box-shadow, because the shadow has to follow the chamfered
+     silhouette -- box-shadow would be clipped square by the clip-path. */
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 7px, 100% 100%, 7px 100%, 0 calc(100% - 7px));
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.55));
 }
 .sw1-occasion__tier,
-.sw1-occasion__final { display: flex; align-items: center; }
-.sw1-occasion__tier { padding: 0 clamp(10px, 1.3vw, 15px); background: var(--tier-dark); }
-.sw1-occasion__final { padding: 0 clamp(12px, 1.6vw, 18px); background-image: var(--tier-metal); }
+.sw1-occasion__final { position: relative; display: flex; align-items: center; }
+.sw1-occasion__tier {
+  padding: 0 clamp(10px, 1.3vw, 15px);
+  background: var(--tier-dark);
+  /* Bevel: lit along the top edge, shaded along the bottom. */
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.28), inset 0 -1px 0 rgba(0, 0, 0, 0.55);
+}
+.sw1-occasion__final {
+  padding: 0 clamp(12px, 1.6vw, 18px);
+  /* Knurl over the banding: a fine machined grain, kept faint so it reads as
+     surface texture at export size instead of stripes. */
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, rgba(0, 0, 0, 0.055) 1px 2px),
+    var(--tier-metal);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
+}
+/* Dichroic rim across the metal -- the element that reads "modern" rather than
+   "chrome effect", and the reason finals and grand final feel like different
+   alloys rather than the same plate recoloured. */
+.sw1-occasion__final::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: var(--tier-irid);
+  mix-blend-mode: screen;
+  pointer-events: none;
+}
 /* Un-skew the lettering so only the plate is raked, never the type. */
 .sw1-occasion__tier b,
 .sw1-occasion__final b {
@@ -244,24 +291,64 @@
 .sw1-occasion__tier b { color: var(--tier-edge); }
 .sw1-occasion__final b { color: var(--tier-ink); }
 /* Sheen raking across the plate. */
+/* Specular sweep: two tight bands, not one soft wash. A hot narrow core with a
+   weaker trailing band is what a raking light actually does on a flat alloy. */
 .sw1-occasion::after {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.85) 46%, transparent 58%);
+  background:
+    linear-gradient(100deg, transparent 34%, rgba(255, 255, 255, 0.92) 45%, rgba(255, 255, 255, 0) 52%),
+    linear-gradient(100deg, transparent 58%, rgba(255, 255, 255, 0.30) 65%, rgba(255, 255, 255, 0) 71%);
   pointer-events: none;
+  z-index: 2;
 }
 
 /* The bolt is struck from the tier metal rather than the club's second colour. */
 .sw1-root--finals .sw1-header__bolt,
 .sw1-root--grand-final .sw1-header__bolt {
-  background-image: var(--tier-metal);
+  /* Same alloy as the plate, plus a hard specular edge down the strike so the
+     bolt catches light like a struck object rather than a coloured shape. */
+  background-image:
+    linear-gradient(108deg, transparent 40%, rgba(255, 255, 255, 0.85) 47%, transparent 53%),
+    var(--tier-metal);
   filter: drop-shadow(0 0 20px var(--tier-glow)) drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
 }
 
-/* Crest rings pick up the same metal. */
+/* Crest rings: a true spun-metal ring rather than a flat border. The conic
+   gradient puts highlights at the four quarters the way a turned bezel does,
+   and the radial mask punches out the centre so only the rim shows. */
 .sw1-root--finals .sw1-crest__badge span,
-.sw1-root--grand-final .sw1-crest__badge span { border-color: var(--tier-edge); }
+.sw1-root--grand-final .sw1-crest__badge span {
+  position: relative;
+  border-color: transparent;
+  /* Stop the club colour painting under the transparent border, or it shows as
+     a coloured band beneath the metal ring instead of the ring sitting clean. */
+  background-clip: padding-box;
+}
+.sw1-root--finals .sw1-crest__badge span::after,
+.sw1-root--grand-final .sw1-crest__badge span::after {
+  content: '';
+  position: absolute;
+  /* Sits exactly on the 4px border band. */
+  inset: -4px;
+  border-radius: 50%;
+  background: conic-gradient(
+    from 212deg,
+    var(--tier-edge) 0deg,
+    #ffffff 42deg,
+    var(--tier-edge) 96deg,
+    rgba(0, 0, 0, 0.55) 158deg,
+    var(--tier-edge) 210deg,
+    #ffffff 256deg,
+    var(--tier-edge) 310deg,
+    rgba(0, 0, 0, 0.45) 348deg,
+    var(--tier-edge) 360deg
+  );
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 4px), #000 calc(100% - 4px));
+  pointer-events: none;
+}
 
 /* Deepen the ground so the metal has something to sit against. Finals keeps the
    club colour and darkens it; the grand final goes to a warm near-black, because
@@ -294,6 +381,12 @@
 .sw1-root--grand-final .sw1-header__vs {
   background-image: var(--tier-metal);
   -webkit-text-stroke: 1.4px rgba(40, 28, 4, 0.5);
+}
+/* Finals leaves the chrome VS alone but sharpens it: a colder stroke and a
+   tighter shadow, so it reads as machined rather than soft. */
+.sw1-root--finals .sw1-header__vs {
+  -webkit-text-stroke: 1.4px rgba(6, 20, 40, 0.46);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.68)) drop-shadow(0 0 14px rgba(170, 210, 255, 0.22));
 }
 .sw1-root--grand-final .sw1-fixture__grade { color: #f7ecc4; }
 

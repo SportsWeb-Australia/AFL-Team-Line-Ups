@@ -21,7 +21,11 @@ function Crest({ name, logoUrl, color }: { name: string; logoUrl?: string | null
   return (
     <div className="sw1-crest">
       <div className="sw1-crest__badge">
-        {logoUrl ? <img src={logoUrl} alt={name} /> : <span style={{ background: color }}>{monogram(name)}</span>}
+        {/* backgroundColor, not the `background` shorthand: the shorthand resets
+            background-clip to border-box inline, which lets the club colour paint
+            under the transparent border and show as a band beneath the finals
+            metal ring. */}
+        {logoUrl ? <img src={logoUrl} alt={name} /> : <span style={{ backgroundColor: color }}>{monogram(name)}</span>}
       </div>
       <div className="sw1-crest__name">{name}</div>
     </div>
