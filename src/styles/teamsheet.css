@@ -3855,16 +3855,16 @@
    Net effect: shoulder-to-shoulder is always fully visible, and the plate now
    meets the player below the shoulder line instead of across the arms. */
 .sw1-plate--headshot .sw1-plate__art {
-  width: 96px;
-  height: 58px;
+  width: 112px;
+  height: 66px;
   margin-bottom: -2px;
 }
 .sw1-slot .sw1-plate--headshot .sw1-plate__art,
 .sw1-follower .sw1-plate--headshot .sw1-plate__art,
 .sw1-interchange .sw1-plate--headshot .sw1-plate__art,
 .sw1-emergencies .sw1-plate--headshot .sw1-plate__art {
-  width: clamp(66px, 18cqw, 96px);
-  height: clamp(40px, 10.9cqw, 58px);
+  width: clamp(76px, 21cqw, 112px);
+  height: clamp(45px, 12.4cqw, 66px);
 }
 .sw1-plate--headshot .sw1-plate__art img {
   width: 100%;
