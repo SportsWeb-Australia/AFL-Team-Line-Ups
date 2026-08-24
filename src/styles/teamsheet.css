@@ -3732,6 +3732,91 @@
 .sw1-linkerror h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
 .sw1-linkerror p { margin: 0; color: #5b6472; line-height: 1.55; font-size: 0.95rem; }
 
+/* ── Occasion: the line-up, not just the header ────────────────────────────
+   The header was struck metal sitting on a plain green page -- the plates,
+   number tabs and group banners below it were still flat club colour, so the
+   graphic read as two different products stacked. Everything below now draws
+   from the same --tier-* tokens the header does.
+
+   Club colour is deliberately kept on the name plate and the group banner body,
+   so a finals graphic still belongs to its club rather than becoming generic
+   silver. Only the FURNITURE turns to metal. */
+
+/* Number tab. The single highest-impact surface -- every player has one, and
+   fifteen of them across the ground carry the treatment further than anything
+   else on the page. */
+.sw1-root--finals .sw1-plate__no,
+.sw1-root--grand-final .sw1-plate__no {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, rgba(0, 0, 0, 0.05) 1px 2px),
+    var(--tier-metal);
+  color: var(--tier-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.28),
+    inset -1px 0 0 rgba(0, 0, 0, 0.22);
+}
+
+/* Name plate: a milled edge and a seated face, so the tab and the name read as
+   one machined part rather than two rectangles butted together. */
+.sw1-root--finals .sw1-plate,
+.sw1-root--grand-final .sw1-plate {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tier-edge) 55%, transparent),
+    0 2px 8px rgba(12, 20, 40, 0.24);
+}
+.sw1-root--finals .sw1-plate__name,
+.sw1-root--grand-final .sw1-plate__name {
+  background-image: linear-gradient(180deg, rgba(255, 255, 255, 0.9) 0%, rgba(226, 232, 240, 0.55) 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95);
+}
+
+/* Group banners -- FOLLOWERS / INTERCHANGE / EMERGENCIES. The chevron cut
+   already echoes the plate's shear, so it only needed the metal. */
+.sw1-root--finals .sw1-grouplabel,
+.sw1-root--finals .sw1-bench__title,
+.sw1-root--grand-final .sw1-grouplabel,
+.sw1-root--grand-final .sw1-bench__title {
+  background-image:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.06) 1px 3px),
+    var(--tier-dark);
+  color: #f1f5f9;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.55),
+    0 6px 14px rgba(0, 0, 0, 0.3);
+}
+/* The leading bar becomes the bright alloy -- the banner's own rim light. */
+.sw1-root--finals .sw1-grouplabel::before,
+.sw1-root--finals .sw1-bench__title::before,
+.sw1-root--grand-final .sw1-grouplabel::before,
+.sw1-root--grand-final .sw1-bench__title::before {
+  background-image: var(--tier-frame);
+}
+
+/* Position chips down the flank (B / HB / C / HF / F). */
+.sw1-root--finals .sw1-lines__label,
+.sw1-root--grand-final .sw1-lines__label {
+  background-image: var(--tier-dark);
+  color: var(--tier-edge);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.22),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.5),
+    0 1px 3px rgba(0, 0, 0, 0.35);
+}
+
+/* Ruck / Ruck Rover / Rover pills under the oval. */
+.sw1-root--finals .sw1-follower__label,
+.sw1-root--grand-final .sw1-follower__label {
+  background-image: var(--tier-metal);
+  color: var(--tier-ink);
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.85),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.3),
+    0 3px 8px rgba(0, 0, 0, 0.28);
+
 /* Home & away logos now sit inside the field grid, with the clubs they belong
    to (steps 1-2) rather than stranded below the colour pickers. Span the full
    row so the two uploads stay side by side instead of squeezing into one cell. */
