@@ -102,7 +102,13 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
     >
       {showArt && artSrc && (
         <div className="sw1-plate__art">
-          <img src={artSrc} alt="" />
+          {/* draggable={false} is load-bearing: the jumper/headshot art fills most of
+              the plate, so grabbing a player almost always means grabbing this image.
+              Images are natively draggable, so without this the browser starts its own
+              image-drag and the plate's dragstart never carries the player id — which
+              made dragging look broken on the field, followers, interchange and
+              emergencies alike (they all render this plate). */}
+          <img src={artSrc} alt="" draggable={false} />
         </div>
       )}
 

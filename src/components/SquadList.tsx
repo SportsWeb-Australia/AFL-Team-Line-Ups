@@ -1,4 +1,4 @@
-import { useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import type { Player, PlayerStatus, PositionKey } from '../types';
 import type { SlotDef } from '../lib/field';
 import type { ClubPlayer } from '../lib/source';
@@ -123,8 +123,34 @@ export default function SquadList({
   const q = search.trim().toLowerCase();
   const matchesSearch = (p: Player) =>
     !q || p.name.toLowerCase().includes(q) || (p.number || '').toLowerCase().includes(q);
-  const availableShown = available.filter(matchesSearch);
-  const unavailableShown = unavailable.filter(matchesSearch);
+  // The player currently picked up on the ground is lifted out of the list and
+  // pinned to the top, so you can see and edit them (headshot, number, name)
+  // without scrolling a long squad to find where their guernsey number sorts.
+  const pinned = selectedPlayerId ? players.find((p) => p.id === selectedPlayerId) ?? null : null;
+  const notPinned = (p: Player) => !pinned || p.id !== pinned.id;
+
+  // Picking a player up opens their details straight away, so "add a headshot" is
+  // there in front of you instead of behind the pencil. Keyed off the ref so it
+  // fires on a change of selection only — never on every squad re-render, which
+  // would fight you while you're mid-edit.
+  const lastSelected = useRef<string | null>(null);
+  useEffect(() => {
+    if (selectedPlayerId === lastSelected.current) return;
+    const prev = lastSelected.current;
+    lastSelected.current = selectedPlayerId;
+    if (selectedPlayerId) {
+      const p = players.find((x) => x.id === selectedPlayerId);
+      if (p) {
+        setEditId(p.id);
+        setEditNo(p.number);
+        setEditName(p.name);
+      }
+    } else if (prev) {
+      setEditId((cur) => (cur === prev ? null : cur));
+    }
+  }, [selectedPlayerId, players]);
+  const availableShown = available.filter(matchesSearch).filter(notPinned);
+  const unavailableShown = unavailable.filter(matchesSearch).filter(notPinned);
   const nothingFound = q !== '' && availableShown.length === 0 && unavailableShown.length === 0;
 
   // Opt-in cross-team search: only when actively searching, only players from
@@ -375,6 +401,16 @@ export default function SquadList({
               ✕
             </button>
           )}
+        </div>
+      )}
+
+      {pinned && (
+        <div className="sw1-squad__pinned">
+          <div className="sw1-squad__pinnedhead">
+            <span className="sw1-squad__pinnedlabel">Selected</span>
+            <span className="sw1-squad__pinnedwhere">{location.get(pinned.id) ?? 'Not on the ground'}</span>
+          </div>
+          {renderRow(pinned)}
         </div>
       )}
 

@@ -320,12 +320,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function placeIntoSlot(slot: PositionKey, id: string) {
     if (!confirmLeaveUnavailable(id)) return;
     const from = locate(id);
-    // Duplicate barrier: if this player is already on the ground elsewhere, make
-    // sure the user means to move them (rather than thinking they're adding anew).
-    if (from.kind === 'field' && from.slot !== slot) {
-      const nm = players.find((p) => p.id === id)?.name ?? 'That player';
-      if (!window.confirm(`${nm} is already on the ground. Move them to this position?`)) return;
-    }
+    // Moving a player who is already on the ground is the ordinary act of picking
+    // your side, not a mistake to guard against — the swap below already does the
+    // right thing, so it needs no confirmation.
     setPositions((prev) => {
       const next = { ...prev };
       const occupant = next[slot] ?? null;
@@ -345,7 +342,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         setterFor[from.area]((prev) => prev.filter((x) => x !== id));
       }
     }
-    setSelectedPlayerId(null);
+    // Keep them selected after placing, so their card stays pinned at the top of
+    // the squad list and you can keep working on them (headshot, number, name)
+    // without hunting them down again. Clicking empty space clears it.
+    setSelectedPlayerId(id);
   }
 
   function assignToArea(area: BenchArea, id: string) {
@@ -363,7 +363,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     } else {
       setterFor[area]((prev) => [...prev, id]);
     }
-    setSelectedPlayerId(null);
+    setSelectedPlayerId(id);
   }
 
   /** Place a player into a specific follower slot (0 Ruck / 1 Ruck Rover / 2 Rover). */
@@ -375,7 +375,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       a[idx] = id;
       return a;
     });
-    setSelectedPlayerId(null);
+    setSelectedPlayerId(id);
   }
 
   /** Quick-place from the squad list dropdown: a field position, a follower slot, or a bench group. */
@@ -1800,7 +1800,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                     data-slot={slot.key}
                     onClick={() => {
                       if (!admin) return;
-                      if (selectedPlayerId) placeIntoSlot(slot.key, selectedPlayerId);
+                      // Clicking the player who is already selected, in the slot they
+                      // already hold, puts them down rather than re-placing them.
+                      if (selectedPlayerId && selectedPlayerId === id) setSelectedPlayerId(null);
+                      else if (selectedPlayerId) placeIntoSlot(slot.key, selectedPlayerId);
                       else if (id) setSelectedPlayerId(id); // pick up a placed player
                     }}
                     onDragOver={(e) => admin && e.preventDefault()}
@@ -1844,7 +1847,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
                       }`}
                       onClick={() => {
                         if (!admin) return;
-                        if (selectedPlayerId) placeFollower(idx, selectedPlayerId);
+                        if (selectedPlayerId && selectedPlayerId === id) setSelectedPlayerId(null);
+                        else if (selectedPlayerId) placeFollower(idx, selectedPlayerId);
                         else if (id) setSelectedPlayerId(id);
                       }}
                       onDragOver={(e) => admin && e.preventDefault()}
