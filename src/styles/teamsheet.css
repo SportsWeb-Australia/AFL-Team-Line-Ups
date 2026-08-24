@@ -284,7 +284,7 @@
 .sw1-occasion__tier {
   padding: 0 clamp(10px, 1.3vw, 15px);
   background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.09) 0 1px, rgba(0, 0, 0, 0.10) 1px 2px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.06) 0 2px, rgba(0, 0, 0, 0.06) 2px 4px),
     var(--tier-dark);
   /* Bevel: lit along the top edge, shaded along the bottom. */
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.6);
@@ -305,7 +305,7 @@
   /* Knurl over the banding: a fine machined grain, kept faint so it reads as
      surface texture at export size instead of stripes. */
   background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.16) 0 1px, rgba(0, 0, 0, 0.055) 1px 2px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.10) 0 2px, rgba(0, 0, 0, 0.04) 2px 4px),
     var(--tier-metal);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.95), inset 0 -1px 0 rgba(0, 0, 0, 0.3);
 }
@@ -3747,9 +3747,10 @@
    else on the page. */
 .sw1-root--finals .sw1-plate__no,
 .sw1-root--grand-final .sw1-plate__no {
-  background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.14) 0 1px, rgba(0, 0, 0, 0.05) 1px 2px),
-    var(--tier-metal);
+  /* No knurl here. The tab is small and scales to fractional pixel widths on the
+     ground, so a 1px-period texture aliases into visible grey flecking across
+     it. The gradient and bevel carry the metal on their own. */
+  background-image: var(--tier-metal);
   color: var(--tier-ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
   box-shadow:
@@ -3782,7 +3783,7 @@
 .sw1-root--grand-final .sw1-grouplabel,
 .sw1-root--grand-final .sw1-bench__title {
   background-image:
-    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0 1px, rgba(0, 0, 0, 0.06) 1px 3px),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 2px, rgba(0, 0, 0, 0.05) 2px 5px),
     var(--tier-dark);
   color: #f1f5f9;
   box-shadow:
