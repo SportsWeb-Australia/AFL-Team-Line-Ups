@@ -635,6 +635,54 @@ export default function AdminPanel({
 
         {!showcase && <ImportFromFixturesLadder clubName={club.name} onImport={onMatch} />}
 
+        {onMatchTier && (
+          <div className="sw1-vsstyle">
+            <span className="sw1-vsstyle__label">Occasion</span>
+            <div className="sw1-admin__modes">
+              {([
+                ['home', 'Home & away'],
+                ['finals', 'Finals'],
+                ['grand-final', 'Grand Final'],
+              ] as [MatchTier, string][]).map(([key, label]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`sw1-chip ${(matchTier ?? 'home') === key ? 'is-active' : ''}`}
+                  onClick={() => onMatchTier(key)}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="sw1-vsstyle__hint">
+              Finals and Grand Final add the struck plate to the header and swap the accent metal
+              across the whole graphic. The plate uses whatever you typed in Round.
+            </p>
+          </div>
+        )}
+
+        {onVsStyle && (
+          <div className="sw1-vsstyle">
+            <span className="sw1-vsstyle__label">Centre "VS" style</span>
+            <div className="sw1-admin__modes">
+              <button
+                type="button"
+                className={`sw1-chip ${(vsStyle ?? 'chrome') === 'chrome' ? 'is-active' : ''}`}
+                onClick={() => onVsStyle('chrome')}
+              >
+                Chrome ⚡
+              </button>
+              <button
+                type="button"
+                className={`sw1-chip ${vsStyle === 'split' ? 'is-active' : ''}`}
+                onClick={() => onVsStyle('split')}
+              >
+                Two-tone split
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="sw1-brand__grid">
           <label><span className="sw1-step">1</span>Club<input value={club.name} onChange={(e) => onClub({ name: e.target.value })} /></label>
           <label className="sw1-hide-showcase"><span className="sw1-step">2</span>Opponent
@@ -913,54 +961,6 @@ export default function AdminPanel({
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
         </div>
-
-        {onMatchTier && (
-          <div className="sw1-vsstyle">
-            <span className="sw1-vsstyle__label">Occasion</span>
-            <div className="sw1-admin__modes">
-              {([
-                ['home', 'Home & away'],
-                ['finals', 'Finals'],
-                ['grand-final', 'Grand Final'],
-              ] as [MatchTier, string][]).map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  className={`sw1-chip ${(matchTier ?? 'home') === key ? 'is-active' : ''}`}
-                  onClick={() => onMatchTier(key)}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-            <p className="sw1-vsstyle__hint">
-              Finals and Grand Final add the struck plate to the header and swap the accent metal
-              across the whole graphic. The plate uses whatever you typed in Round.
-            </p>
-          </div>
-        )}
-
-        {onVsStyle && (
-          <div className="sw1-vsstyle">
-            <span className="sw1-vsstyle__label">Centre "VS" style</span>
-            <div className="sw1-admin__modes">
-              <button
-                type="button"
-                className={`sw1-chip ${(vsStyle ?? 'chrome') === 'chrome' ? 'is-active' : ''}`}
-                onClick={() => onVsStyle('chrome')}
-              >
-                Chrome ⚡
-              </button>
-              <button
-                type="button"
-                className={`sw1-chip ${vsStyle === 'split' ? 'is-active' : ''}`}
-                onClick={() => onVsStyle('split')}
-              >
-                Two-tone split
-              </button>
-            </div>
-          </div>
-        )}
 
         <div className="sw1-brand__logos">
           <label>Home logo
