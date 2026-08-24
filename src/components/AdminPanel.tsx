@@ -850,6 +850,27 @@ export default function AdminPanel({
               </ul>
             </details>
           )}
+          {/* Home & away logos sit with the clubs they belong to (steps 1-2),
+              not stranded at the bottom of the section. */}
+        <div className="sw1-brand__logos">
+          <label>Home logo
+            <input type="file" accept="image/*" onChange={uploadLogo('home')} />
+            {club.logoUrl ? (
+              <span className="sw1-logoset"><img src={club.logoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
+            ) : (
+              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
+            )}
+          </label>
+          <label>Away logo
+            <input type="file" accept="image/*" onChange={uploadLogo('away')} />
+            {match.opponentLogoUrl ? (
+              <span className="sw1-logoset"><img src={match.opponentLogoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
+            ) : (
+              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
+            )}
+          </label>
+        </div>
+
 
           <label className="sw1-hide-showcase"><span className="sw1-step">3</span>Round
             <select value={match.round} onChange={(e) => onMatch({ round: e.target.value })}>
@@ -960,25 +981,6 @@ export default function AdminPanel({
           <label className="sw1-brand__full">Competition / league<input value={match.competition ?? ''} onChange={(e) => onMatch({ competition: e.target.value })} placeholder="e.g. Eastern Football Netball League" /></label>
           <label className="sw1-brand__color">Primary<input type="color" value={club.primaryColor} onChange={(e) => onClub({ primaryColor: e.target.value })} /></label>
           <label className="sw1-brand__color">Secondary<input type="color" value={club.secondaryColor} onChange={(e) => onClub({ secondaryColor: e.target.value })} /></label>
-        </div>
-
-        <div className="sw1-brand__logos">
-          <label>Home logo
-            <input type="file" accept="image/*" onChange={uploadLogo('home')} />
-            {club.logoUrl ? (
-              <span className="sw1-logoset"><img src={club.logoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
-            ) : (
-              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
-            )}
-          </label>
-          <label>Away logo
-            <input type="file" accept="image/*" onChange={uploadLogo('away')} />
-            {match.opponentLogoUrl ? (
-              <span className="sw1-logoset"><img src={match.opponentLogoUrl} alt="" /> ✓ Current logo set — choose a file to replace</span>
-            ) : (
-              <span className="sw1-logoset sw1-logoset--empty">No logo yet</span>
-            )}
-          </label>
         </div>
 
         {/* Competition / extra logos — its own collapsible action, separated from

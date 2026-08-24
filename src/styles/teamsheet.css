@@ -3731,3 +3731,20 @@
 }
 .sw1-linkerror h2 { margin: 0 0 0.6rem; font-size: 1.15rem; }
 .sw1-linkerror p { margin: 0; color: #5b6472; line-height: 1.55; font-size: 0.95rem; }
+
+/* Home & away logos now sit inside the field grid, with the clubs they belong
+   to (steps 1-2) rather than stranded below the colour pickers. Span the full
+   row so the two uploads stay side by side instead of squeezing into one cell. */
+.sw1-brand__grid > .sw1-brand__logos {
+  grid-column: 1 / -1;
+}
+/* "Current logo set - choose a file to replace" is a confirmation message, not
+   a field label. It was inheriting the uppercase field treatment and shouting a
+   whole sentence in caps. */
+.sw1-brand .sw1-logoset {
+  text-transform: none;
+  letter-spacing: normal;
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.35;
+}
