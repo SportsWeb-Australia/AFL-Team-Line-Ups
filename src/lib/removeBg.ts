@@ -18,6 +18,11 @@
  *  the final framing -- the layout then has nothing left to crop or guess at. */
 const TARGET_ASPECT = 112 / 84; // 1.333, matching .sw1-plate--headshot .sw1-plate__art
 
+/** How tall a player's head should be, as a fraction of the framed height.
+ *  This is the number that decides how big everyone looks. Raise it and heads
+ *  grow; lower it and they shrink. */
+const TARGET_HEAD_FRACTION = 0.46;
+
 export async function removeHeadshotBackground(file: Blob): Promise<string> {
   const { removeBackground } = await import('@imgly/background-removal');
   const out = await removeBackground(file, {
@@ -73,40 +78,87 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
     // box" the whole frame again.
     const THRESHOLD = 24;
     let minX = w, minY = h, maxX = -1, maxY = -1;
+    // Opaque width of every row, which is what lets us find the shoulders.
+    const rowWidth = new Int32Array(h);
     for (let y = 0; y < h; y++) {
+      let lo = -1, hi = -1;
       for (let x = 0; x < w; x++) {
         if (data[(y * w + x) * 4 + 3] > THRESHOLD) {
-          if (x < minX) minX = x;
-          if (x > maxX) maxX = x;
-          if (y < minY) minY = y;
-          if (y > maxY) maxY = y;
+          if (lo < 0) lo = x;
+          hi = x;
         }
+      }
+      if (lo >= 0) {
+        rowWidth[y] = hi - lo + 1;
+        if (lo < minX) minX = lo;
+        if (hi > maxX) maxX = hi;
+        if (y < minY) minY = y;
+        maxY = y;
       }
     }
     if (maxX < minX || maxY < minY) return dataUrl; // nothing opaque; leave alone
 
     const bw = maxX - minX + 1;
     const bh = maxY - minY + 1;
-    // A hair of breathing room so the crop never shaves the outermost pixel.
-    const pad = Math.round(bw * 0.02);
 
-    // Width is the subject, edge to edge, plus that hair -- never any more, so
-    // the player always fills the frame side to side and therefore always
-    // renders the same size. Height follows from the target aspect, measured
-    // DOWN FROM THE CROWN, so everyone is cut at the same point on their body.
-    const outW = bw + pad * 2;
-    const outH = Math.round(outW / TARGET_ASPECT);
+    // WHERE THE SHOULDERS START.
+    //
+    // Scaling so the SHOULDERS fill the frame was the mistake: a broad-built
+    // player then gets shrunk to fit and his head comes out smaller than a
+    // narrow player's. The eye judges "same size" by HEAD, not shoulder width.
+    //
+    // Finding the shoulder line by "first row half as wide again as the head"
+    // fails on slight builds, whose shoulders are barely wider than their head.
+    // Instead take the row where the width GROWS FASTEST. Every build has that
+    // moment where the neck gives way to shoulders, whatever the ratio.
+    const headTop = minY;
+    const searchTo = Math.min(maxY, headTop + Math.round(bh * 0.6));
+    // Smooth over a few rows so a single ragged edge cannot masquerade as a jump.
+    const span = Math.max(2, Math.round(bh * 0.015));
+    let bestDelta = 0;
+    let shoulderY = -1;
+    for (let y = headTop + span; y <= searchTo - span; y++) {
+      const before = rowWidth[y - span];
+      const after = rowWidth[y + span];
+      if (!before || !after) continue;
+      const delta = after - before;
+      if (delta > bestDelta) { bestDelta = delta; shoulderY = y; }
+    }
+    // Require the growth to be real, not noise on an even-width silhouette.
+    if (shoulderY > 0 && bestDelta < Math.max(4, bw * 0.06)) shoulderY = -1;
+    const headHeight = shoulderY > headTop ? shoulderY - headTop : Math.round(bh * 0.32);
+
+    // Scale so every player's head is the same fraction of the frame.
+    const outH = Math.round(headHeight / TARGET_HEAD_FRACTION);
+    const outW = Math.round(outH * TARGET_ASPECT);
+    if (!isFinite(outW) || outW < 8 || outH < 8) return dataUrl;
+
+    const scale = outH / (headHeight / TARGET_HEAD_FRACTION); // 1, kept for clarity
+    const drawW = Math.round(bw * scale);
+    const drawH = Math.round(bh * scale);
 
     const dst = document.createElement('canvas');
     dst.width = outW;
     dst.height = outH;
     const dctx = dst.getContext('2d');
     if (!dctx) return dataUrl;
-    // Source rect starts at the crown; anything past the target height simply is
-    // not copied. If the subject is shorter than the window, the remainder stays
-    // transparent rather than being stretched.
-    const copyH = Math.min(bh, outH - pad);
-    dctx.drawImage(img, minX, minY, bw, copyH, pad, pad, bw, copyH);
+    dctx.imageSmoothingQuality = 'high';
+    // Centred on the head, not the body: a player carrying a bag or with one
+    // arm out should still have his face in the middle of the plate.
+    let headCx = minX + bw / 2;
+    if (shoulderY > headTop) {
+      let hlo = w, hhi = -1;
+      for (let y = headTop; y < shoulderY; y++) {
+        for (let x = minX; x <= maxX; x++) {
+          if (data[(y * w + x) * 4 + 3] > THRESHOLD) { if (x < hlo) hlo = x; if (x > hhi) hhi = x; }
+        }
+      }
+      if (hhi > hlo) headCx = (hlo + hhi) / 2;
+    }
+    const dx = Math.round(outW / 2 - (headCx - minX) * scale);
+    // A little air above the crown so no one is cropped at the hairline.
+    const dy = Math.round(outH * 0.04);
+    dctx.drawImage(img, minX, minY, bw, bh, dx, dy, drawW, drawH);
     return dst.toDataURL('image/png');
   } catch {
     return dataUrl;
