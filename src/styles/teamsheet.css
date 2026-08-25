@@ -203,6 +203,10 @@
     #ffffff 0%, #e9f1f8 6%, #b9c9d9 13%, #8ea4ba 20%, #dfe9f2 29%,
     #ffffff 37%, #a8bbcd 46%, #7c92a8 54%, #cfdcea 63%, #f6fafd 71%,
     #9fb3c6 83%, #d6e2ee 93%, #ffffff 100%);
+  /* Small-surface alloy. --tier-metal has 13 stops, which reads as brushed
+     metal across a wide plate but compresses to a stop every ~2px on something
+     the size of a number tab -- stripes, not sheen. Four stops instead. */
+  --tier-metal-sm: linear-gradient(177deg, #ffffff 0%, #d7e2ee 42%, #9fb3c6 62%, #f2f7fb 100%);
   --tier-edge: #dbe6f1;
   --tier-glow: rgba(206, 230, 255, 0.75);
   --tier-ink: #0a1626;
@@ -227,6 +231,7 @@
     #fffaf0 0%, #ffeeb8 6%, #f0cf72 13%, #c9a233 21%, #f7e5a8 30%,
     #fffdf2 38%, #dcb945 47%, #9c7a1c 55%, #e8ce74 64%, #fff8dd 72%,
     #c2992c 84%, #edd88f 94%, #fffbef 100%);
+  --tier-metal-sm: linear-gradient(177deg, #fff8e2 0%, #ecd484 42%, #c9a233 62%, #f8ecc0 100%);
   --tier-edge: #e6c869;
   --tier-glow: rgba(212, 175, 55, 0.85);
   --tier-ink: #1a1405;
@@ -3747,10 +3752,10 @@
    else on the page. */
 .sw1-root--finals .sw1-plate__no,
 .sw1-root--grand-final .sw1-plate__no {
-  /* No knurl here. The tab is small and scales to fractional pixel widths on the
-     ground, so a 1px-period texture aliases into visible grey flecking across
-     it. The gradient and bevel carry the metal on their own. */
-  background-image: var(--tier-metal);
+  /* Small surface: the four-stop alloy. The full 13-stop --tier-metal lands a
+     colour stop every ~2px on a 29px tab, which reads as banding across every
+     player rather than a sheen -- grey in finals, gold in the grand final. */
+  background-image: var(--tier-metal-sm);
   color: var(--tier-ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.45);
   box-shadow:
@@ -3813,7 +3818,7 @@
 /* Ruck / Ruck Rover / Rover pills under the oval. */
 .sw1-root--finals .sw1-follower__label,
 .sw1-root--grand-final .sw1-follower__label {
-  background-image: var(--tier-metal);
+  background-image: var(--tier-metal-sm);
   color: var(--tier-ink);
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.4);
   box-shadow:
