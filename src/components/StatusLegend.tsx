@@ -1,9 +1,12 @@
 import type { PlayerStatus } from '../types';
 import { HEALTH_STATUS } from './PlayerPlate';
 
+/** Badges the key explains.
+ *
+ *  C and VC are deliberately absent. Every footy follower reads those on
+ *  sight, so spelling them out only pads the key and buries the badges that do
+ *  need explaining. The badges still appear on the plates -- just not here. */
 const ROLE_LEGEND: { key: PlayerStatus; short: string; label: string; cls: string }[] = [
-  { key: 'captain', short: 'C', label: 'Captain', cls: 'is-role' },
-  { key: 'vice-captain', short: 'VC', label: 'Vice-captain', cls: 'is-role' },
   { key: 'debut', short: '★', label: 'Debut', cls: 'is-debut' },
   { key: 'milestone', short: '◆', label: 'Milestone', cls: 'is-milestone' },
 ];

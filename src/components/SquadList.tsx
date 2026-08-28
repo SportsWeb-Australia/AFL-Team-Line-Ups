@@ -128,6 +128,13 @@ export default function SquadList({
   // without scrolling a long squad to find where their guernsey number sorts.
   const pinned = selectedPlayerId ? players.find((p) => p.id === selectedPlayerId) ?? null : null;
   const notPinned = (p: Player) => !pinned || p.id !== pinned.id;
+  /** The row being edited is never filtered out.
+   *
+   *  Edits commit on every keystroke, and the search filter reads the same
+   *  name -- so renaming a player you had searched for dropped the row out from
+   *  under you on the FIRST letter, mid-word, and you had to search again for
+   *  whatever fragment you had managed to type. Whatever is open stays open. */
+  const isEditing = (p: Player) => p.id === editId;
 
   // Picking a player up opens their details straight away, so "add a headshot" is
   // there in front of you instead of behind the pencil. Keyed off the ref so it
@@ -149,8 +156,8 @@ export default function SquadList({
       setEditId((cur) => (cur === prev ? null : cur));
     }
   }, [selectedPlayerId, players]);
-  const availableShown = available.filter(matchesSearch).filter(notPinned);
-  const unavailableShown = unavailable.filter(matchesSearch).filter(notPinned);
+  const availableShown = available.filter((p) => matchesSearch(p) || isEditing(p)).filter(notPinned);
+  const unavailableShown = unavailable.filter((p) => matchesSearch(p) || isEditing(p)).filter(notPinned);
   const nothingFound = q !== '' && availableShown.length === 0 && unavailableShown.length === 0;
 
   // Opt-in cross-team search: only when actively searching, only players from
@@ -252,13 +259,14 @@ export default function SquadList({
               </button>
             )}
             <span className="sw1-squad__editactions-gap" />
-            <button className="sw1-squad__ok" onClick={() => saveEdit(p.id)} title="Save">
-              ✓
-            </button>
-            <button className="sw1-squad__x" onClick={() => setEditId(null)} title="Cancel">
-              ✕
+            {/* One labelled button, not a tick and a cross. The cross used to say
+                "Cancel" while cancelling nothing -- edits commit as they are
+                typed, so there was never anything to revert. */}
+            <button className="sw1-squad__done" onClick={() => saveEdit(p.id)}>
+              Done
             </button>
           </div>
+          <p className="sw1-squad__savenote">Changes save as you type.</p>
           <p className="sw1-squad__imgnote">
             Background is removed automatically. For the sharpest cut-out, upload a headshot that's
             already on a transparent or clean background — or have it done at the source.{' '}
