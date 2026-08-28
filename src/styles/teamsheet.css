@@ -3919,3 +3919,34 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── Longer names on the flanks ────────────────────────────────────────────
+   Field slots sit at 20%, 50% and 80% across the pitch, and a name plate is
+   capped at 28cqw centred on its slot. That leaves the CENTRE column boxed in
+   by neighbours either side, but the outer columns have roughly 6% of unused
+   pitch between them and the boundary -- which is why a long name like
+   "B. Vander Vliet" truncates on a flank while there is visibly space beside
+   it, worst on a phone where 28cqw is only a few characters.
+
+   So the flanks get a wider cap, and the extra width is pushed OUTWARD with a
+   margin rather than growing evenly from the centre, which would eat into the
+   gap with the middle player. The centre column is left exactly as it was --
+   it has nowhere to grow. */
+.sw1-slot[data-slot$='L'] .sw1-plate__row,
+.sw1-slot[data-slot$='R'] .sw1-plate__row {
+  max-width: clamp(118px, 35cqw, 232px);
+}
+.sw1-slot[data-slot$='L'] .sw1-plate__row { margin-right: 6cqw; }
+.sw1-slot[data-slot$='R'] .sw1-plate__row { margin-left: 6cqw; }
+
+/* Slots are absolutely positioned by `left`, so a right-hand slot at left:80%
+   could only shrink-to-fit into the remaining 20% of the pitch -- it wrapped
+   and clipped while its mirror on the left had the whole width to grow into.
+   Sizing to max-content takes the available space out of the calculation, so
+   both flanks behave the same and the plate's own max-width is what governs.
+   The slot is still centred on its mark by the existing translate(-50%). */
+.sw1-slot { width: max-content; }
+
+/* A few more characters everywhere, for free: the right padding was doing
+   nothing the ellipsis was not already doing. */
+.sw1-plate__name { padding-right: 8px; }
