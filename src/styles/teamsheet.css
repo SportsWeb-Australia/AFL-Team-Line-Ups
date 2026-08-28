@@ -3907,3 +3907,15 @@
   font-weight: 600;
   color: #15803d;
 }
+
+/* Undo sits first in the toolbar, and reads as available or not at a glance --
+   a disabled-looking button is the honest signal that there is nothing to step
+   back to. */
+.sw1-btn--undo:not(:disabled) {
+  border-color: #b9c4d4;
+  font-weight: 700;
+}
+.sw1-btn--undo:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}

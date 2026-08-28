@@ -195,6 +195,69 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [emergencies, setEmergencies] = useState<string[]>(data.lineup.emergencies);
   const [unavailable, setUnavailable] = useState<string[]>(data.lineup.unavailable);
 
+  /**
+   * Undo for the line-up.
+   *
+   * Putting a player in the wrong spot is the easiest mistake to make here and,
+   * until now, the only way back was to remember where they came from and move
+   * them again -- and a swap moved TWO players, so you had to remember both.
+   *
+   * Only the line-up is tracked: positions, followers, interchange, emergencies
+   * and unavailable. Not the squad, the match details or the branding -- those
+   * are edited deliberately in their own fields, where an undo button sitting
+   * over on the graphic toolbar would be a surprising thing to have reach in
+   * and change.
+   */
+  type LineupSnapshot = {
+    positions: Partial<Record<PositionKey, string>>;
+    followers: string[];
+    interchange: string[];
+    emergencies: string[];
+    unavailable: string[];
+  };
+  const [undoStack, setUndoStack] = useState<LineupSnapshot[]>([]);
+  /** Capture the state BEFORE a change, so undo restores what was on screen. */
+  function pushUndo() {
+    setUndoStack((prev) => [
+      // Twenty is plenty for "I just did that wrong" and keeps the memory bounded.
+      ...prev.slice(-19),
+      {
+        positions: { ...positions },
+        followers: [...followers],
+        interchange: [...interchange],
+        emergencies: [...emergencies],
+        unavailable: [...unavailable],
+      },
+    ]);
+  }
+  // Ctrl/Cmd+Z as well as the button. Ignored while a field has focus, so it
+  // never steals the browser's own undo from someone typing a player's name.
+  useEffect(() => {
+    if (!admin) return;
+    function onKey(e: KeyboardEvent) {
+      if (!(e.key === 'z' || e.key === 'Z') || !(e.metaKey || e.ctrlKey) || e.shiftKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+      e.preventDefault();
+      undoLastMove();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  });
+
+  function undoLastMove() {
+    if (undoStack.length === 0) return;
+    const last = undoStack[undoStack.length - 1];
+    setPositions(last.positions);
+    setFollowers(last.followers);
+    setInterchange(last.interchange);
+    setEmergencies(last.emergencies);
+    setUnavailable(last.unavailable);
+    // Drop whoever is held: after stepping back, the hand should be empty.
+    setSelectedPlayerId(null);
+    setUndoStack((prev) => prev.slice(0, -1));
+  }
+
   const [visualMode, setVisualMode] = useState<VisualMode>('none');
   /**
    * Two different jobs, deliberately two states -- they were one, and that was
@@ -345,6 +408,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
    */
   function placeIntoSlot(slot: PositionKey, id: string) {
     if (!confirmLeaveUnavailable(id)) return;
+    pushUndo();
     const from = locate(id);
     // Moving a player who is already on the ground is the ordinary act of picking
     // your side, not a mistake to guard against — the swap below already does the
@@ -374,6 +438,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function assignToArea(area: BenchArea, id: string) {
     // Pulling someone out of Unavailable into a playing group: confirm + clear tag.
     if (area !== 'unavailable' && !confirmLeaveUnavailable(id)) return;
+    pushUndo();
     clearEverywhere(id);
     if (area === 'followers') {
       // Generic follower drop with no specific slot → first free of Ruck/RR/Rover.
@@ -392,6 +457,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   /** Place a player into a specific follower slot (0 Ruck / 1 Ruck Rover / 2 Rover). */
   function placeFollower(idx: number, id: string) {
     if (!confirmLeaveUnavailable(id)) return;
+    pushUndo();
     clearEverywhere(id);
     setFollowers((prev) => {
       const a = to3(prev).map((x) => (x === id ? '' : x));
@@ -421,6 +487,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       !window.confirm('Clear all on-field and bench selections? Your squad list stays intact.')
     )
       return;
+    pushUndo();
     setPositions({});
     setFollowers([]);
     setInterchange([]);
@@ -1622,6 +1689,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       )}
       {admin && (
         <div className="sw1-toolbar">
+          {/* First in the bar on purpose: the thing you reach for in a hurry
+              should not be hiding behind Share or down in a panel. */}
+          <button
+            className="sw1-btn sw1-btn--undo"
+            onClick={undoLastMove}
+            disabled={undoStack.length === 0}
+            title={undoStack.length === 0 ? 'Nothing to undo' : 'Undo the last move (Ctrl+Z)'}
+          >
+            &#8630; Undo{undoStack.length > 1 ? ` (${undoStack.length})` : ''}
+          </button>
           <button className="sw1-btn" onClick={copyTeamList}>
             {copyMsg || 'Copy team list to text'}
           </button>
