@@ -824,9 +824,22 @@ export async function saveTeamSheet(
         jumper_image_url: p.jumperImageUrl ?? null,
       };
     });
+    // Postgres refuses an upsert whose batch hits the same conflict target
+    // twice -- "ON CONFLICT DO UPDATE command cannot affect row a second time"
+    // -- and the conflict target here is (club_id, number). Two players sharing
+    // a guernsey number, which happens easily enough with a duplicated squad
+    // row or a typo, made every save fail with that raw database error.
+    //
+    // Collapse duplicates before sending. Last one wins, which is what the
+    // database would have done had they arrived as separate statements, and
+    // matches the expectation that the most recent edit is the real one.
+    const byConflictKey = new Map<string, (typeof rows)[number]>();
+    for (const r of rows) byConflictKey.set(String(r.number).trim(), r);
+    const deduped = [...byConflictKey.values()];
+
     const { data: saved, error: e6 } = await supabase
       .from('players')
-      .upsert(rows, { onConflict: 'club_id,number' })
+      .upsert(deduped, { onConflict: 'club_id,number' })
       .select('id, number');
     if (e6) throw e6;
     const byNumber = new Map(((saved as any[]) ?? []).map((r) => [String(r.number), r.id as string]));
