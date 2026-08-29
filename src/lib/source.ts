@@ -744,6 +744,19 @@ async function imagesToStorage(d: TeamSheetData): Promise<TeamSheetData> {
  * sequential (not one transaction) — fine for the editor; production should
  * move this behind a transactional, auth-guarded function.
  */
+/** Turn the raw unique-violation on players_club_number_uniq into something a
+ *  coach can act on. Reaching this means a number was about to be written onto a
+ *  row that belongs to a different player -- refusing is the point. */
+function numberConflict(err: any, numbers: string[]): Error {
+  if (err?.code === '23505' && /club.*number|players_club_number_uniq/i.test(String(err?.message) + String(err?.details))) {
+    return new Error(
+      `That guernsey number is already used by another player at this club, so nothing was saved ` +
+        `(numbers in this save: ${numbers.join(', ')}). Change the number, or edit the existing player instead.`,
+    );
+  }
+  return err instanceof Error ? err : new Error(String(err?.message ?? err));
+}
+
 export async function saveTeamSheet(
   d: TeamSheetData,
   refs: DbRefs,
@@ -965,46 +978,116 @@ export async function saveTeamSheet(
     return { first: first || full, last: parts.join(' ') };
   };
 
-  // 6a. Numbered players: upsert by (club_id, number) — dedupes by guernsey number.
+  // 6a. Numbered players.
+  //
+  // This used to upsert on (club_id, number), which treats the guernsey number as
+  // the player's IDENTITY. It is not -- numbers get reassigned. Giving a player a
+  // number that another player already held silently OVERWROTE that player's row
+  // with this one's name and headshot. The record stopped being J. Berry and
+  // became R. Hoskin everywhere it was referenced, including in already-published
+  // line-ups, because lineup_positions point at player_id. It hit about five
+  // players before Carson caught it and repaired them by hand.
+  //
+  // A player we already hold an id for is now written BY ID, so changing a number
+  // only ever rewrites that player's own row. A number that genuinely collides
+  // trips players_club_number_uniq and is reported, never applied on top of
+  // somebody else.
   const numbered = d.players.filter((p) => p.number && p.number.trim());
   if (numbered.length) {
-    const rows = numbered.map((p) => {
+    const numOf = (p: Player) => String(p.number).trim();
+    const rowFor = (p: Player) => {
       const { first, last } = splitName(p.name);
       return {
         club_id: clubId,
-        number: p.number,
+        number: numOf(p),
         first_name: first,
         last_name: last,
         display_name: p.name,
         headshot_url: p.headshotUrl ?? null,
         jumper_image_url: p.jumperImageUrl ?? null,
       };
-    });
-    // Postgres refuses an upsert whose batch hits the same conflict target
-    // twice -- "ON CONFLICT DO UPDATE command cannot affect row a second time"
-    // -- and the conflict target here is (club_id, number). Two players sharing
-    // a guernsey number, which happens easily enough with a duplicated squad
-    // row or a typo, made every save fail with that raw database error.
-    //
-    // Collapse duplicates before sending. Last one wins, which is what the
-    // database would have done had they arrived as separate statements, and
-    // matches the expectation that the most recent edit is the real one.
-    const byConflictKey = new Map<string, (typeof rows)[number]>();
-    for (const r of rows) byConflictKey.set(String(r.number).trim(), r);
-    const deduped = [...byConflictKey.values()];
+    };
 
-    const { data: saved, error: e6 } = await supabase
-      .from('players')
-      .upsert(deduped, { onConflict: 'club_id,number' })
-      .select('id, number');
-    if (e6) throw e6;
-    const byNumber = new Map(((saved as any[]) ?? []).map((r) => [String(r.number), r.id as string]));
+    // Two players in the SAME sheet on one number cannot both be saved -- the
+    // unique index forbids it. This used to silently keep the last one and drop
+    // the other, which quietly rewrote a player. Say so instead.
+    const holders = new Map<string, string>();
+    const clashes: string[] = [];
     for (const p of numbered) {
-      const dbId = byNumber.get(String(p.number));
-      if (dbId) {
-        idMap.set(p.id, dbId);
-        playerIds.set(p.id, dbId);
+      const prev = holders.get(numOf(p));
+      if (prev && prev !== p.name) clashes.push(`#${numOf(p)} is on both ${prev} and ${p.name}`);
+      else holders.set(numOf(p), p.name);
+    }
+    if (clashes.length) {
+      throw new Error(
+        `Two players share a guernsey number, so nothing was saved: ${clashes.join('; ')}. ` +
+          `Give one of them a different number and save again.`,
+      );
+    }
+
+    // Known players: write each to its OWN row, keyed by primary key.
+    const known = numbered.filter((p) => p.dbId);
+    if (known.length) {
+      const { data: saved, error } = await supabase
+        .from('players')
+        .upsert(
+          known.map((p) => ({ id: p.dbId as string, ...rowFor(p) })),
+          { onConflict: 'id' },
+        )
+        .select('id');
+      if (error) throw numberConflict(error, known.map(numOf));
+      const savedIds = new Set(((saved as any[]) ?? []).map((r) => r.id as string));
+      for (const p of known) {
+        if (savedIds.has(p.dbId as string)) {
+          idMap.set(p.id, p.dbId as string);
+          playerIds.set(p.id, p.dbId as string);
+        }
       }
+    }
+
+    // New players: the number is the only handle we have, so it still doubles as
+    // the dedupe key -- but only when the row it lands on is plainly the same
+    // person. Otherwise this is the very overwrite that caused the bug.
+    for (const p of numbered.filter((x) => !x.dbId)) {
+      const fields = rowFor(p);
+      const { data: holder, error: findErr } = await supabase
+        .from('players')
+        .select('id, display_name')
+        .eq('club_id', clubId)
+        .eq('number', fields.number)
+        .maybeSingle();
+      if (findErr) throw findErr;
+
+      const tidy = (v: string | null | undefined) =>
+        (v ?? '').toLowerCase().replace(/[^a-z0-9]/g, '');
+      let dbId: string;
+      if (holder) {
+        if (tidy((holder as any).display_name) !== tidy(p.name)) {
+          throw new Error(
+            `#${fields.number} already belongs to ${(holder as any).display_name}, so nothing was saved. ` +
+              `Give ${p.name} a different number, or edit ${(holder as any).display_name} in the squad ` +
+              `rather than adding a new player.`,
+          );
+        }
+        const { data, error } = await supabase
+          .from('players')
+          .update(fields)
+          .eq('id', (holder as any).id)
+          .select('id')
+          .single();
+        if (error) throw numberConflict(error, [fields.number]);
+        dbId = (data as any).id;
+      } else {
+        const { data, error } = await supabase
+          .from('players')
+          .insert(fields)
+          .select('id')
+          .single();
+        if (error) throw numberConflict(error, [fields.number]);
+        dbId = (data as any).id;
+      }
+      idMap.set(p.id, dbId);
+      playerIds.set(p.id, dbId);
     }
   }
 
