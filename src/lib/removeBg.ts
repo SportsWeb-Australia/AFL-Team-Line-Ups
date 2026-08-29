@@ -23,6 +23,13 @@ const TARGET_ASPECT = 112 / 84; // 1.333, matching .sw1-plate--headshot .sw1-pla
  *  grow; lower it and they shrink. */
 const TARGET_HEAD_FRACTION = 0.46;
 
+/** Widest a stored cut-out ever needs to be.
+ *
+ *  The plate's art box is 112 CSS px. 720 covers a 3x phone and leaves plenty
+ *  of headroom for the downloaded graphic, which renders larger. Anything past
+ *  that is bytes nobody ever sees. */
+const MAX_STORED_WIDTH = 720;
+
 export async function removeHeadshotBackground(file: Blob): Promise<string> {
   const { removeBackground } = await import('@imgly/background-removal');
   const out = await removeBackground(file, {
@@ -129,11 +136,21 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
     const headHeight = shoulderY > headTop ? shoulderY - headTop : Math.round(bh * 0.32);
 
     // Scale so every player's head is the same fraction of the frame.
-    const outH = Math.round(headHeight / TARGET_HEAD_FRACTION);
-    const outW = Math.round(outH * TARGET_ASPECT);
+    let outH = Math.round(headHeight / TARGET_HEAD_FRACTION);
+    let outW = Math.round(outH * TARGET_ASPECT);
     if (!isFinite(outW) || outW < 8 || outH < 8) return dataUrl;
+    // Cap the stored size. Headshots were being kept as multi-megabyte base64
+    // PNGs on the player row -- 23 MB across eleven players, one of them 3.2 MB
+    // -- and every team load dragged the lot down the wire before anything
+    // could render. This is the single biggest reason teams were slow.
+    if (outW > MAX_STORED_WIDTH) {
+      const k = MAX_STORED_WIDTH / outW;
+      outW = MAX_STORED_WIDTH;
+      outH = Math.round(outH * k);
+    }
 
-    const scale = outH / (headHeight / TARGET_HEAD_FRACTION); // 1, kept for clarity
+    // Ratio of the final frame to the un-capped one, so the subject scales with it.
+    const scale = outH / (headHeight / TARGET_HEAD_FRACTION);
     const drawW = Math.round(bw * scale);
     const drawH = Math.round(bh * scale);
 
@@ -159,7 +176,11 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
     // A little air above the crown so no one is cropped at the hairline.
     const dy = Math.round(outH * 0.04);
     dctx.drawImage(img, minX, minY, bw, bh, dx, dy, drawW, drawH);
-    return dst.toDataURL('image/png');
+    // WebP keeps the alpha channel and is a fraction of PNG's size at a quality
+    // no one can pick apart at plate size. Falls back to PNG if the browser
+    // will not encode it (toDataURL silently returns a PNG in that case).
+    const webp = dst.toDataURL('image/webp', 0.92);
+    return webp.startsWith('data:image/webp') ? webp : dst.toDataURL('image/png');
   } catch {
     return dataUrl;
   }
