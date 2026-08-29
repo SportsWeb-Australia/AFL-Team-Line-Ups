@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { CSSProperties, ReactNode } from 'react';
 import type { Player, VisualMode, PlayerStatus } from '../types';
 import jumperPlaceholder from '../assets/jumper-placeholder.png';
 import headshotPlaceholder from '../assets/headshot-placeholder.png';
@@ -125,7 +125,16 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
 
       <div className="sw1-plate__row">
         <span className={`sw1-plate__no${player.number ? '' : ' sw1-plate__no--empty'}`}>{player.number || ''}</span>
-        <span className="sw1-plate__name">{player.name}</span>
+        {/* --name-chars lets the stylesheet size a long name down so it still fits
+            on ONE line, instead of wrapping to two or truncating with an ellipsis.
+            Passed as data rather than a computed font size so the scaling rule
+            stays in the stylesheet next to the plate's other sizing. */}
+        <span
+          className="sw1-plate__name"
+          style={{ '--name-chars': player.name.length } as CSSProperties}
+        >
+          {player.name}
+        </span>
 
         {/* Role badges (C, VC, etc.) sit INSIDE the plate at the right end, so they
             never float out over neighbouring players or the top-right logos. */}

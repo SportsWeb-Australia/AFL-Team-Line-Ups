@@ -2920,16 +2920,57 @@
 
 /* ── Mobile readability: full player names take priority ────────────────── */
 @media (max-width: 760px) {
-  /* Field plates — show the whole name (up to two lines) at a legible size. */
-  .sw1-slot .sw1-plate__name {
-    font-size: clamp(10px, 3.2cqw, 14px);
-    white-space: normal;
-    line-height: 1.05;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    line-clamp: 2;
-    -webkit-box-orient: vertical;
+  /* Field plates — the whole name, always on ONE line.
+     This used to wrap to two lines, which read as a stack of broken names on a
+     phone ("B. Vander" / "Vliet") and still truncated when two lines weren't
+     enough. A name that has to shrink a little is easier to read than one split
+     across two rows, so the plate keeps a single line and the type scales down
+     for longer names instead.
+
+     --name-chars is set per plate by PlayerPlate. Names up to 12 characters keep
+     the full size; beyond that the size falls off in proportion to the length,
+     with the clamp floor stopping it from ever going truly small. Only names of
+     roughly 17 characters or more ever reach that floor — "P. Bassingthwaighte",
+     the longest in the club, sits on it and still fits on one line even in a
+     centre position, which is the narrowest slot on the field.
+
+     Both selectors are needed: field plates render compact, and
+     `.sw1-slot .sw1-plate--compact .sw1-plate__name` further up the sheet is a
+     three-class selector that would otherwise outrank this one — a media query
+     adds no specificity of its own. */
+  .sw1-slot .sw1-plate__name,
+  .sw1-slot .sw1-plate--compact .sw1-plate__name {
+    --name-fit: 12;
+    font-size: clamp(
+      6.5px,
+      calc(3.2cqw * (var(--name-fit) / max(var(--name-fit), var(--name-chars, 12)))),
+      14px
+    );
+    white-space: nowrap;
+    line-height: 1.15;
     overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* The centre column is boxed in by a neighbour on each side, so it cannot widen
+     the way the flanks can and has to start shrinking a couple of characters
+     sooner — otherwise a mid-length name like "D. Savickas" still clipped. */
+  .sw1-slot:not([data-slot$='L']):not([data-slot$='R']) .sw1-plate__name {
+    --name-fit: 9;
+  }
+
+  /* Every pixel of chrome here is a character the name cannot use, and on a phone
+     the plate is only ~105px wide. Trimming the name's own padding and the number
+     chip buys back roughly 12px — enough for the longest name in the club to sit
+     in a centre position without clipping. */
+  .sw1-slot .sw1-plate__name {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+  .sw1-slot .sw1-plate__no,
+  .sw1-slot .sw1-plate--compact .sw1-plate__no {
+    min-width: 26px;
+    padding: 0 5px;
   }
 
   /* Squad list — hand the row width to the name; slim the surrounding controls. */
@@ -3907,3 +3948,24 @@
   font-weight: 600;
   color: #15803d;
 }
+
+/* ── Field name plates: equal room on both flanks ──────────────────────────
+   Slots are absolutely positioned by `left`, so a right-hand slot at left:80%
+   could only shrink-to-fit into the remaining 20% of the pitch — measured at
+   375px wide, the right-hand plates came out 83–89px against 105px for their
+   mirrors on the left, so names wrapped on one wing and not the other. Sizing
+   to max-content takes the available space out of the calculation; the slot is
+   still centred on its mark by the existing translate(-50%). */
+.sw1-slot { width: max-content; }
+
+/* The outer columns sit at 20% and 80%, leaving unused pitch between them and
+   the boundary, while the centre column is boxed in by neighbours either side.
+   So the flanks get a wider cap and the extra width is pushed OUTWARD, rather
+   than growing evenly from the centre and closing the gap with the middle
+   player. The centre column is left as it was — it has nowhere to grow. */
+.sw1-slot[data-slot$='L'] .sw1-plate__row,
+.sw1-slot[data-slot$='R'] .sw1-plate__row {
+  max-width: clamp(118px, 35cqw, 232px);
+}
+.sw1-slot[data-slot$='L'] .sw1-plate__row { margin-right: 3cqw; }
+.sw1-slot[data-slot$='R'] .sw1-plate__row { margin-left: 3cqw; }
