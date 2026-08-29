@@ -159,6 +159,104 @@ for (const { table, col, folder, label } of TARGETS) {
   }
 }
 
+// Columns holding a JSON ARRAY of image URLs rather than a single one. Same idea,
+// but each element is moved and the array is written back.
+const ARRAY_TARGETS = [{ table: 'lineups', col: 'competition_logos', folder: 'competitions' }];
+
+for (const { table, col, folder } of ARRAY_TARGETS) {
+  const { data: rows, error } = await sb.from(table).select('id').like(col, '%data:%');
+  if (error) {
+    console.error(`  ! ${table}.${col}: ${error.message}`);
+    failed++;
+    continue;
+  }
+  if (!rows?.length) {
+    console.log(`- ${table}.${col}: nothing to move`);
+    continue;
+  }
+
+  console.log(`\n${table}.${col}: ${rows.length} rows to check`);
+  for (const { id } of rows) {
+    const { data: row, error: readErr } = await sb.from(table).select(col).eq('id', id).single();
+    if (readErr || !row?.[col]) {
+      console.error(`  ! ${id}: ${readErr?.message ?? 'no value'}`);
+      failed++;
+      continue;
+    }
+
+    // Stored as a JSON array, but be lenient — it may already be parsed.
+    let list = row[col];
+    if (typeof list === 'string') {
+      try {
+        list = JSON.parse(list);
+      } catch {
+        console.error(`  ! ${id}: competition_logos is not valid JSON`);
+        failed++;
+        continue;
+      }
+    }
+    if (!Array.isArray(list)) {
+      console.error(`  ! ${id}: expected an array`);
+      failed++;
+      continue;
+    }
+
+    let changed = false;
+    const out = [];
+    for (const [i, entry] of list.entries()) {
+      if (typeof entry !== 'string' || !entry.startsWith('data:')) {
+        out.push(entry);
+        continue;
+      }
+      const decoded = decodeDataUrl(entry);
+      if (!decoded) {
+        out.push(entry);
+        continue;
+      }
+      const hash = createHash('sha256').update(decoded.bytes).digest('hex').slice(0, 16);
+      const path = `${folder}/logo-${hash}.${decoded.ext}`;
+
+      if (DRY) {
+        console.log(`  would move ${mb(decoded.bytes.length)} -> ${path}`);
+        movedCount++;
+        movedBytes += decoded.bytes.length;
+        out.push(entry);
+        continue;
+      }
+
+      const { error: upErr } = await sb.storage.from(BUCKET).upload(path, decoded.bytes, {
+        contentType: decoded.mime,
+        upsert: true,
+        cacheControl: '31536000',
+      });
+      if (upErr) {
+        console.error(`  ! ${id}[${i}]: upload failed — ${upErr.message}`);
+        failed++;
+        out.push(entry);
+        continue;
+      }
+      const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+      console.log(`  moved ${mb(decoded.bytes.length)} -> ${path}`);
+      movedCount++;
+      movedBytes += decoded.bytes.length;
+      changed = true;
+      out.push(pub.publicUrl);
+    }
+
+    // Only rewrite once every element in this row uploaded cleanly.
+    if (changed && !DRY) {
+      const { error: updErr } = await sb
+        .from(table)
+        .update({ [col]: JSON.stringify(out) })
+        .eq('id', id);
+      if (updErr) {
+        console.error(`  ! ${id}: row update failed — ${updErr.message}`);
+        failed++;
+      }
+    }
+  }
+}
+
 console.log(
   `\n${DRY ? '[dry run] would move' : 'Moved'} ${movedCount} images, ${mb(movedBytes)} out of the database.` +
     (failed ? ` ${failed} failed — re-run to retry those.` : ''),
