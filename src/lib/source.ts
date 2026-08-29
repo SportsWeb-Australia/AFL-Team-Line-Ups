@@ -1,4 +1,5 @@
 import { supabase } from './supabase';
+import { isDataUrl, putImage } from './imageStore';
 import type { TeamSheetData, Player, PositionKey, BenchArea } from '../types';
 
 /** The database identifiers behind a loaded sheet, so a save updates (not duplicates). */
@@ -653,6 +654,88 @@ export async function listClubPlayers(clubId: string | null): Promise<ClubPlayer
   }
 }
 
+/** Filesystem-safe key for a Storage path. The content hash appended by putImage
+ *  is what actually makes the path unique, so this only has to be tidy. */
+function slug(value: string | null | undefined, fallback: string): string {
+  const s = (value ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return s.slice(0, 40) || fallback;
+}
+
+/**
+ * Returns a copy of the sheet with every inlined base64 image replaced by a
+ * Storage link. Uploads run concurrently; anything already a link is left alone.
+ */
+async function imagesToStorage(d: TeamSheetData): Promise<TeamSheetData> {
+  const jobs: Promise<void>[] = [];
+  const move = (
+    read: () => string | null | undefined,
+    write: (url: string | null | undefined) => void,
+    folder: string,
+    key: string,
+  ) => {
+    if (!isDataUrl(read())) return;
+    jobs.push(putImage(read(), folder, key).then(write));
+  };
+
+  const next: TeamSheetData = {
+    ...d,
+    club: { ...d.club },
+    match: { ...d.match },
+    players: d.players.map((p) => ({ ...p })),
+    sponsors: d.sponsors && {
+      rotating: (d.sponsors.rotating ?? []).map((s) => ({ ...s })),
+      library: (d.sponsors.library ?? []).map((s) => ({ ...s })),
+    },
+  };
+
+  move(() => next.club.logoUrl, (u) => (next.club.logoUrl = u ?? undefined), 'clubs', slug(next.club.name, 'club'));
+  move(
+    () => next.match.opponentLogoUrl,
+    (u) => (next.match.opponentLogoUrl = u ?? undefined),
+    'opponents',
+    slug(next.match.opponent, 'opponent'),
+  );
+  move(() => next.jumperImageUrl, (u) => (next.jumperImageUrl = u ?? undefined), 'jumpers', slug(next.club.name, 'jumper'));
+  move(
+    () => next.watermarkLogoUrl,
+    (u) => (next.watermarkLogoUrl = u ?? undefined),
+    'watermarks',
+    slug(next.watermarkText || next.club.name, 'watermark'),
+  );
+
+  for (const p of next.players) {
+    const key = slug(p.dbId || p.id || p.name, 'player');
+    move(() => p.headshotUrl, (u) => (p.headshotUrl = u ?? undefined), 'headshots', key);
+    move(() => p.jumperImageUrl, (u) => (p.jumperImageUrl = u ?? undefined), 'jumpers', key);
+  }
+
+  // rotating and library overlap; content-addressed paths mean a shared image is
+  // uploaded to the same object either way.
+  for (const list of [next.sponsors?.rotating ?? [], next.sponsors?.library ?? []]) {
+    for (const s of list) {
+      const key = slug(s.id || s.name, 'sponsor');
+      move(() => s.logoUrl, (u) => (s.logoUrl = u ?? undefined), 'sponsors', key);
+      move(() => s.bannerUrl, (u) => (s.bannerUrl = u ?? undefined), 'sponsors', key);
+    }
+  }
+
+  if (Array.isArray(next.competitionLogos)) {
+    const logos = [...next.competitionLogos];
+    logos.forEach((logo, i) => {
+      if (!isDataUrl(logo)) return;
+      jobs.push(
+        putImage(logo, 'competitions', `${slug(next.match.competition, 'comp')}-${i}`).then((u) => {
+          if (typeof u === 'string') logos[i] = u;
+        }),
+      );
+    });
+    next.competitionLogos = logos;
+  }
+
+  await Promise.all(jobs);
+  return next;
+}
+
 /**
  * Saves the current sheet back to the database. Updates the rows in `refs` when
  * present, otherwise creates fresh ones. Returns the (possibly new) refs.
@@ -668,6 +751,13 @@ export async function saveTeamSheet(
 ): Promise<SaveResult> {
   const publish = opts.publish ?? true;
   if (!supabase) throw new Error('Database is not configured.');
+
+  // Push any freshly-pasted/cropped images into Storage FIRST, so everything
+  // written below saves a short https link instead of a multi-megabyte base64
+  // data URL inlined into the row. Done once here rather than at each of the ten
+  // write sites. Values that are already links pass through untouched, and an
+  // upload that fails falls back to the original, so a save never loses an image.
+  d = await imagesToStorage(d);
 
   // 1. club — find-or-create by NAME so a club's saved teams always live under
   //    the one club row (across sessions too). Without this, every fresh save
