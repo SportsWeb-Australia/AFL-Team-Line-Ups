@@ -12,29 +12,51 @@
  * Safe to re-run: rows that already hold a link are skipped. Nothing is deleted —
  * a row is only updated after its upload succeeds.
  *
- * Usage:
- *   export SUPABASE_URL=https://wnxaydyhzwwrdwdmimab.supabase.co
- *   export SUPABASE_SERVICE_ROLE_KEY=...        # Settings > API Keys, secret key
+ * Usage: put the service role key in .env.local (gitignored, same file the dev
+ * server already reads), then:
+ *
+ *   SUPABASE_SERVICE_ROLE_KEY=sb_secret_...      # Settings > API Keys, secret key
+ *
  *   node scripts/migrate-images-to-storage.mjs --dry-run
  *   node scripts/migrate-images-to-storage.mjs
+ *
+ * Reading it from .env.local rather than `export` keeps the key out of your shell
+ * history. Environment variables still win if you'd rather set them that way.
  */
 import { createClient } from '@supabase/supabase-js';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 
-const URL = process.env.SUPABASE_URL;
-const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+/** Minimal .env.local reader — enough for KEY=value lines, no dependency needed. */
+function fromEnvFile(name) {
+  try {
+    for (const line of readFileSync(new URL('../.env.local', import.meta.url), 'utf8').split('\n')) {
+      const m = /^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)$/.exec(line);
+      if (m && m[1] === name) return m[2].trim().replace(/^['"]|['"]$/g, '');
+    }
+  } catch {
+    /* no .env.local — environment variables only */
+  }
+  return undefined;
+}
+
+const URL_ = process.env.SUPABASE_URL || fromEnvFile('SUPABASE_URL') || fromEnvFile('VITE_SUPABASE_URL');
+const KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || fromEnvFile('SUPABASE_SERVICE_ROLE_KEY');
 const DRY = process.argv.includes('--dry-run');
 const BUCKET = 'images';
 
-if (!URL || !KEY) {
+if (!URL_ || !KEY) {
   console.error(
-    'Missing SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY.\n' +
-      'The service role key is under Settings > API Keys (secret). Never commit it.',
+    'Missing the Supabase URL or service role key.\n\n' +
+      'Add this line to .env.local (it is gitignored):\n' +
+      '  SUPABASE_SERVICE_ROLE_KEY=sb_secret_...\n\n' +
+      'Find it in the dashboard under Settings > API Keys, as the secret/service_role\n' +
+      'key. It bypasses row-level security, so never commit it or paste it into chat.',
   );
   process.exit(1);
 }
 
-const sb = createClient(URL, KEY, { auth: { persistSession: false } });
+const sb = createClient(URL_, KEY, { auth: { persistSession: false } });
 
 /** table, column, and the Storage folder its images belong in. */
 const TARGETS = [
