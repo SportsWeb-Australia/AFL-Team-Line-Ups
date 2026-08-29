@@ -822,9 +822,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const code =
       `<iframe id="${frameId}" src="${src}" title="Team line-up" loading="lazy" ` +
       `scrolling="no" height="900" style="width:100%;border:0;display:block;overflow:hidden"></iframe>\n` +
+      // e.source check is load-bearing: postMessage reaches EVERY listener on the
+      // page, so with several line-ups embedded together each script used to
+      // resize ITS iframe to whatever height the last one happened to report.
+      // All four on geelongaflmasters.com.au sat at an identical 1596px, and the
+      // tallest team had its emergencies cut off. Only act on our own frame.
       `<script>(function(){var id="${frameId}";window.addEventListener("message",function(e){` +
-      `if(e&&e.data&&e.data.type==="sw1-embed-height"){var f=document.getElementById(id);` +
-      `if(f){f.style.height=e.data.height+"px";}}});})();</script>`;
+      `var f=document.getElementById(id);if(!f||e.source!==f.contentWindow)return;` +
+      `if(e&&e.data&&e.data.type==="sw1-embed-height"){f.style.height=e.data.height+"px";}});})();</script>`;
     navigator.clipboard?.writeText(code).then(
       () => setDbMsg('Embed code copied — it auto-updates each round when you Publish. Paste it into a Custom HTML block.'),
       () => setDbMsg(code),
@@ -844,9 +849,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     const code =
       `<iframe id="${frameId}" src="${src}" title="Team line-up" loading="lazy" ` +
       `scrolling="no" height="900" style="width:100%;border:0;display:block;overflow:hidden"></iframe>\n` +
+      // e.source check is load-bearing: postMessage reaches EVERY listener on the
+      // page, so with several line-ups embedded together each script used to
+      // resize ITS iframe to whatever height the last one happened to report.
+      // All four on geelongaflmasters.com.au sat at an identical 1596px, and the
+      // tallest team had its emergencies cut off. Only act on our own frame.
       `<script>(function(){var id="${frameId}";window.addEventListener("message",function(e){` +
-      `if(e&&e.data&&e.data.type==="sw1-embed-height"){var f=document.getElementById(id);` +
-      `if(f){f.style.height=e.data.height+"px";}}});})();</script>`;
+      `var f=document.getElementById(id);if(!f||e.source!==f.contentWindow)return;` +
+      `if(e&&e.data&&e.data.type==="sw1-embed-height"){f.style.height=e.data.height+"px";}});})();</script>`;
     navigator.clipboard?.writeText(code).then(
       () => setDbMsg('This team\u2019s embed code copied — it shows THIS published team only. Publish first, then paste into a Custom HTML block.'),
       () => setDbMsg(code),
