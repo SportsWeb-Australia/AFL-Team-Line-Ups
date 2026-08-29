@@ -565,7 +565,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [prevWeek, setPrevWeek] = useState<PrevLineup | null>(null);
 
   function refreshPrevWeek(clubId: string | null, grade: string, fixtureId: string | null) {
-    if (!clubId) {
+    // Admin-only — the Ins & Outs panel lives in AdminPanel, so a public embed was
+    // paying for this read and rendering none of it.
+    if (mode !== 'admin' || !clubId) {
       setPrevWeek(null);
       return;
     }
@@ -577,7 +579,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
 
   function refreshSavedSheets(clubId: string | null) {
-    if (!clubId) {
+    // Admin-only — the recall picker lives in AdminPanel. A public embed was
+    // downloading the club's whole fixture list on boot, and every row carries an
+    // opponent logo stored as a base64 data URL (~31MB for Geelong), to show none
+    // of it.
+    if (mode !== 'admin' || !clubId) {
       setSavedSheets([]);
       return;
     }

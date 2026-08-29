@@ -81,7 +81,9 @@ export async function loadTeamSheet(
   const sb = supabase;
   const fixtureSelect = (withDateText: boolean) =>
     `id, round, match_date,${withDateText ? ' match_date_text,' : ''} match_time,
-     team:teams ( id, name, competition, club:clubs (*) ),
+     team:teams ( id, name, competition, club:clubs (
+       id, name, short_name, primary_color, secondary_color, ink_color, logo_url
+     ) ),
      venue:venues ( name ),
      opponent:clubs!fixtures_opponent_club_id_fkey ( id, name, logo_url ),
      opponent_name, opponent_logo_url`;
@@ -186,39 +188,77 @@ export async function loadTeamSheet(
   // where we'd merge players synced from the SportsWeb One club/team database
   // (sourceType 'sportsweb_one'), keyed by their SW1 external id so we never
   // create duplicates. SW1 remains the source of truth for those records.
-  try {
-    const { data: roster } = await supabase
-      .from('lineup_positions')
-      .select(
-        `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url ),
-         lineup:lineups!inner ( fixture:fixtures!inner ( team_id ) )`,
-      )
-      .eq('lineup.fixture.team_id', team.id);
-    const have = new Set(players.map((p) => p.id));
-    for (const row of (roster as any[]) ?? []) {
-      const p = row.player;
-      if (!p || have.has(p.id)) continue;
-      have.add(p.id);
-      players.push({
-        id: p.id,
-        dbId: p.id,
-        number: p.number ?? '',
-        name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
-        headshotUrl: p.headshot_url ?? undefined,
-        jumperImageUrl: p.jumper_image_url ?? undefined,
-        sourceType: 'standalone',
-      });
+  // Only the editor needs the rest of the squad — it fills the player picker. A
+  // published embed renders the placed players already loaded above, so fetching
+  // the remaining squad there is pure waste, and this is the most expensive read
+  // in the app. The embed skips it.
+  if (!opts.publishedOnly) {
+    try {
+      // Two steps, deliberately. lineup_positions holds one row per appearance,
+      // so joining players straight onto it returned the same player — and the
+      // same headshot, a base64 data URL up to ~1MB — once for every round they
+      // played. Read the ids first with no image columns, then fetch each player
+      // exactly once.
+      const { data: appearances } = await supabase
+        .from('lineup_positions')
+        .select('player_id, lineup:lineups!inner ( fixture:fixtures!inner ( team_id ) )')
+        .eq('lineup.fixture.team_id', team.id);
+
+      const have = new Set(players.map((p) => p.id));
+      const missing = [
+        ...new Set(
+          ((appearances as any[]) ?? [])
+            .map((r) => r.player_id as string)
+            .filter((id) => id && !have.has(id)),
+        ),
+      ];
+
+      if (missing.length) {
+        const { data: roster } = await supabase
+          .from('players')
+          .select(
+            'id, number, first_name, last_name, display_name, headshot_url, jumper_image_url',
+          )
+          .in('id', missing);
+        for (const p of (roster as any[]) ?? []) {
+          players.push({
+            id: p.id,
+            dbId: p.id,
+            number: p.number ?? '',
+            name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
+            headshotUrl: p.headshot_url ?? undefined,
+            jumperImageUrl: p.jumper_image_url ?? undefined,
+            sourceType: 'standalone',
+          });
+        }
+      }
+    } catch {
+      /* roster fetch is best-effort; placed players above are already loaded */
     }
-  } catch {
-    /* roster fetch is best-effort; placed players above are already loaded */
   }
 
-  const { data: sponsorRows } = await supabase
-    .from('sponsors')
-    .select('id, name, tier, logo_url, banner_url, href')
-    .eq('club_id', club.id)
-    .eq('active', true)
-    .order('sort_order');
+  // Sponsor banners are base64 data URLs up to ~2.3MB each and the club has 17 of
+  // them, so fetching the whole library was ~30MB on every load. A published embed
+  // only ever renders `rotating` — the full library exists for the editor's picker
+  // — so it reads just the rows it will actually show.
+  const sheetBannerIds: string[] | null = (lineup && (lineup as any).banner_ids) ?? null;
+  const embedHidesSponsors =
+    !!opts.publishedOnly && !!(lineup && (lineup as any).hide_sponsors);
+  // A null banner_ids means "rotate the whole library" and still needs every row;
+  // an explicit list (most published sheets) needs only those.
+  const embedNeedsOnly = opts.publishedOnly && sheetBannerIds != null ? sheetBannerIds : null;
+
+  let sponsorRows: any[] | null = null;
+  if (!embedHidesSponsors && embedNeedsOnly?.length !== 0) {
+    let sponsorQuery = supabase
+      .from('sponsors')
+      .select('id, name, tier, logo_url, banner_url, href')
+      .eq('club_id', club.id)
+      .eq('active', true);
+    if (embedNeedsOnly) sponsorQuery = sponsorQuery.in('id', embedNeedsOnly);
+    const { data: rows } = await sponsorQuery.order('sort_order');
+    sponsorRows = rows as any[] | null;
+  }
 
   const data: TeamSheetData = {
     club: {
@@ -367,23 +407,49 @@ export async function loadLatestForClubGrade(
   const { data, error } = await q;
   if (error) throw error;
   if (!data || data.length === 0) return null;
-  let firstLoaded: LoadedSheet | null = null;
-  for (const row of data as any[]) {
-    const sheet = await loadTeamSheet(row.id, opts);
-    if (!sheet) continue;
-    if (!firstLoaded) firstLoaded = sheet;
-    // Prefer the newest fixture that genuinely has a published line-up with
-    // players on it — otherwise the embed falls back to an empty/default graphic
-    // (no jumpers, club-name watermark) for a fixture that was never published.
-    const hasTeam =
-      !!sheet.refs.lineupId &&
-      (Object.keys(sheet.data.lineup.positions).length > 0 ||
-        sheet.data.lineup.followers.length > 0 ||
-        sheet.data.lineup.interchange.length > 0);
-    if (hasTeam) return sheet;
+  // Work out WHICH fixture has a side named on it before loading anything heavy.
+  // This used to load each candidate's complete sheet in turn — up to 20 full team
+  // sheets, every one re-fetching sponsors and player images — purely to discover
+  // which fixture to show. Two cheap id-only reads answer the same question.
+  const ids = (data as any[]).map((r) => r.id as string);
+
+  let lineupQ = sb.from('lineups').select('id, fixture_id').in('fixture_id', ids);
+  if (opts.publishedOnly) lineupQ = lineupQ.eq('published', true);
+  const { data: lineupRows } = await lineupQ;
+  const lineupIds = ((lineupRows as any[]) ?? []).map((l) => l.id as string);
+
+  // "Has a team" means an on-field position or a follower/interchange spot — the
+  // same test the old per-sheet check applied, just asked of the database.
+  const filledLineups = new Set<string>();
+  if (lineupIds.length) {
+    const { data: posRows } = await sb
+      .from('lineup_positions')
+      .select('lineup_id')
+      .in('lineup_id', lineupIds)
+      .or('position_key.not.is.null,bench_area.in.(followers,interchange)');
+    for (const r of (posRows as any[]) ?? []) filledLineups.add(r.lineup_id as string);
   }
-  // Nothing fully published yet — show the newest we could load rather than nothing.
-  return firstLoaded;
+
+  const fixturesWithTeam = new Set(
+    ((lineupRows as any[]) ?? [])
+      .filter((l) => filledLineups.has(l.id))
+      .map((l) => l.fixture_id as string),
+  );
+  // `ids` is already newest-first, so the first hit is the newest named side.
+  const chosen = ids.find((id) => fixturesWithTeam.has(id));
+  if (chosen) return await loadTeamSheet(chosen, opts);
+
+  // Nothing has a side named on it yet — show the newest sheet we can load rather
+  // than nothing, as before. Bounded so this fallback can't become the old loop.
+  for (const id of ids.slice(0, 3)) {
+    try {
+      const sheet = await loadTeamSheet(id, opts);
+      if (sheet) return sheet;
+    } catch {
+      /* try the next-newest */
+    }
+  }
+  return null;
 }
 
 export interface OpponentClub {
