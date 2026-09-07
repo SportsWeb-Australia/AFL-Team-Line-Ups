@@ -16,7 +16,12 @@
 /** Every cut-out is normalised to this shape before it is stored.
  *  Deliberately the same aspect as the plate's art box, so the stored image IS
  *  the final framing -- the layout then has nothing left to crop or guess at. */
-const TARGET_ASPECT = 112 / 84; // 1.333, matching .sw1-plate--headshot .sw1-plate__art
+// WIDTH over HEIGHT. This was 112/84 and used as `outW = outH * TARGET_ASPECT`,
+// which makes the frame WIDER than it is tall. The art box
+// (.sw1-plate--headshot .sw1-plate__art) is 72x88 -- portrait -- so every
+// normalised cut-out came out landscape and was letterboxed into a portrait box,
+// leaving players at different apparent sizes and heights.
+const TARGET_ASPECT = 72 / 88; // 0.818, width/height of the headshot art box
 
 /** How tall a player's head should be, as a fraction of the framed height.
  *  This is the number that decides how big everyone looks. Raise it and heads
@@ -119,21 +124,45 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
     // Instead take the row where the width GROWS FASTEST. Every build has that
     // moment where the neck gives way to shoulders, whatever the ratio.
     const headTop = minY;
-    const searchTo = Math.min(maxY, headTop + Math.round(bh * 0.6));
-    // Smooth over a few rows so a single ragged edge cannot masquerade as a jump.
-    const span = Math.max(2, Math.round(bh * 0.015));
-    let bestDelta = 0;
-    let shoulderY = -1;
-    for (let y = headTop + span; y <= searchTo - span; y++) {
-      const before = rowWidth[y - span];
-      const after = rowWidth[y + span];
-      if (!before || !after) continue;
-      const delta = after - before;
-      if (delta > bestDelta) { bestDelta = delta; shoulderY = y; }
+
+    // WHERE THE SHOULDERS START.
+    //
+    // Scaling so the SHOULDERS fill the frame was the mistake: a broad-built
+    // player then gets shrunk to fit and his head comes out smaller than a
+    // narrow player's. The eye judges "same size" by HEAD, not shoulder width.
+    //
+    // "The row where width grows fastest" does not work either: a head is round,
+    // so its own crown widens faster than anything below it. On a test cut-out
+    // that put the shoulder line 16px below the top of the head, read the head as
+    // 16px tall, and shrank a 900x1200 portrait to 47x35.
+    //
+    // A silhouette actually goes: head widens, NECK narrows, shoulders widen past
+    // the head. So find the head's widest row, then the narrowest row below it
+    // (the neck), then the first row past the neck that is clearly wider than the
+    // head. That sequence is the same on every build.
+    const headZone = Math.min(maxY, headTop + Math.round(bh * 0.45));
+    let headMaxW = 0;
+    let headMaxY = headTop;
+    for (let y = headTop; y <= headZone; y++) {
+      if (rowWidth[y] > headMaxW) { headMaxW = rowWidth[y]; headMaxY = y; }
     }
-    // Require the growth to be real, not noise on an even-width silhouette.
-    if (shoulderY > 0 && bestDelta < Math.max(4, bw * 0.06)) shoulderY = -1;
-    const headHeight = shoulderY > headTop ? shoulderY - headTop : Math.round(bh * 0.32);
+    let neckW = Number.MAX_SAFE_INTEGER;
+    let neckY = headMaxY;
+    for (let y = headMaxY; y <= headZone; y++) {
+      if (rowWidth[y] > 0 && rowWidth[y] < neckW) { neckW = rowWidth[y]; neckY = y; }
+    }
+    let shoulderY = -1;
+    for (let y = neckY; y <= Math.min(maxY, headTop + Math.round(bh * 0.7)); y++) {
+      if (rowWidth[y] > headMaxW * 1.05) { shoulderY = y; break; }
+    }
+
+    // Sanity-check the reading before trusting it. A head is somewhere between a
+    // fifth and two thirds of a head-and-shoulders crop; anything outside that is
+    // a misread, and acting on it is what collapsed the frame. Fall back to a
+    // proportion of the subject instead, which is never brilliant but never wrong
+    // by an order of magnitude.
+    let headHeight = shoulderY > headTop ? shoulderY - headTop : -1;
+    if (headHeight < bh * 0.2 || headHeight > bh * 0.66) headHeight = Math.round(bh * 0.32);
 
     // Scale so every player's head is the same fraction of the frame.
     let outH = Math.round(headHeight / TARGET_HEAD_FRACTION);
