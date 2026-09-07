@@ -87,6 +87,9 @@ export default function SquadList({
   const [editNo, setEditNo] = useState('');
   const [editName, setEditName] = useState('');
   const [bgBusy, setBgBusy] = useState(false);
+  /** 0..1 while the cut-out runs. The model download is tens of seconds on a cold
+   *  cache, and a label that never changes reads as a hang. */
+  const [bgPct, setBgPct] = useState(0);
   const [search, setSearch] = useState('');
 
   const numOf = (s: string) => {
@@ -210,8 +213,9 @@ export default function SquadList({
           // or the model can't load), fall back to the original image so the upload
           // never silently breaks.
           setBgBusy(true);
+          setBgPct(0);
           try {
-            const cutout = await removeHeadshotBackground(f);
+            const cutout = await removeHeadshotBackground(f, setBgPct);
             onSetPlayerImage(p.id, 'headshot', cutout);
           } catch {
             const r = new FileReader();
@@ -219,6 +223,7 @@ export default function SquadList({
             r.readAsDataURL(f);
           } finally {
             setBgBusy(false);
+            setBgPct(0);
           }
           return;
         }
@@ -250,7 +255,13 @@ export default function SquadList({
           {/* Photo + confirm live together so there's nothing to scroll across. */}
           <div className="sw1-squad__editactions">
             <label className="sw1-squad__imgbtn">
-              {bgBusy ? 'Removing background…' : p.headshotUrl ? 'Headshot ✓' : 'Add headshot'}
+              {bgBusy
+                ? bgPct > 0 && bgPct < 1
+                  ? `Preparing… ${Math.round(bgPct * 100)}%`
+                  : 'Removing background…'
+                : p.headshotUrl
+                ? 'Headshot ✓'
+                : 'Add headshot'}
               <input type="file" accept="image/*" disabled={bgBusy} onChange={readImg('headshot')} />
             </label>
             {p.headshotUrl && !bgBusy && (

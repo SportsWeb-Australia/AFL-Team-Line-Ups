@@ -35,19 +35,65 @@ const TARGET_HEAD_FRACTION = 0.46;
  *  that is bytes nobody ever sees. */
 const MAX_STORED_WIDTH = 720;
 
-export async function removeHeadshotBackground(file: Blob): Promise<string> {
+/** The model options, shared by the upload path and the warm-up so both fetch the
+ *  SAME model — warming one and then using another would download twice. */
+const MODEL_CONFIG = {
+  // ARMS. The library ships three models and defaults to the quantised one,
+  // which is the smallest download and much the worst at thin structures —
+  // it eats forearms and leaves soft, haloed hairlines. 'isnet' is the
+  // full-precision model and holds those edges.
+  model: 'isnet',
+  // Measured: 'gpu' finished in 9.96s against 10.4s on cpu, i.e. no real gain
+  // for this model, so there is nothing to buy by asking for a device that some
+  // browsers do not have.
+  device: 'cpu',
+} as const;
+
+/**
+ * Fetch the background-removal model ahead of time.
+ *
+ * Measured on a cold cache, the first cut-out took 47 SECONDS: about 35 of those
+ * are the model itself, arriving as ~50 separate requests from the vendor CDN,
+ * and only ~10 is the actual work. A coach uploading their first headshot sat in
+ * front of a button that looked frozen for the better part of a minute.
+ *
+ * The library caches the model for the life of the page but nothing persists it
+ * (no Cache Storage, no IndexedDB — checked), so it leans on the HTTP cache: a
+ * reload cost 13.9s rather than 47s.
+ *
+ * Calling this when the editor opens moves that download off the critical path,
+ * so the model is usually in hand before anyone picks a file. Safe to call more
+ * than once — the library de-duplicates, and a failure is swallowed because a
+ * warm-up must never break the editor.
+ */
+export async function preloadBackgroundRemoval(): Promise<void> {
+  try {
+    const { preload } = await import('@imgly/background-removal');
+    await preload(MODEL_CONFIG as unknown as Record<string, unknown>);
+  } catch {
+    /* best effort: the upload path fetches it on demand anyway */
+  }
+}
+
+/**
+ * @param onProgress optional (fraction 0..1) — the model download is long enough
+ *        that a static "Removing background…" reads as a hang. Reporting real
+ *        progress is the difference between waiting and giving up.
+ */
+export async function removeHeadshotBackground(
+  file: Blob,
+  onProgress?: (fraction: number) => void,
+): Promise<string> {
   const { removeBackground } = await import('@imgly/background-removal');
   const out = await removeBackground(file, {
-    // ARMS. The library ships three models and defaults to the quantised one,
-    // which is the smallest download and much the worst at thin structures —
-    // it eats forearms and leaves soft, haloed hairlines. 'isnet' is the
-    // full-precision model and holds those edges. Bigger first download,
-    // fetched on demand and then cached, so a squad pays it once.
-    model: 'isnet',
+    ...MODEL_CONFIG,
     // PNG at full quality: anything lossy chews the alpha edge and re-introduces
     // the halo the cut-out exists to remove.
     output: { format: 'image/png', quality: 1 },
-  });
+    progress: (_key: string, current: number, total: number) => {
+      if (onProgress && total > 0) onProgress(Math.min(1, current / total));
+    },
+  } as unknown as Record<string, unknown>);
   return normaliseCutout(await blobToDataUrl(out));
 }
 
@@ -127,42 +173,71 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
 
     // WHERE THE SHOULDERS START.
     //
-    // Scaling so the SHOULDERS fill the frame was the mistake: a broad-built
-    // player then gets shrunk to fit and his head comes out smaller than a
-    // narrow player's. The eye judges "same size" by HEAD, not shoulder width.
+    // Scaling so the SHOULDERS fill the frame was the first mistake: a broad
+    // player got shrunk to fit and his head came out smaller than a narrow
+    // player's. The eye judges "same size" by HEAD, not shoulder width.
     //
-    // "The row where width grows fastest" does not work either: a head is round,
-    // so its own crown widens faster than anything below it. On a test cut-out
-    // that put the shoulder line 16px below the top of the head, read the head as
-    // 16px tall, and shrank a 900x1200 portrait to 47x35.
+    // "The row where width grows fastest" was the second: a head is round, so
+    // its own crown widens faster than anything below it.
     //
-    // A silhouette actually goes: head widens, NECK narrows, shoulders widen past
-    // the head. So find the head's widest row, then the narrowest row below it
-    // (the neck), then the first row past the neck that is clearly wider than the
-    // head. That sequence is the same on every build.
-    const headZone = Math.min(maxY, headTop + Math.round(bh * 0.45));
+    // "The widest row in the top 45%" was the third, and it is what shipped in
+    // between: on the club's own photos the head is only ~25% of a chest crop,
+    // so a 45% zone sweeps into the shoulders and reads crown-to-chest as the
+    // head. Crop-dependent, so heads came out at different sizes and one crown
+    // was cut off.
+    //
+    // What a real silhouette actually does, measured row by row on those photos
+    // (width as % of image): 5 at the crown, 37 at the cheekbones (22% down),
+    // 26 at the NECK (36% down), then 92 across the shoulders. Head widens, neck
+    // narrows, shoulders widen far past the head. The neck is the landmark: the
+    // first REAL narrowing after the crown, and it is there on every build.
+    //
+    // Two guards, both learned on the same photos: smooth over a few rows so a
+    // single hair strand at the crown cannot read as a narrowing (it did -- one
+    // player's head came out 1px tall), and refuse to call a narrowing until the
+    // head is a credible width, for the same reason.
+    const smooth = Math.max(2, Math.round(bh * 0.01));
+    const widthAt = (y: number) => {
+      let sum = 0;
+      let n = 0;
+      for (let k = -smooth; k <= smooth; k++) {
+        const yy = y + k;
+        if (yy >= minY && yy <= maxY) { sum += rowWidth[yy]; n++; }
+      }
+      return n ? sum / n : 0;
+    };
+    const searchEnd = Math.min(maxY, headTop + Math.round(bh * 0.6));
+    const credible = w * 0.1; // a head is never this thin
     let headMaxW = 0;
-    let headMaxY = headTop;
-    for (let y = headTop; y <= headZone; y++) {
-      if (rowWidth[y] > headMaxW) { headMaxW = rowWidth[y]; headMaxY = y; }
+    let neckY = -1;
+    for (let y = headTop; y <= searchEnd; y++) {
+      const wy = widthAt(y);
+      if (wy > headMaxW) headMaxW = wy;
+      else if (headMaxW >= credible && wy < headMaxW * 0.9) { neckY = y; break; }
     }
-    let neckW = Number.MAX_SAFE_INTEGER;
-    let neckY = headMaxY;
-    for (let y = headMaxY; y <= headZone; y++) {
-      if (rowWidth[y] > 0 && rowWidth[y] < neckW) { neckW = rowWidth[y]; neckY = y; }
-    }
+    // Narrowest point of the neck, then the first row past it clearly wider
+    // than the head: that is where the shoulders start.
     let shoulderY = -1;
-    for (let y = neckY; y <= Math.min(maxY, headTop + Math.round(bh * 0.7)); y++) {
-      if (rowWidth[y] > headMaxW * 1.05) { shoulderY = y; break; }
+    if (neckY > 0) {
+      let neckMinW = widthAt(neckY);
+      let neckMinY = neckY;
+      for (let y = neckY; y <= searchEnd; y++) {
+        const wy = widthAt(y);
+        if (wy < neckMinW) { neckMinW = wy; neckMinY = y; }
+        if (wy > headMaxW * 1.05) { shoulderY = y; break; }
+      }
+      // Shoulders can sit below the window on a long neck; the neck itself still
+      // gives the head size. Head ~ crown-to-neck plus a little.
+      if (shoulderY < 0) shoulderY = neckMinY + Math.round((neckMinY - headTop) * 0.15);
     }
 
     // Sanity-check the reading before trusting it. A head is somewhere between a
-    // fifth and two thirds of a head-and-shoulders crop; anything outside that is
-    // a misread, and acting on it is what collapsed the frame. Fall back to a
-    // proportion of the subject instead, which is never brilliant but never wrong
-    // by an order of magnitude.
+    // seventh and two thirds of a head-and-shoulders crop; outside that is a
+    // misread, and acting on one is what collapsed the frame before. Fall back
+    // to a proportion of the subject: never brilliant, never wrong by an order
+    // of magnitude.
     let headHeight = shoulderY > headTop ? shoulderY - headTop : -1;
-    if (headHeight < bh * 0.2 || headHeight > bh * 0.66) headHeight = Math.round(bh * 0.32);
+    if (headHeight < bh * 0.15 || headHeight > bh * 0.66) headHeight = Math.round(bh * 0.32);
 
     // Scale so every player's head is the same fraction of the frame.
     let outH = Math.round(headHeight / TARGET_HEAD_FRACTION);
