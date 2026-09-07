@@ -16,6 +16,7 @@ import { FIELD_SLOTS, FIELD_SLOTS_MOBILE, LINE_LABELS, BENCH_TITLES, FOLLOWER_LA
 import MatchHeader from './MatchHeader';
 import RotatingBanner from './RotatingBanner';
 import Oval from './Oval';
+import { preloadBackgroundRemoval } from '../lib/removeBg';
 import PlayerPlate from './PlayerPlate';
 import BenchZone from './BenchZone';
 import StatusLegend from './StatusLegend';
@@ -232,6 +233,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   }
   // Ctrl/Cmd+Z as well as the button. Ignored while a field has focus, so it
   // never steals the browser's own undo from someone typing a player's name.
+  // Fetch the background-removal model as soon as the editor opens. Measured
+  // cold, the first cut-out took 47s -- ~35 of it just downloading the model --
+  // which looked like a frozen button. Starting it here means it is usually in
+  // hand before anyone picks a file, and it costs nothing if no one uploads.
+  useEffect(() => {
+    if (mode !== 'admin') return;
+    void preloadBackgroundRemoval();
+  }, [mode]);
+
   useEffect(() => {
     if (!admin) return;
     function onKey(e: KeyboardEvent) {
