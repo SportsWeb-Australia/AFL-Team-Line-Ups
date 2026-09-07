@@ -253,8 +253,17 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
       outH = Math.round(outH * k);
     }
 
-    // Ratio of the final frame to the un-capped one, so the subject scales with it.
-    const scale = outH / (headHeight / TARGET_HEAD_FRACTION);
+    // NOTHING IS CUT OFF. Sizing on the head is what keeps every player the same
+    // size, but the rule from the club is that shoulders and arms stay whole -- a
+    // crossed arm or a broad frame must never be squared off at the canvas edge.
+    // So the head-based scale is a ceiling, not a law: if it would push any part
+    // of the subject past the sides or the bottom, the scale drops until the whole
+    // silhouette fits, keeping the same air above the crown. A wide pose comes
+    // out a touch smaller than its neighbours; nothing comes out clipped.
+    const headScale = outH / (headHeight / TARGET_HEAD_FRACTION);
+    const air = Math.round(outH * 0.04);
+    const fitScale = Math.min(outW / bw, (outH - air) / bh);
+    const scale = Math.min(headScale, fitScale);
     const drawW = Math.round(bw * scale);
     const drawH = Math.round(bh * scale);
 
@@ -276,9 +285,12 @@ export async function normaliseCutout(dataUrl: string): Promise<string> {
       }
       if (hhi > hlo) headCx = (hlo + hhi) / 2;
     }
-    const dx = Math.round(outW / 2 - (headCx - minX) * scale);
-    // A little air above the crown so no one is cropped at the hairline.
-    const dy = Math.round(outH * 0.04);
+    // Centre on the head, but never let that centring push an edge outside.
+    const dx = Math.max(0, Math.min(outW - drawW, Math.round(outW / 2 - (headCx - minX) * scale)));
+    // Bottom-anchored so the body meets the name plate. When the head scale
+    // governs, the crown lands at the 4% air line; when the fit does, it sits
+    // lower, and the whole player is in frame.
+    const dy = outH - drawH;
     dctx.drawImage(img, minX, minY, bw, bh, dx, dy, drawW, drawH);
     // WebP keeps the alpha channel and is a fraction of PNG's size at a quality
     // no one can pick apart at plate size. Falls back to PNG if the browser
