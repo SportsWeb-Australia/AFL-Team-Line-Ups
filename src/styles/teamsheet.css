@@ -3967,8 +3967,15 @@
 .sw1-slot[data-slot$='R'] .sw1-plate__row {
   max-width: clamp(118px, 35cqw, 232px);
 }
-.sw1-slot[data-slot$='L'] .sw1-plate__row { margin-right: 3cqw; }
-.sw1-slot[data-slot$='R'] .sw1-plate__row { margin-left: 3cqw; }
+/* Push the whole plate outward, not just the name bar. The outward shift used to
+   sit on .sw1-plate__row, which moved the NAME PLATE but left the headshot art —
+   a separate element above it — centred on the slot mark. On every flank the head
+   ended up ~6px to one side of its own name plate (right on the left flanks, left
+   on the right). Shifting .sw1-plate carries the art and the bar together, so the
+   head sits square above the name, and the pair still leans into the free pitch
+   outside the 20%/80% columns exactly as before. */
+.sw1-slot[data-slot$='L'] .sw1-plate { margin-right: 3cqw; }
+.sw1-slot[data-slot$='R'] .sw1-plate { margin-left: 3cqw; }
 
 /* Undo sits first in the toolbar, and reads as available or not at a glance --
    a disabled-looking button is the honest signal that there is nothing to step
