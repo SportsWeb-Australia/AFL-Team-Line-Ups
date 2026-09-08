@@ -77,14 +77,22 @@
 .sw1-stage__complogos {
   position: absolute;
   top: clamp(10px, 1.6cqw, 20px);
+  /* Span the full width and push the logos to OPPOSITE top corners, so two of
+     them sit in the empty ground outside the oval rather than stacking top-right
+     over the back-pocket player on that wing. A competition/association mark on
+     one side, the AFL Masters mark on the other. */
+  left: clamp(10px, 1.6cqw, 22px);
   right: clamp(10px, 1.6cqw, 22px);
   z-index: 4;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  max-width: 56%;
+  flex-wrap: nowrap;
+  justify-content: space-between;
+}
+/* A single logo keeps its long-standing spot in the right corner. */
+.sw1-stage__complogo:only-child {
+  margin-left: auto;
 }
 .sw1-stage__complogo {
   height: clamp(74px, 12.5cqw, 150px);
