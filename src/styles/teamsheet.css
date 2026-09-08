@@ -2953,10 +2953,18 @@
   }
 
   /* The centre column is boxed in by a neighbour on each side, so it cannot widen
-     the way the flanks can and has to start shrinking a couple of characters
-     sooner — otherwise a mid-length name like "D. Savickas" still clipped. */
+     the way the flanks can. It gets a small amount of the room it does have — the
+     gaps to its neighbours were measured at 17-29px, so a modest cap bump stays
+     clear even at 360px — and it starts shrinking names sooner to cover the rest.
+     Without both, a 10-character name like "J. Fleming" clipped at full forward.
+     Measured at 360px and 390px: every name up to 14 characters now fits with a
+     >=9px gap to its neighbours; only a 19-character name (one player in the
+     club) reaches the font floor. */
+  .sw1-slot:not([data-slot$='L']):not([data-slot$='R']) .sw1-plate__row {
+    max-width: clamp(100px, 31cqw, 200px);
+  }
   .sw1-slot:not([data-slot$='L']):not([data-slot$='R']) .sw1-plate__name {
-    --name-fit: 9;
+    --name-fit: 7;
   }
 
   /* Every pixel of chrome here is a character the name cannot use, and on a phone
