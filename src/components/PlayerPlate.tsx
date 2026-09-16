@@ -72,13 +72,17 @@ interface Props {
   compact?: boolean;
   /** Show the written status label next to the icon (used in the Unavailable list). */
   showStatusLabel?: boolean;
+  /** Replaces the jumper/headshot image entirely. Match-day staff pass a drawn
+   *  polo (or their club's real one) through here, so they get the same plate,
+   *  name fitting and sizing as every player without pretending to be one. */
+  artOverride?: ReactNode;
 }
 
 /**
  * A single player token: optional jumper/headshot artwork above a slanted name
  * plate, with role badges and a colour-coded availability flag.
  */
-export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact = false, showStatusLabel = false }: Props) {
+export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact = false, showStatusLabel = false, artOverride }: Props) {
   const showArt = visualMode !== 'none';
   let artSrc: string | null = null;
   if (visualMode === 'headshot') artSrc = player.headshotUrl ?? headshotPlaceholder;
@@ -100,7 +104,7 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
         .filter(Boolean)
         .join(' ')}
     >
-      {showArt && artSrc && (
+      {showArt && (artOverride ?? artSrc) && (
         <div className="sw1-plate__art">
           {/* draggable={false} is load-bearing: the jumper/headshot art fills most of
               the plate, so grabbing a player almost always means grabbing this image.
@@ -108,7 +112,7 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
               image-drag and the plate's dragstart never carries the player id — which
               made dragging look broken on the field, followers, interchange and
               emergencies alike (they all render this plate). */}
-          <img src={artSrc} alt="" draggable={false} />
+          {artOverride ?? <img src={artSrc!} alt="" draggable={false} />}
         </div>
       )}
 
