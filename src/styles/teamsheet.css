@@ -4004,3 +4004,22 @@
   opacity: 0.45;
   cursor: not-allowed;
 }
+
+/* ── Jumper sits higher on its name plate ───────────────────────────────── */
+/* Jumper art used to tuck 10px behind the plate. A club jumper is usually a
+   top-half product shot, so that bottom strip is exactly where the chest
+   graphic lives: the Vic Metro V lost half its arms. Now only 2px tucks in,
+   which still reads as seated on the plate. (Headshots already use -2px.)
+
+   Benches, followers and staff flow normally, so shrinking the tuck lets the
+   plate below make room and nothing stacked above gets touched. */
+.sw1-plate--jumper .sw1-plate__art { margin-bottom: -2px; }
+
+/* On the ground a slot is centred on the WHOLE plate (translate -50%, -50%).
+   Shrinking the tuck there would make the plate 8px taller and re-centre it,
+   nudging every name 4px down off its B/HB/C/HF/F line label. So the layout
+   box keeps its -10px and only the picture lifts: names don't move at all. */
+.sw1-slot .sw1-plate--jumper .sw1-plate__art {
+  margin-bottom: -10px;
+  transform: translateY(-8px);
+}
