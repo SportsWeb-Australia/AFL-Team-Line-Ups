@@ -107,6 +107,9 @@ interface Props {
   /** Between the crests once the score shows: DEF / DRAW / DEF BY, or VS. */
   centreWord?: CentreWord;
   onCentreWord?: (w: CentreWord) => void;
+  /** The lightning bolt behind the centre lettering. */
+  showBolt?: boolean;
+  onShowBolt?: (v: boolean) => void;
   /** The club's own finals / grand final plate wording. */
   plateTitle?: string;
   plateSubtitle?: string;
@@ -234,6 +237,8 @@ export default function AdminPanel({
   onMatchTier,
   centreWord = 'result',
   onCentreWord,
+  showBolt = true,
+  onShowBolt,
   plateTitle = '',
   plateSubtitle = '',
   onPlateText,
@@ -787,6 +792,12 @@ export default function AdminPanel({
                 Two-tone split
               </button>
             </div>
+            {onShowBolt && (
+              <label className="sw1-staffedit__toggle">
+                <input type="checkbox" checked={showBolt} onChange={(e) => onShowBolt(e.target.checked)} />
+                Lightning bolt behind the letters
+              </label>
+            )}
           </div>
         )}
 

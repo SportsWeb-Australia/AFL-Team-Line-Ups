@@ -62,6 +62,8 @@ interface Props {
   matchTier?: MatchTier;
   /** Between the crests once the score shows: DEF / DRAW / DEF BY, or VS. */
   centreWord?: CentreWord;
+  /** The lightning bolt behind the centre lettering. */
+  showBolt?: boolean;
   /** The club's own wording for the finals plate, and an optional second panel. */
   plateTitle?: string;
   plateSubtitle?: string;
@@ -74,6 +76,7 @@ export default function MatchHeader({
   showcase = false,
   matchTier = 'home',
   centreWord = 'result',
+  showBolt = true,
   plateTitle,
   plateSubtitle,
 }: Props) {
@@ -158,8 +161,12 @@ export default function MatchHeader({
         />
         {!showcase && (
           <>
-            <div className={`sw1-header__v sw1-header__v--${vsStyle}${word ? ' sw1-header__v--word' : ''}`}>
-              <span className="sw1-header__bolt" aria-hidden />
+            <div
+              className={`sw1-header__v sw1-header__v--${vsStyle}${word ? ' sw1-header__v--word' : ''}${
+                showBolt ? '' : ' sw1-header__v--nobolt'
+              }`}
+            >
+              {showBolt && <span className="sw1-header__bolt" aria-hidden />}
               {word ? (
                 <span className={`sw1-header__vs sw1-header__word is-${wordKey}`}>
                   {word === 'Def by' ? (
