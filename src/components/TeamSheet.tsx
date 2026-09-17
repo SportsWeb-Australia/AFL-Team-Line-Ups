@@ -182,7 +182,8 @@ function buildSig(p: {
   const adv = `${sp.advertiseEnabled !== false}|${sp.advertiseHref ?? ''}`;
   const rotating = JSON.stringify(sp.rotating ?? []);
   const staff = (p.officials ?? [])
-    .map((o) => `${o.role}:${o.name}`)
+    .filter((o) => o.name.trim())
+    .map((o) => `${o.role}:${o.name.trim()}`)
     .sort()
     .join(',');
   return [posStr, bench, roster, p.clubName ?? '', match, adv, rotating, staff].join('##');
@@ -1372,10 +1373,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   function setOfficial(role: Official['role'], name: string) {
     setOfficials((list) => {
       const rest = list.filter((o) => o.role !== role);
-      const trimmed = name.trim();
-      if (!trimmed) return rest;
+      if (!name.trim()) return rest;
       const existing = list.find((o) => o.role === role);
-      return [...rest, { ...(existing ?? { role }), role, name: trimmed }];
+      // Keep what was typed, spaces and all. This value feeds the input box, so
+      // trimming here ate the space the moment it was typed: "Dean Mackey"
+      // came out as "DeanMackey". Names are trimmed where they're drawn and
+      // where they're saved instead.
+      return [...rest, { ...(existing ?? { role }), role, name }];
     });
   }
 

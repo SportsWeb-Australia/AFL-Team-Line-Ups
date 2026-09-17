@@ -967,7 +967,11 @@ export async function saveTeamSheet(
     const jy = d.jumperOffset?.y ? d.jumperOffset.y : null;
     // Match-day staff ride on the lineup row as JSON: they are not players, so
     // they never become rows in players/lineup_positions.
-    const staff = JSON.stringify(d.officials ?? []);
+    const staff = JSON.stringify(
+      (d.officials ?? [])
+        .map((o) => ({ ...o, name: o.name.trim() }))
+        .filter((o) => o.name),
+    );
     const polo = d.poloImageUrl ?? null;
     const runner = d.runnerImageUrl ?? null;
     if (existing && existing.length) {
