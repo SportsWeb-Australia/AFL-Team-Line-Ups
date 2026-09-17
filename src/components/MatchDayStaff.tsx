@@ -72,6 +72,47 @@ function PoloShirt({ body, trim, hiVis = false }: { body: string; trim: string; 
   );
 }
 
+interface PersonProps {
+  role: OfficialRole;
+  name: string;
+  headshotUrl?: string | null;
+  club: Club;
+  visualMode: VisualMode;
+  poloImageUrl?: string;
+  runnerImageUrl?: string;
+}
+
+/** One person in the coaches' box. Exported so the editor's position preview
+ *  draws exactly the plate the graphic does. */
+export function StaffPerson({ role, name, headshotUrl, club, visualMode, poloImageUrl, runnerImageUrl }: PersonProps) {
+  const def = OFFICIAL_ROLES.find((r) => r.key === role)!;
+  const isRunner = role === 'runner';
+  const uploaded = isRunner ? runnerImageUrl : poloImageUrl;
+  // A portrait only wins when the whole sheet is in Headshot mode —
+  // otherwise the shirt is the point.
+  const headshot = visualMode === 'headshot' ? headshotUrl : null;
+
+  let art: React.ReactNode = null;
+  if (visualMode !== 'none') {
+    if (headshot) art = <img className="sw1-staff__headshot" src={headshot} alt="" draggable={false} />;
+    else if (uploaded) art = <img className="sw1-staff__shirt" src={uploaded} alt="" draggable={false} />;
+    else if (isRunner) art = <PoloShirt body={HIVIS_BODY} trim={HIVIS_TRIM} hiVis />;
+    else art = <PoloShirt body={club.primaryColor} trim={club.secondaryColor} />;
+  }
+
+  return (
+    <div className={`sw1-staff__person${headshot ? ' is-headshot' : ''}`} data-role={role}>
+      <PlayerPlate
+        player={{ id: `official-${role}`, number: '', name: name.trim() }}
+        visualMode={visualMode}
+        artOverride={art}
+        compact
+      />
+      <div className="sw1-staff__role">{def.label}</div>
+    </div>
+  );
+}
+
 interface Props {
   officials?: Official[];
   club: Club;
@@ -82,47 +123,29 @@ interface Props {
 }
 
 export default function MatchDayStaff({ officials, club, visualMode, poloImageUrl, runnerImageUrl }: Props) {
-  const named = OFFICIAL_ROLES.map((def) => ({
-    def,
-    person: (officials ?? []).find((o) => o.role === def.key),
-  })).filter((x) => (x.person?.name ?? '').trim().length > 0);
+  const named = OFFICIAL_ROLES.map((def) => (officials ?? []).find((o) => o.role === def.key)).filter(
+    (o): o is Official => !!o && o.name.trim().length > 0,
+  );
 
   // A club that hasn't named anyone never sees the band at all.
   if (named.length === 0) return null;
-
-  const showArt = visualMode !== 'none';
 
   return (
     <section className="sw1-staff" aria-label="Match day staff">
       <div className="sw1-grouplabel">Match Day Staff</div>
       <div className="sw1-staff__grid">
-        {named.map(({ def, person }) => {
-          const isRunner = def.key === 'runner';
-          const uploaded = isRunner ? runnerImageUrl : poloImageUrl;
-          // A portrait only wins when the whole sheet is in Headshot mode —
-          // otherwise the shirt is the point.
-          const headshot = visualMode === 'headshot' ? person!.headshotUrl : null;
-
-          let art: React.ReactNode = null;
-          if (showArt) {
-            if (headshot) art = <img src={headshot} alt="" draggable={false} />;
-            else if (uploaded) art = <img src={uploaded} alt="" draggable={false} />;
-            else if (isRunner) art = <PoloShirt body={HIVIS_BODY} trim={HIVIS_TRIM} hiVis />;
-            else art = <PoloShirt body={club.primaryColor} trim={club.secondaryColor} />;
-          }
-
-          return (
-            <div key={def.key} className="sw1-staff__person" data-role={def.key}>
-              <PlayerPlate
-                player={{ id: `official-${def.key}`, number: '', name: person!.name.trim() }}
-                visualMode={visualMode}
-                artOverride={art}
-                compact
-              />
-              <div className="sw1-staff__role">{def.label}</div>
-            </div>
-          );
-        })}
+        {named.map((o) => (
+          <StaffPerson
+            key={o.role}
+            role={o.role}
+            name={o.name}
+            headshotUrl={o.headshotUrl}
+            club={club}
+            visualMode={visualMode}
+            poloImageUrl={poloImageUrl}
+            runnerImageUrl={runnerImageUrl}
+          />
+        ))}
       </div>
     </section>
   );

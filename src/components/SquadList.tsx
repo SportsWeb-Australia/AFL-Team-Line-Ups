@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ChangeEvent } from 'react';
-import type { Player, PlayerStatus, PositionKey } from '../types';
+import type { ArtPosition, Player, PlayerStatus, PositionKey } from '../types';
 import type { SlotDef } from '../lib/field';
 import type { ClubPlayer } from '../lib/source';
 import { removeHeadshotBackground } from '../lib/removeBg';
+import ArtPositioner, { CENTRED } from './ArtPositioner';
+import PlayerPlate from './PlayerPlate';
 
 const REASONS: { value: PlayerStatus; label: string }[] = [
   { value: 'injured', label: 'Injured' },
@@ -61,6 +63,10 @@ interface Props {
   onRemovePlayer: (id: string) => void;
   onUpdatePlayer: (id: string, fields: { number?: string; name?: string }) => void;
   onSetPlayerImage: (id: string, kind: 'headshot' | 'jumper', dataUrl: string | null) => void;
+  /** Give one player their own headshot position, or null to follow the team's. */
+  onSetPlayerPosition?: (id: string, pos: ArtPosition | null) => void;
+  /** The team's headshot position, which a player without their own follows. */
+  teamHeadshotPosition?: ArtPosition;
   /** Players from other teams at this club, for the opt-in cross-team search. */
   clubPlayers?: ClubPlayer[];
   onAddClubPlayer?: (p: ClubPlayer) => void;
@@ -80,6 +86,8 @@ export default function SquadList({
   onRemovePlayer,
   onUpdatePlayer,
   onSetPlayerImage,
+  onSetPlayerPosition,
+  teamHeadshotPosition = CENTRED,
   clubPlayers = [],
   onAddClubPlayer,
 }: Props) {
@@ -87,6 +95,8 @@ export default function SquadList({
   const [editNo, setEditNo] = useState('');
   const [editName, setEditName] = useState('');
   const [bgBusy, setBgBusy] = useState(false);
+  /** The player whose photo position panel is open. */
+  const [positionId, setPositionId] = useState<string | null>(null);
   /** 0..1 while the cut-out runs. The model download is tens of seconds on a cold
    *  cache, and a label that never changes reads as a hang. */
   const [bgPct, setBgPct] = useState(0);
@@ -277,6 +287,48 @@ export default function SquadList({
               Done
             </button>
           </div>
+          {p.headshotUrl && !bgBusy && onSetPlayerPosition && (
+            <div className="sw1-squad__photopos">
+              <button
+                type="button"
+                className="sw1-squad__photopos-toggle"
+                aria-expanded={positionId === p.id}
+                onClick={() => setPositionId(positionId === p.id ? null : p.id)}
+              >
+                {positionId === p.id ? 'Hide photo position' : 'Adjust this photo'}
+                {p.headshotPosition ? <span className="sw1-squad__photopos-own">Own position</span> : null}
+              </button>
+              {positionId === p.id && (
+                <ArtPositioner
+                  title={`Position ${p.name.trim() || 'this player'}'s photo`}
+                  value={p.headshotPosition ?? teamHeadshotPosition}
+                  onChange={(next) => onSetPlayerPosition(p.id, next)}
+                  readout={p.headshotPosition ? undefined : 'Same as team'}
+                  allowScale
+                  extra={
+                    <button
+                      type="button"
+                      className="sw1-jumperpos__link"
+                      disabled={!p.headshotPosition}
+                      onClick={() => onSetPlayerPosition(p.id, null)}
+                    >
+                      Use team position
+                    </button>
+                  }
+                  hint={
+                    <>
+                      Only moves <strong>{p.name.trim() || 'this player'}</strong>. Everyone else keeps the team
+                      position.
+                    </>
+                  }
+                >
+                  <div className="sw1-slot sw1-jumperpos__slot sw1-jumperpos__slot--headshot">
+                    <PlayerPlate player={p} visualMode="headshot" compact />
+                  </div>
+                </ArtPositioner>
+              )}
+            </div>
+          )}
           <p className="sw1-squad__savenote">Changes save as you type.</p>
           <p className="sw1-squad__imgnote">
             Background is removed automatically. For the sharpest cut-out, upload a headshot that's

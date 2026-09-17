@@ -93,8 +93,16 @@ export default function PlayerPlate({ player, visualMode, teamJumperUrl, compact
   const healthKey = statuses.find((s) => s in HEALTH_STATUS);
   const health = healthKey ? HEALTH_STATUS[healthKey] : null;
 
+  // A player whose headshot was nudged on its own carries that position here;
+  // everyone else inherits the team's --headshot-* from .sw1-root.
+  const own = player.headshotPosition;
+  const ownVars = own
+    ? ({ '--art-x': `${own.x}%`, '--art-y': `${own.y}%`, '--art-scale': own.scale ?? 1 } as CSSProperties)
+    : undefined;
+
   return (
     <div
+      style={ownVars}
       className={[
         'sw1-plate',
         compact ? 'sw1-plate--compact' : '',

@@ -1,12 +1,15 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
+import type { ArtPosition, Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import FinalScore from './FinalScore';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
-import JumperPositioner, { type JumperOffset } from './JumperPositioner';
-import { OFFICIAL_ROLES } from './MatchDayStaff';
+import ArtPositioner, { CENTRED } from './ArtPositioner';
+import { OFFICIAL_ROLES, StaffPerson } from './MatchDayStaff';
+import PlayerPlate from './PlayerPlate';
+
+type JumperOffset = { x: number; y: number };
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
 import { SHOW_EMBED, SHOW_PLAYING_LIST } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
@@ -85,6 +88,17 @@ interface Props {
   poloImageUrl?: string;
   runnerImageUrl?: string;
   onStaffShirt?: (kind: 'polo' | 'runner', dataUrl: string) => void;
+  /** Show the staff band on the graphic. */
+  showStaff?: boolean;
+  onShowStaff?: (v: boolean) => void;
+  /** Where the staff polos / runner's top sit, and how big. */
+  staffPosition?: ArtPosition;
+  onStaffPosition?: (p: ArtPosition) => void;
+  /** The team's headshot position: every player's default. */
+  headshotPosition?: ArtPosition;
+  onHeadshotPosition?: (p: ArtPosition) => void;
+  /** One player's own headshot position, or null to follow the team. */
+  onSetPlayerPosition?: (id: string, p: ArtPosition | null) => void;
   vsStyle?: 'chrome' | 'split';
   onVsStyle?: (s: 'chrome' | 'split') => void;
   matchTier?: MatchTier;
@@ -199,6 +213,13 @@ export default function AdminPanel({
   poloImageUrl,
   runnerImageUrl,
   onStaffShirt,
+  showStaff = true,
+  onShowStaff,
+  staffPosition = CENTRED,
+  onStaffPosition,
+  headshotPosition = CENTRED,
+  onHeadshotPosition,
+  onSetPlayerPosition,
   vsStyle,
   onVsStyle,
   matchTier,
@@ -352,6 +373,13 @@ export default function AdminPanel({
     const file = e.target.files?.[0];
     if (file && onStaffShirt) onStaffShirt(kind, await readAsDataUrl(file));
   };
+
+  // Real people make the position previews recognisable. The team headshot
+  // preview needs someone who has a photo; the staff one prefers a polo wearer.
+  const samplePlayer = players.find((pl) => pl.name.trim());
+  const headshotSample = players.find((pl) => pl.headshotUrl && pl.name.trim());
+  const namedStaff = (officials ?? []).filter((o) => o.name.trim());
+  const staffSample = namedStaff.find((o) => o.role !== 'runner') ?? namedStaff[0];
 
   const uploadTeamJumper = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -1296,13 +1324,32 @@ export default function AdminPanel({
           {/* Only once there's a real jumper to line up: the placeholder is
               already framed for the plate. */}
           {teamJumperUrl && onJumperOffset && (
-            <JumperPositioner
-              jumperUrl={teamJumperUrl}
-              offset={jumperOffset ?? { x: 0, y: 0 }}
-              onChange={onJumperOffset}
-              samplePlayer={players.find((pl) => pl.name.trim())}
-              jumperModeOn={visualMode === 'jumper'}
-            />
+            <ArtPositioner
+              title="Position the jumper"
+              value={{ ...(jumperOffset ?? { x: 0, y: 0 }), scale: 1 }}
+              onChange={({ x, y }) => onJumperOffset({ x, y })}
+              hint={
+                <>
+                  Drag the jumper, or tap the arrows. This moves it on <strong>every player</strong>, on the ground, the
+                  bench and the downloaded image.
+                  {visualMode !== 'jumper' && (
+                    <>
+                      {' '}
+                      Set the look above to <strong>Jumper</strong> to see it on the ground.
+                    </>
+                  )}
+                </>
+              }
+            >
+              <div className="sw1-slot sw1-jumperpos__slot">
+                <PlayerPlate
+                  player={samplePlayer ?? { id: 'jumper-preview', number: '7', name: 'Player Name' }}
+                  visualMode="jumper"
+                  teamJumperUrl={teamJumperUrl}
+                  compact
+                />
+              </div>
+            </ArtPositioner>
           )}
           <p className="sw1-admin__hint sw1-teamjumper__help">
             <span className="sw1-helpdot" title="How to get a jumper image" aria-hidden="true">i</span>
@@ -1316,6 +1363,34 @@ export default function AdminPanel({
         </div>
       )}
 
+      {/* Headshots: one position for the team, which each player can override
+          from their own Edit. Only once there's a real photo to line up. */}
+      {onHeadshotPosition && headshotSample && (
+        <ArtPositioner
+          title="Position headshots (whole team)"
+          value={headshotPosition}
+          onChange={onHeadshotPosition}
+          allowScale
+          hint={
+            <>
+              Moves and sizes <strong>every player's photo</strong>. If one player's photo was taken differently,
+              fine-tune just them with their <strong>✎ Edit</strong> button in the squad below.
+              {visualMode !== 'headshot' && (
+                <>
+                  {' '}
+                  Set the look above to <strong>Headshot</strong> to see it on the ground.
+                </>
+              )}
+            </>
+          }
+        >
+          <div className="sw1-slot sw1-jumperpos__slot sw1-jumperpos__slot--headshot">
+            {/* The team setting is previewed on a player with no override of their own. */}
+            <PlayerPlate player={{ ...headshotSample, headshotPosition: null }} visualMode="headshot" compact />
+          </div>
+        </ArtPositioner>
+      )}
+
       {/* Match-day staff: the coaches' box. Sits with the squad because it is the
           same question — who is here today — but it never touches the line-up. */}
       {onOfficial && (
@@ -1326,6 +1401,12 @@ export default function AdminPanel({
             band only appears on the graphic once someone is named. Staff aren&rsquo;t players, so they have no
             number and never appear in the squad or on the ground.
           </p>
+          {onShowStaff && (
+            <label className="sw1-staffedit__toggle">
+              <input type="checkbox" checked={showStaff} onChange={(e) => onShowStaff(e.target.checked)} />
+              Show match day staff on the graphic
+            </label>
+          )}
           {OFFICIAL_ROLES.map((r) => (
             <label key={r.key} className="sw1-staffedit__row">
               <span className="sw1-staffedit__label">{r.label}</span>
@@ -1366,6 +1447,36 @@ export default function AdminPanel({
                 background works best.
               </p>
             </div>
+          )}
+
+          {onStaffPosition && showStaff && visualMode !== 'none' && staffSample && (
+            <ArtPositioner
+              title="Position staff shirts"
+              value={staffPosition}
+              onChange={onStaffPosition}
+              stage="staff"
+              allowScale
+              hint={
+                <>
+                  Moves and sizes the <strong>polos and the runner&rsquo;s top</strong> together. It doesn&rsquo;t touch
+                  the players&rsquo; jumpers or headshots.
+                </>
+              }
+            >
+              <section className="sw1-staff sw1-jumperpos__staff" aria-hidden>
+                <div className="sw1-staff__grid">
+                  <StaffPerson
+                    role={staffSample.role}
+                    name={staffSample.name}
+                    headshotUrl={staffSample.headshotUrl}
+                    club={club}
+                    visualMode={visualMode}
+                    poloImageUrl={poloImageUrl}
+                    runnerImageUrl={runnerImageUrl}
+                  />
+                </div>
+              </section>
+            </ArtPositioner>
           )}
         </div>
       )}
@@ -1442,6 +1553,8 @@ export default function AdminPanel({
         onRemovePlayer={onRemovePlayer}
         onSetPlayerImage={onSetPlayerImage}
         onUpdatePlayer={onUpdatePlayer}
+        onSetPlayerPosition={onSetPlayerPosition}
+        teamHeadshotPosition={headshotPosition}
         clubPlayers={clubPlayers}
         onAddClubPlayer={onAddClubPlayer}
       />

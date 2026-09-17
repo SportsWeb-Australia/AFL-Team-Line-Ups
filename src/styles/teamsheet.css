@@ -4141,8 +4141,17 @@
 .sw1-plate--jumper .sw1-plate__art img {
   transform: translate(var(--jumper-x, 0%), var(--jumper-y, 0%));
 }
-/* Match-day staff polos share the plate but are not the team jumper. */
-.sw1-staff .sw1-plate__art img { transform: none; }
+
+/* ── Headshot position: the team's, or one player's own ─────────────────── */
+/* --headshot-* live on .sw1-root (the team setting). A player nudged on their
+   own carries --art-* on their plate, which wins. Grown from the bottom centre,
+   so a bigger or smaller photo stays seated on the name plate. */
+.sw1-plate--headshot .sw1-plate__art img {
+  transform:
+    translate(var(--art-x, var(--headshot-x, 0%)), var(--art-y, var(--headshot-y, 0%)))
+    scale(var(--art-scale, var(--headshot-scale, 1)));
+  transform-origin: 50% 100%;
+}
 
 .sw1-jumperpos {
   margin: 14px 0 4px;
@@ -4216,6 +4225,109 @@
   top: 60%;
   scale: 1.6;
 }
+/* A headshot plate is taller than a jumper plate: less enlargement, sat lower,
+   so a photo grown to full size still fits the stage. */
+.sw1-jumperpos__slot--headshot {
+  top: 66%;
+  scale: 1.2;
+}
+/* Staff are previewed on their own light panel, like the band on the sheet. */
+.sw1-jumperpos__stage--staff {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--club-primary) 9%, #ffffff) 0%, #ffffff 100%);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--club-primary) 20%, #ffffff);
+}
+.sw1-jumperpos__staff {
+  position: absolute;
+  left: 50%;
+  top: 58%;
+  width: 1180px;
+  translate: -50% -50%;
+  scale: 1.05;
+  padding: 0;
+  border: 0;
+  background: none;
+}
+.sw1-jumperpos__staff .sw1-staff__grid { margin: 0; }
+.sw1-jumperpos__controls {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  flex: 0 0 auto;
+  margin-inline: auto;
+}
+/* Sized to the arrow pad's width so the controls column stays narrow enough to
+   sit beside the preview, even in the squad list's editor. */
+.sw1-jumperpos__size {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) 30px;
+  align-items: center;
+  gap: 4px;
+  width: 140px;
+}
+.sw1-jumperpos__size .sw1-jumperpos__btn { height: 32px; font-size: 17px; font-weight: 800; }
+.sw1-jumperpos__slider {
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  font-weight: 800;
+  color: #475569;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.sw1-jumperpos__slider input { width: 100%; accent-color: var(--club-primary); }
+.sw1-jumperpos__link {
+  border: 0;
+  background: none;
+  padding: 2px 4px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--club-primary);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.sw1-jumperpos__link:disabled { color: #94a3b8; text-decoration: none; cursor: default; }
+.sw1-squad__photopos { margin-top: 8px; }
+.sw1-squad__photopos .sw1-jumperpos { margin-top: 8px; padding: 10px; }
+.sw1-squad__photopos .sw1-jumperpos__body { gap: 10px; }
+.sw1-squad__photopos .sw1-jumperpos__stage { flex-basis: 160px; min-width: 150px; height: 210px; }
+.sw1-squad__photopos-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 800;
+  color: #0f172a;
+  cursor: pointer;
+}
+.sw1-squad__photopos-toggle:hover { border-color: var(--club-primary); }
+.sw1-squad__photopos-own {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--club-primary) 12%, #ffffff);
+  color: var(--club-primary);
+}
+.sw1-staffedit__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0f172a;
+}
+.sw1-staffedit__toggle input { width: 18px; height: 18px; accent-color: var(--club-primary); }
 .sw1-jumperpos__grip {
   position: absolute;
   left: 8px;
@@ -4234,8 +4346,6 @@
   grid-template-columns: repeat(3, 44px);
   grid-template-rows: repeat(3, 44px);
   gap: 4px;
-  flex: 0 0 auto;
-  margin-inline: auto;
 }
 .sw1-jumperpos__btn {
   display: grid;
@@ -4306,6 +4416,45 @@
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+
+/* Staff pictures are sized for the coaches' box, not borrowed from the field.
+   At the old 58px a polo read as an icon next to 112px player headshots. The
+   band is its own size container, so the PNG export (fixed width) and a phone
+   resolve the same proportions. */
+.sw1-staff { container-type: inline-size; }
+/* A shirt dragged up or grown can reach the group label; keep the label on top. */
+.sw1-staff > .sw1-grouplabel { position: relative; z-index: 3; }
+.sw1-staff .sw1-plate .sw1-plate__art {
+  width: clamp(96px, 14cqw, 140px);
+  height: clamp(96px, 14cqw, 140px);
+  margin-bottom: -6px;
+}
+.sw1-staff .sw1-staff__person.is-headshot .sw1-plate__art {
+  width: clamp(112px, 16cqw, 160px);
+  height: clamp(84px, 12cqw, 120px);
+  margin-bottom: -2px;
+}
+.sw1-staff .sw1-plate .sw1-plate__art > img {
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  max-height: none;
+  object-fit: contain;
+  object-position: 50% 100%;
+}
+.sw1-staff .sw1-plate .sw1-plate__art > img.sw1-staff__headshot {
+  object-fit: cover;
+  object-position: 50% 0%;
+}
+/* Where the staff pictures sit and how big, set in the editor. --staff-* live
+   on .sw1-root. Specific enough to beat the jumper and headshot rules, which
+   staff plates also match. */
+.sw1-staff .sw1-plate .sw1-plate__art > * {
+  transform:
+    translate(var(--staff-x, 0%), var(--staff-y, 0%))
+    scale(var(--staff-scale, 1));
+  transform-origin: 50% 100%;
 }
 /* Staff have no guernsey number, so the plate's number tab is empty — pull the
    name back to centre instead of leaving a gap where the tab would sit. */

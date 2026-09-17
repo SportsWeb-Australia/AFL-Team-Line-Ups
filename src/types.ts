@@ -42,6 +42,16 @@ export interface Official {
   headshotUrl?: string | null;
 }
 
+/** Where a picture sits on its plate, set by dragging it in the editor.
+ *  x/y are percent of the picture's own rendered size (negative x = left,
+ *  negative y = up) so one setting holds on every plate size and in the PNG
+ *  export. `scale` is a multiplier (1 = as drawn), grown from the plate. */
+export interface ArtPosition {
+  x: number;
+  y: number;
+  scale?: number;
+}
+
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
@@ -85,6 +95,10 @@ export interface Player {
   externalId?: string | null;
   /** The database row id once saved. Lets numberless players persist & dedupe. */
   dbId?: string;
+  /** This player's own headshot position. Absent means the team's headshot
+   *  position applies -- every photo is taken differently, so one player can be
+   *  nudged without moving the rest. */
+  headshotPosition?: ArtPosition | null;
 }
 
 export interface Club {
@@ -204,6 +218,14 @@ export interface TeamSheetData {
   poloImageUrl?: string;
   /** The runner's hi-vis top. Absent means a drawn fluro shirt. */
   runnerImageUrl?: string;
+  /** Show the match-day staff band on the graphic. Absent means shown; false
+   *  hides it without forgetting the names. */
+  showStaff?: boolean;
+  /** Team-wide headshot position (Headshot mode). Each player can override it. */
+  headshotPosition?: ArtPosition;
+  /** Where the staff polos and runner's top sit, and how big. Separate from the
+   *  jumper: a polo product shot is framed nothing like a guernsey. */
+  staffPosition?: ArtPosition;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
   vsStyle?: 'chrome' | 'split';
   /** Which occasion the graphic is dressed for. Drives the struck plate and the
