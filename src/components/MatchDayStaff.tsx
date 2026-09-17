@@ -120,9 +120,12 @@ interface Props {
   /** Real product shots, when the club has them. */
   poloImageUrl?: string;
   runnerImageUrl?: string;
+  /** The ground's background watermark, carried on down into the band so the
+   *  sponsor runs the full length of the graphic. Null when the sheet has none. */
+  watermark?: { text?: string; logo?: string | null } | null;
 }
 
-export default function MatchDayStaff({ officials, club, visualMode, poloImageUrl, runnerImageUrl }: Props) {
+export default function MatchDayStaff({ officials, club, visualMode, poloImageUrl, runnerImageUrl, watermark }: Props) {
   const named = OFFICIAL_ROLES.map((def) => (officials ?? []).find((o) => o.role === def.key)).filter(
     (o): o is Official => !!o && o.name.trim().length > 0,
   );
@@ -132,6 +135,17 @@ export default function MatchDayStaff({ officials, club, visualMode, poloImageUr
 
   return (
     <section className="sw1-staff" aria-label="Match day staff">
+      {watermark && (watermark.logo || watermark.text) && (
+        <div className={`sw1-staff__wm${watermark.logo ? ' is-logo' : ''}`} aria-hidden>
+          {Array.from({ length: 5 }).map((_, r) => (
+            <div key={r} className="sw1-watermark__row">
+              {Array.from({ length: 10 }).map((__, c) =>
+                watermark.logo ? <img key={c} src={watermark.logo} alt="" /> : <span key={c}>{watermark.text}</span>,
+              )}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="sw1-grouplabel">Match Day Staff</div>
       <div className="sw1-staff__grid">
         {named.map((o) => (
