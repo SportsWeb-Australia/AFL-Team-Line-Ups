@@ -53,7 +53,10 @@ function isMissingColumn(err: any): boolean {
  *  positions, the staff switch, the centre word and the finals plate text. */
 function parseArtSettings(
   raw: any,
-): Pick<TeamSheetData, 'headshotPosition' | 'staffPosition' | 'showStaff' | 'centreWord' | 'plateTitle' | 'plateSubtitle'> {
+): Pick<
+  TeamSheetData,
+  'headshotPosition' | 'staffPosition' | 'showStaff' | 'centreWord' | 'plateTitle' | 'plateSubtitle' | 'showBolt'
+> {
   let v = raw;
   if (typeof v === 'string') {
     try {
@@ -68,6 +71,7 @@ function parseArtSettings(
     staffPosition: parsePosition(v.staff),
     showStaff: v.showStaff === false ? false : undefined,
     centreWord: v.centreWord === 'vs' ? 'vs' : undefined,
+    showBolt: v.showBolt === false ? false : undefined,
     plateTitle: typeof v.plateTitle === 'string' && v.plateTitle.trim() ? v.plateTitle.trim().slice(0, 60) : undefined,
     plateSubtitle:
       typeof v.plateSubtitle === 'string' && v.plateSubtitle.trim() ? v.plateSubtitle.trim().slice(0, 90) : undefined,
@@ -80,6 +84,7 @@ function artSettingsFor(d: TeamSheetData): Record<string, unknown> | null {
   if (!isCentred(d.staffPosition)) out.staff = d.staffPosition;
   if (d.showStaff === false) out.showStaff = false;
   if (d.centreWord === 'vs') out.centreWord = 'vs';
+  if (d.showBolt === false) out.showBolt = false;
   if (d.plateTitle?.trim()) out.plateTitle = d.plateTitle.trim().slice(0, 60);
   if (d.plateSubtitle?.trim()) out.plateSubtitle = d.plateSubtitle.trim().slice(0, 90);
   return Object.keys(out).length ? out : null;

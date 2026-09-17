@@ -228,6 +228,8 @@ export interface TeamSheetData {
    *  'result' (default) reads DEF / DRAW / DEF BY from the club's side,
    *  'vs' keeps the VS. Before a score is shown it is always VS. */
   centreWord?: CentreWord;
+  /** The lightning bolt behind the centre VS / result word. Absent means shown. */
+  showBolt?: boolean;
   /** Finals and Grand Final plate. `plateTitle` replaces the automatic text
    *  ("2026 Premiers", "Grand Final", or the round in finals); `plateSubtitle`
    *  adds a second panel, e.g. "AFL Masters National Carnival · Newcastle 2026". */

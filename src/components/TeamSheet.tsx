@@ -324,6 +324,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [centreWord, setCentreWord] = useState<CentreWord>(data.centreWord ?? 'result');
   const [plateTitle, setPlateTitle] = useState<string>(data.plateTitle ?? '');
   const [plateSubtitle, setPlateSubtitle] = useState<string>(data.plateSubtitle ?? '');
+  const [showBolt, setShowBolt] = useState<boolean>(data.showBolt ?? true);
   // Where the pictures sit. The team's headshot position is the default every
   // player inherits; a player's own position (on the player) overrides it.
   const [headshotPosition, setHeadshotPosition] = useState<ArtPosition>(data.headshotPosition ?? CENTRED);
@@ -723,6 +724,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setCentreWord(d.centreWord ?? 'result');
     setPlateTitle(d.plateTitle ?? '');
     setPlateSubtitle(d.plateSubtitle ?? '');
+    setShowBolt(d.showBolt ?? true);
     setHeadshotPosition(d.headshotPosition ?? CENTRED);
     setStaffPosition(d.staffPosition ?? CENTRED);
     setCompetitionLogos(d.competitionLogos ?? []);
@@ -754,6 +756,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       centreWord: centreWord === 'vs' ? 'vs' : undefined,
       plateTitle: plateTitle.trim() || undefined,
       plateSubtitle: plateSubtitle.trim() || undefined,
+      showBolt: showBolt ? undefined : false,
       headshotPosition: isCentred(headshotPosition) ? undefined : headshotPosition,
       staffPosition: isCentred(staffPosition) ? undefined : staffPosition,
       vsStyle,
@@ -1916,6 +1919,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onMatchTier={setMatchTier}
             centreWord={centreWord}
             onCentreWord={setCentreWord}
+            showBolt={showBolt}
+            onShowBolt={setShowBolt}
             plateTitle={plateTitle}
             plateSubtitle={plateSubtitle}
             onPlateText={(t, sub) => {
@@ -2022,6 +2027,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           showcase={showcase}
           matchTier={matchTier}
           centreWord={centreWord}
+          showBolt={showBolt}
           plateTitle={plateTitle}
           plateSubtitle={plateSubtitle}
         />

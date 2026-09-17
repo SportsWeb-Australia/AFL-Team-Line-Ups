@@ -197,6 +197,12 @@
   color: transparent;
 }
 .sw1-header__v--word .sw1-header__bolt { opacity: 0.85; }
+/* Bolt off: nothing behind the letters, so give them a touch more stroke and a
+   tighter shadow -- without the bolt's glow they were floating. */
+.sw1-header__v--nobolt .sw1-header__vs {
+  -webkit-text-stroke-width: 1.8px;
+  filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.7));
+}
 
 /* Split style: bold two-tone "VS" (left white, right club accent) + brighter bolt. */
 .sw1-header__v--split .sw1-header__vs {
@@ -2491,6 +2497,85 @@
 }
 .sw1-emergencies .sw1-bench__empty,
 .sw1-interchange .sw1-bench__empty { color: rgba(255, 255, 255, 0.82); }
+/* Finals and grand final: the bench cards take the SAME struck panel as the
+   match header and the staff band -- rolled metal, bezel and engraved hairline --
+   so every box on the graphic is cut from one material. The club colour steps
+   back on those two occasions, exactly as it does up top. */
+.sw1-root--finals .sw1-emergencies .sw1-bench,
+.sw1-root--finals .sw1-interchange .sw1-bench,
+.sw1-root--grand-final .sw1-emergencies .sw1-bench,
+.sw1-root--grand-final .sw1-interchange .sw1-bench {
+  position: relative;
+  --panel-grain: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0.04) 1px 3px);
+  --panel-bands: linear-gradient(172deg,
+    rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 6%, rgba(0, 0, 0, 0.17) 13%,
+    rgba(255, 255, 255, 0.07) 21%, rgba(0, 0, 0, 0.10) 29%, rgba(255, 255, 255, 0.13) 38%,
+    rgba(0, 0, 0, 0.19) 47%, rgba(255, 255, 255, 0.05) 56%, rgba(0, 0, 0, 0.13) 66%,
+    rgba(255, 255, 255, 0.10) 76%, rgba(0, 0, 0, 0.17) 86%, rgba(255, 255, 255, 0.06) 94%,
+    rgba(0, 0, 0, 0.11) 100%);
+  box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.6);
+}
+.sw1-root--finals .sw1-emergencies .sw1-bench,
+.sw1-root--finals .sw1-interchange .sw1-bench {
+  background:
+    var(--panel-grain),
+    linear-gradient(104deg, transparent 27%, rgba(255, 255, 255, 0.11) 43%, transparent 56%),
+    var(--panel-bands),
+    radial-gradient(130% 120% at 50% -12%, color-mix(in srgb, var(--club-primary) 48%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg, color-mix(in srgb, var(--club-primary) 62%, #000000) 0%,
+      color-mix(in srgb, var(--club-primary) 88%, #000000) 46%,
+      color-mix(in srgb, var(--club-primary) 96%, #ffffff) 100%);
+}
+.sw1-root--grand-final .sw1-emergencies .sw1-bench,
+.sw1-root--grand-final .sw1-interchange .sw1-bench {
+  background:
+    var(--panel-grain),
+    linear-gradient(104deg, transparent 27%, rgba(255, 240, 205, 0.11) 43%, transparent 56%),
+    var(--panel-bands),
+    radial-gradient(130% 120% at 50% -12%, #2d2f34 0%, transparent 55%),
+    linear-gradient(155deg, #0a0a0c 0%, #17181c 46%, #26282d 100%);
+}
+/* The alloy rim, at the card's own radius. Same two-layer mask as the header. */
+.sw1-root--finals .sw1-emergencies .sw1-bench::before,
+.sw1-root--finals .sw1-interchange .sw1-bench::before,
+.sw1-root--grand-final .sw1-emergencies .sw1-bench::before,
+.sw1-root--grand-final .sw1-interchange .sw1-bench::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: 12px;
+  padding: 2px;
+  background-image: var(--tier-frame);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 3;
+  pointer-events: none;
+}
+/* Engraved hairline just inside the rim. */
+.sw1-root--finals .sw1-emergencies .sw1-bench::after,
+.sw1-root--finals .sw1-interchange .sw1-bench::after,
+.sw1-root--grand-final .sw1-emergencies .sw1-bench::after,
+.sw1-root--grand-final .sw1-interchange .sw1-bench::after {
+  content: '';
+  position: absolute;
+  inset: 7px;
+  border: 1px solid color-mix(in srgb, var(--tier-edge) 30%, transparent);
+  border-radius: 7px;
+  box-shadow: inset 0 1px 0 rgba(0, 0, 0, 0.35);
+  z-index: 2;
+  pointer-events: none;
+}
+.sw1-root--grand-final .sw1-emergencies .sw1-bench::after,
+.sw1-root--grand-final .sw1-interchange .sw1-bench::after {
+  border-color: color-mix(in srgb, var(--tier-edge) 45%, transparent);
+}
+/* The players sit above the rim and the hairline. */
+.sw1-root--finals .sw1-bench__grid,
+.sw1-root--grand-final .sw1-bench__grid { position: relative; z-index: 4; }
+.sw1-root--finals .sw1-bench__title,
+.sw1-root--grand-final .sw1-bench__title { position: relative; z-index: 4; }
 /* Stacked Interchange/Emergencies (mobile + a heavy >6 bench): lay players out
    side by side, filling 2-up on a phone and 3-up where the panel is wider, rather
    than a single tall column. The wide corner-float and PNG-export rules further
