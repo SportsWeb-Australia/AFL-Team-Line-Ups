@@ -99,6 +99,22 @@ export interface Sponsor {
   tier?: string;
 }
 
+/** One side's AFL score. The total (goals x 6 + behinds) is always derived,
+ *  never stored, so it can't disagree with the breakdown. */
+export interface TeamScore {
+  goals: number;
+  behinds: number;
+}
+
+/** The final score, once the game's been played. */
+export interface MatchResult {
+  /** Off by default; a club can enter the score and reveal it when ready. */
+  show: boolean;
+  /** The club that owns this sheet. */
+  club: TeamScore;
+  opponent: TeamScore;
+}
+
 export interface MatchInfo {
   opponent: string;
   opponentLogoUrl?: string | null;
@@ -116,6 +132,8 @@ export interface MatchInfo {
   /** e.g. "2:10 PM". */
   time: string;
   venue: string;
+  /** Final score. Shown under each team in the header when `show` is on. */
+  result?: MatchResult;
 }
 
 /** Maps each slot/area to player ids. This is the selection itself. */

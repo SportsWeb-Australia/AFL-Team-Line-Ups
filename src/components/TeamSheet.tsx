@@ -159,7 +159,7 @@ function buildSig(p: {
   unavailable: string[];
   players: Player[];
   clubName?: string;
-  match?: { opponent?: string; grade?: string; round?: string };
+  match?: { opponent?: string; grade?: string; round?: string; result?: import('../types').MatchResult };
   sponsors?: TeamSheetData['sponsors'];
 }): string {
   const pos = p.positions || {};
@@ -174,7 +174,7 @@ function buildSig(p: {
     .map((pl) => `${pl.id}:${pl.number}:${pl.name}`)
     .sort()
     .join(',');
-  const match = `${p.match?.opponent ?? ''}|${p.match?.grade ?? ''}|${p.match?.round ?? ''}`;
+  const match = `${p.match?.opponent ?? ''}|${p.match?.grade ?? ''}|${p.match?.round ?? ''}|${p.match?.result?.show ? `${p.match.result.club.goals}.${p.match.result.club.behinds}-${p.match.result.opponent.goals}.${p.match.result.opponent.behinds}` : ''}`;
   const sp = p.sponsors || {};
   const adv = `${sp.advertiseEnabled !== false}|${sp.advertiseHref ?? ''}`;
   const rotating = JSON.stringify(sp.rotating ?? []);
@@ -523,7 +523,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setInterchange([]);
     setEmergencies([]);
     setUnavailable([]);
-    setMatch((m) => ({ ...m, round: '', opponent: '', date: '' }));
+    setMatch((m) => ({ ...m, round: '', opponent: '', date: '', result: undefined }));
     setSelectedPlayerId(null);
     setDbRefs(EMPTY_REFS);
     setDbState('idle');
@@ -913,7 +913,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     );
     if (next === null) return;
     const r = next.trim();
-    setMatch((m) => ({ ...m, round: r }));
+    // Next round hasn't been played: last week's score must not come with it.
+    setMatch((m) => ({ ...m, round: r, result: undefined }));
     setDbRefs((cur) => ({ ...cur, fixtureId: null, lineupId: null }));
     setDbState('idle');
     setDbMsg(`Cloned to ${r || 'a new round'} — update the date/opponent, then Save to create it.`);

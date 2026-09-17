@@ -6,6 +6,7 @@ import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import JumperPositioner, { type JumperOffset } from './JumperPositioner';
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
+import FinalScore from './FinalScore';
 import { SHOW_EMBED } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
 
@@ -666,6 +667,10 @@ export default function AdminPanel({
             </p>
           </div>
         )}
+
+        {/* Final score: after the game, put the result in the header. A Grand
+            Final the club won turns the plate into "Premiers". */}
+        {!showcase && <FinalScore club={club} match={match} matchTier={matchTier ?? 'home'} onMatch={onMatch} />}
 
         {onVsStyle && (
           <div className="sw1-vsstyle">

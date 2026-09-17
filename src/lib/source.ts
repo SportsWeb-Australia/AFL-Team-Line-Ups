@@ -1,6 +1,7 @@
 import { supabase } from './supabase';
 import { isDataUrl, putImage } from './imageStore';
 import type { TeamSheetData, Player, PositionKey, BenchArea } from '../types';
+import { resultFromRow, resultToRow } from './score';
 
 /** The database identifiers behind a loaded sheet, so a save updates (not duplicates). */
 export interface DbRefs {
@@ -80,8 +81,10 @@ export async function loadTeamSheet(
   if (!supabase) throw new Error('Database is not configured.');
 
   const sb = supabase;
-  const fixtureSelect = (withDateText: boolean) =>
-    `id, round, match_date,${withDateText ? ' match_date_text,' : ''} match_time,
+  const fixtureSelect = (withDateText: boolean, withScore = false) =>
+    `id, round, match_date,${withDateText ? ' match_date_text,' : ''} match_time,${
+      withScore ? ' show_score, club_goals, club_behinds, opponent_goals, opponent_behinds,' : ''
+    }
      team:teams ( id, name, competition, club:clubs (
        id, name, short_name, primary_color, secondary_color, ink_color, logo_url
      ) ),
@@ -90,7 +93,11 @@ export async function loadTeamSheet(
      opponent_name, opponent_logo_url`;
 
   async function fetchFixture() {
-    let res = await sb.from('fixtures').select(fixtureSelect(true)).eq('id', fixtureId).single();
+    let res = await sb.from('fixtures').select(fixtureSelect(true, true)).eq('id', fixtureId).single();
+    // Score columns only exist after add-final-score.sql — fall back without them.
+    if (res.error && isMissingColumn(res.error)) {
+      res = await sb.from('fixtures').select(fixtureSelect(true)).eq('id', fixtureId).single();
+    }
     // The display-date column only exists after enable-writes.sql — fall back.
     if (res.error && /match_date_text/i.test(res.error.message)) {
       res = await sb.from('fixtures').select(fixtureSelect(false)).eq('id', fixtureId).single();
@@ -282,6 +289,7 @@ export async function loadTeamSheet(
       date: (fx as any).match_date_text ?? (fx as any).match_date ?? '',
       time: (fx as any).match_time ?? '',
       venue: (fx as any).venue?.name ?? '',
+      result: resultFromRow(fx as any),
     },
     players,
     lineup: {
@@ -872,6 +880,9 @@ export async function saveTeamSheet(
     opponent_logo_url: d.match.opponentLogoUrl ?? null,
     opponent_club_id: d.match.opponentClubId ?? null,
   };
+  // The final score rides with the fixture. Kept separate so a project that
+  // hasn't run add-final-score.sql still saves everything else.
+  const fixtureWithScore = { ...fixtureFields, ...resultToRow(d.match.result) };
   let fixtureId: string;
   {
     let q = supabase.from('fixtures').select('id').eq('team_id', teamId);
@@ -881,14 +892,12 @@ export async function saveTeamSheet(
     if (fe) throw fe;
     if (existing && existing.length) {
       fixtureId = (existing[0] as any).id;
-      const { error: ue } = await supabase.from('fixtures').update(fixtureFields).eq('id', fixtureId);
+      let { error: ue } = await supabase.from('fixtures').update(fixtureWithScore).eq('id', fixtureId);
+      if (ue && isMissingColumn(ue)) ({ error: ue } = await supabase.from('fixtures').update(fixtureFields).eq('id', fixtureId));
       if (ue) throw ue;
     } else {
-      const { data: fx, error: e4 } = await supabase
-        .from('fixtures')
-        .insert(fixtureFields)
-        .select('id')
-        .single();
+      let { data: fx, error: e4 } = await supabase.from('fixtures').insert(fixtureWithScore).select('id').single();
+      if (e4 && isMissingColumn(e4)) ({ data: fx, error: e4 } = await supabase.from('fixtures').insert(fixtureFields).select('id').single());
       if (e4) throw e4;
       fixtureId = (fx as any).id;
     }
