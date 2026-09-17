@@ -108,7 +108,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos');
@@ -315,6 +316,11 @@ export async function loadTeamSheet(
     visualMode: (lineup && (lineup as any).visual_mode) || undefined,
     watermarkSource: (lineup && (lineup as any).watermark_source) || undefined,
     jumperImageUrl: (lineup && (lineup as any).jumper_image_url) || undefined,
+    jumperOffset: (() => {
+      const x = Number((lineup as any)?.jumper_offset_x) || 0;
+      const y = Number((lineup as any)?.jumper_offset_y) || 0;
+      return x || y ? { x, y } : undefined;
+    })(),
     vsStyle: (lineup && (lineup as any).vs_style) || undefined,
     matchTier: (lineup && (lineup as any).match_tier) || undefined,
     watermarkText: (lineup && (lineup as any).watermark_text) || undefined,
@@ -914,6 +920,10 @@ export async function saveTeamSheet(
     const showcase = !!(d as any).showcase;
     const hideSponsors = !!(d as any).hideSponsors;
     const tier = d.matchTier ?? null;
+    // Null, not 0, when the jumper hasn't been moved: an untouched sheet stays
+    // byte-for-byte what it was.
+    const jx = d.jumperOffset?.x ? d.jumperOffset.x : null;
+    const jy = d.jumperOffset?.y ? d.jumperOffset.y : null;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
@@ -924,6 +934,7 @@ export async function saveTeamSheet(
       // is genuinely missing. A real failure (RLS, payload) is thrown, not swallowed —
       // otherwise a failed publish silently leaves the old, jumper-less row live.
       const patches: Record<string, any>[] = [
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, ...live },
@@ -944,6 +955,7 @@ export async function saveTeamSheet(
     } else {
       const live = { published: publish };
       const inserts: Record<string, any>[] = [
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo },
