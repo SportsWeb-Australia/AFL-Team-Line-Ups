@@ -2186,6 +2186,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           visualMode={visualMode}
           poloImageUrl={poloImageUrl}
           runnerImageUrl={runnerImageUrl}
+          watermark={data.watermark ? (wmIsLogo && wmLogo ? { logo: wmLogo } : { text: wmText }) : null}
         />
         )}
 

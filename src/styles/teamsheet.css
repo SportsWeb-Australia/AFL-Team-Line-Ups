@@ -480,7 +480,9 @@
    alphas rather than colours, so it lies over ANY club's primary and turns it
    into that club's metal instead of tinting everything one shared hue. */
 .sw1-root--finals .sw1-header,
-.sw1-root--grand-final .sw1-header {
+.sw1-root--grand-final .sw1-header,
+.sw1-root--finals .sw1-staff,
+.sw1-root--grand-final .sw1-staff {
   --panel-grain: repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, rgba(0, 0, 0, 0.04) 1px 3px);
   --panel-bands: linear-gradient(172deg,
     rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0.02) 6%, rgba(0, 0, 0, 0.17) 13%,
@@ -489,7 +491,8 @@
     rgba(255, 255, 255, 0.10) 76%, rgba(0, 0, 0, 0.17) 86%, rgba(255, 255, 255, 0.06) 94%,
     rgba(0, 0, 0, 0.11) 100%);
 }
-.sw1-root--finals .sw1-header {
+.sw1-root--finals .sw1-header,
+.sw1-root--finals .sw1-staff {
   background:
     var(--panel-grain),
     /* Raking specular across the panel, the same light the plate catches. */
@@ -504,7 +507,8 @@
    bronze to "match" the gold and it just read brown -- gold reads richest
    against a neutral dark, and staying neutral keeps the gold the only warm
    thing on the graphic. */
-.sw1-root--grand-final .sw1-header {
+.sw1-root--grand-final .sw1-header,
+.sw1-root--grand-final .sw1-staff {
   background:
     var(--panel-grain),
     linear-gradient(104deg, transparent 27%, rgba(255, 240, 205, 0.11) 43%, transparent 56%),
@@ -519,7 +523,9 @@
    because a plain border can't carry a gradient and border-image would square
    off the 16px radius. */
 .sw1-root--finals .sw1-header::before,
-.sw1-root--grand-final .sw1-header::before {
+.sw1-root--grand-final .sw1-header::before,
+.sw1-root--finals .sw1-staff::before,
+.sw1-root--grand-final .sw1-staff::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -538,7 +544,9 @@
 /* Engraved hairline just inside the bezel — both tiers now, so the header has
    an edge treatment rather than a lone border. */
 .sw1-root--finals .sw1-header::after,
-.sw1-root--grand-final .sw1-header::after {
+.sw1-root--grand-final .sw1-header::after,
+.sw1-root--finals .sw1-staff::after,
+.sw1-root--grand-final .sw1-staff::after {
   content: '';
   position: absolute;
   inset: 9px;
@@ -548,7 +556,8 @@
   z-index: 4;
   pointer-events: none;
 }
-.sw1-root--grand-final .sw1-header::after {
+.sw1-root--grand-final .sw1-header::after,
+.sw1-root--grand-final .sw1-staff::after {
   border-color: color-mix(in srgb, var(--tier-edge) 45%, transparent);
 }
 
@@ -4431,18 +4440,54 @@
    off the oval. Sitting below the stage also reads correctly — these people are
    off the field. */
 .sw1-staff {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   text-align: center;
-  padding: clamp(12px, 1.8vw, 18px) clamp(10px, 2vw, 22px) clamp(14px, 2vw, 20px);
-  border-radius: 14px;
-  /* Light, club-tinted panel rather than the header/bench gradient: the drawn
-     polo is in the club's PRIMARY colour, so a primary-coloured ground would
-     swallow it. */
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--club-primary) 9%, #ffffff) 0%,
-    #ffffff 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--club-primary) 20%, #ffffff);
+  padding: clamp(16px, 2.2vw, 24px) clamp(10px, 2vw, 22px) clamp(18px, 2.4vw, 26px);
+  border-radius: 16px;
+  /* The match header's own panel, so the graphic closes the way it opens: club
+     colours for home and away, and the finals and grand final metal (with its
+     bezel) from the tier rules above. No crests -- they belong to the header.
+     A drawn polo in the club's primary would sink into a primary ground, so
+     each person stands in a soft spotlight (below). */
+  color: var(--club-on-primary);
+  background:
+    radial-gradient(130% 120% at 50% -12%,
+      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 0%, transparent 55%),
+    linear-gradient(155deg,
+      color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
+      var(--club-primary) 46%,
+      color-mix(in srgb, var(--club-primary) 72%, #ffffff) 100%);
+  box-shadow: var(--shadow-card);
+}
+/* The sponsor watermark from the ground, carried on down. */
+.sw1-staff__wm {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  opacity: 0.08;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 12px 10px;
+}
+.sw1-staff__wm .sw1-watermark__row span { color: #ffffff; }
+.sw1-staff__wm .sw1-watermark__row { gap: 28px; justify-content: center; overflow: hidden; }
+.sw1-root--finals .sw1-staff__wm,
+.sw1-root--grand-final .sw1-staff__wm { opacity: 0.1; }
+.sw1-root--grand-final .sw1-staff__wm .sw1-watermark__row span { color: var(--tier-edge); }
+.sw1-staff__wm.is-logo .sw1-watermark__row { gap: 16px; align-items: center; }
+.sw1-staff__wm.is-logo .sw1-watermark__row img { height: 30px; width: auto; object-fit: contain; flex: none; }
+/* Home and away: the label is a darker cut of the club colour so it still reads
+   on the club-coloured band. :where() keeps this under the finals label rule. */
+.sw1-staff > :where(.sw1-grouplabel) {
+  background-image: linear-gradient(90deg,
+    color-mix(in srgb, var(--club-primary) 55%, #000000),
+    color-mix(in srgb, var(--club-primary) 78%, #000000));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 14px rgba(0, 0, 0, 0.3);
 }
 .sw1-staff__grid {
   display: flex;
@@ -4452,6 +4497,8 @@
   margin-top: 2px;
 }
 .sw1-staff__person {
+  position: relative;
+  isolation: isolate;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -4459,14 +4506,35 @@
   /* Matches the follower slot so staff line up with the group above them. */
   min-width: 132px;
 }
+/* A soft spotlight behind each shirt: lifts a navy polo off a navy band. */
+.sw1-staff__person::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: -10px;
+  width: clamp(150px, 21cqw, 230px);
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.30), rgba(255, 255, 255, 0.09) 55%, rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.sw1-root--grand-final .sw1-staff__person::before {
+  background: radial-gradient(closest-side, rgba(255, 236, 190, 0.22), rgba(255, 236, 190, 0.06) 55%, rgba(255, 236, 190, 0));
+}
 .sw1-staff__role {
   font-size: clamp(10px, 1.1vw, 12px);
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--club-primary);
+  color: var(--club-on-primary);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
   line-height: 1;
 }
+.sw1-root--finals .sw1-staff__role,
+.sw1-root--grand-final .sw1-staff__role { color: var(--tier-edge); }
+.sw1-staff .sw1-staff__grid { position: relative; }
 /* The drawn polo fills the plate's art box the same way a jumper PNG does. */
 .sw1-polo {
   width: 100%;
@@ -4474,6 +4542,10 @@
   object-fit: contain;
   display: block;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+/* On the dark band a shirt needs a rim of light as well as a shadow. */
+.sw1-staff .sw1-plate__art {
+  filter: drop-shadow(0 0 1.5px rgba(255, 255, 255, 0.55)) drop-shadow(0 10px 16px rgba(0, 0, 0, 0.45));
 }
 
 /* Staff pictures are sized for the coaches' box, not borrowed from the field.
