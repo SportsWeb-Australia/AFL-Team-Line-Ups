@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
+import { resultFromRow, resultToRow } from './score';
 import { isDataUrl, putImage } from './imageStore';
 import type { TeamSheetData, Player, PositionKey, BenchArea } from '../types';
-import { resultFromRow, resultToRow } from './score';
 
 /** The database identifiers behind a loaded sheet, so a save updates (not duplicates). */
 export interface DbRefs {

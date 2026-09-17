@@ -2,11 +2,11 @@ import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, MatchTier, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
+import FinalScore from './FinalScore';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import JumperPositioner, { type JumperOffset } from './JumperPositioner';
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
-import FinalScore from './FinalScore';
 import { SHOW_EMBED } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
 
