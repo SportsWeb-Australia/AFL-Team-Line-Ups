@@ -137,6 +137,15 @@ create table if not exists lineups (
   watermark_text text,
   watermark_logo_url text,
   competition_logos text,
+  -- Match-day staff (the coaches' box): a JSON array of {role, name, headshotUrl?}.
+  -- They are NOT players — no guernsey number, never a lineup_positions row — so
+  -- they ride on the lineup rather than the squad.
+  officials text,
+  -- The club polo worn by coaching staff and the runner's hi-vis top. https links
+  -- into the images bucket only: images stored inside table rows are what drained
+  -- the Disk IO budget on 2026-08-29 (see src/lib/imageStore.ts).
+  polo_image_url text,
+  runner_image_url text,
   created_at  timestamptz not null default now(),
   updated_at  timestamptz not null default now()
 );

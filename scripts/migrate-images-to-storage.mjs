@@ -69,6 +69,8 @@ const TARGETS = [
   { table: 'fixtures', col: 'opponent_logo_url', folder: 'opponents', label: 'opponent_name' },
   { table: 'lineups', col: 'jumper_image_url', folder: 'jumpers', label: null },
   { table: 'lineups', col: 'watermark_logo_url', folder: 'watermarks', label: null },
+  { table: 'lineups', col: 'polo_image_url', folder: 'staff', label: null },
+  { table: 'lineups', col: 'runner_image_url', folder: 'staff', label: null },
 ];
 
 const slug = (v, fallback) =>
@@ -252,6 +254,88 @@ for (const { table, col, folder } of ARRAY_TARGETS) {
       if (updErr) {
         console.error(`  ! ${id}: row update failed — ${updErr.message}`);
         failed++;
+      }
+    }
+  }
+}
+
+// lineups.officials holds [{role, name, headshotUrl}] — objects, not plain strings,
+// so the array pass above can't reach the image inside one.
+{
+  const { data: rows, error } = await sb.from('lineups').select('id').like('officials', '%data:%');
+  if (error) {
+    console.error(`  ! lineups.officials: ${error.message}`);
+    failed++;
+  } else if (!rows?.length) {
+    console.log('- lineups.officials: nothing to move');
+  } else {
+    console.log(`\nlineups.officials: ${rows.length} rows to check`);
+    for (const { id } of rows) {
+      const { data: row, error: readErr } = await sb.from('lineups').select('officials').eq('id', id).single();
+      if (readErr || !row?.officials) {
+        console.error(`  ! ${id}: ${readErr?.message ?? 'no value'}`);
+        failed++;
+        continue;
+      }
+      let list = row.officials;
+      if (typeof list === 'string') {
+        try {
+          list = JSON.parse(list);
+        } catch {
+          console.error(`  ! ${id}: officials is not valid JSON`);
+          failed++;
+          continue;
+        }
+      }
+      if (!Array.isArray(list)) {
+        console.error(`  ! ${id}: expected an array`);
+        failed++;
+        continue;
+      }
+
+      let changed = false;
+      for (const o of list) {
+        if (!o || typeof o.headshotUrl !== 'string' || !o.headshotUrl.startsWith('data:')) continue;
+        const decoded = decodeDataUrl(o.headshotUrl);
+        if (!decoded) continue;
+        const hash = createHash('sha256').update(decoded.bytes).digest('hex').slice(0, 16);
+        const path = `staff/${slug(o.name || o.role, 'official')}-${hash}.${decoded.ext}`;
+
+        if (DRY) {
+          console.log(`  would move ${mb(decoded.bytes.length)} -> ${path}`);
+          movedCount++;
+          movedBytes += decoded.bytes.length;
+          continue;
+        }
+
+        const { error: upErr } = await sb.storage.from(BUCKET).upload(path, decoded.bytes, {
+          contentType: decoded.mime,
+          upsert: true,
+          cacheControl: '31536000',
+        });
+        if (upErr) {
+          console.error(`  ! ${id} (${o.role}): upload failed — ${upErr.message}`);
+          failed++;
+          continue;
+        }
+        const { data: pub } = sb.storage.from(BUCKET).getPublicUrl(path);
+        console.log(`  moved ${mb(decoded.bytes.length)} -> ${path}`);
+        movedCount++;
+        movedBytes += decoded.bytes.length;
+        o.headshotUrl = pub.publicUrl;
+        changed = true;
+      }
+
+      // Only rewrite once every image in this row uploaded cleanly.
+      if (changed && !DRY) {
+        const { error: updErr } = await sb
+          .from('lineups')
+          .update({ officials: JSON.stringify(list) })
+          .eq('id', id);
+        if (updErr) {
+          console.error(`  ! ${id}: row update failed — ${updErr.message}`);
+          failed++;
+        }
       }
     }
   }

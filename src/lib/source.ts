@@ -1,6 +1,6 @@
 import { supabase } from './supabase';
 import { isDataUrl, putImage } from './imageStore';
-import type { TeamSheetData, Player, PositionKey, BenchArea } from '../types';
+import type { TeamSheetData, Player, PositionKey, BenchArea, Official, OfficialRole } from '../types';
 
 /** The database identifiers behind a loaded sheet, so a save updates (not duplicates). */
 export interface DbRefs {
@@ -40,6 +40,32 @@ function isMissingStatusColumn(err: any): boolean {
 /** True when an error looks like a not-yet-migrated column (so we can fall back). */
 function isMissingColumn(err: any): boolean {
   return err?.code === '42703' || err?.code === 'PGRST204';
+}
+
+/** Match-day staff are stored as a JSON array on the lineup row. Anything that
+ *  isn't a usable {role, name} pair is dropped rather than rendered as a blank
+ *  plate, and an unknown role is ignored so an older/newer app version can't put
+ *  a stray person on the graphic. */
+function parseOfficials(raw: any): Official[] | undefined {
+  if (!raw) return undefined;
+  let arr: any = raw;
+  if (typeof raw === 'string') {
+    try {
+      arr = JSON.parse(raw);
+    } catch {
+      return undefined;
+    }
+  }
+  if (!Array.isArray(arr)) return undefined;
+  const roles: OfficialRole[] = ['coach', 'assistant-coach', 'team-manager', 'runner'];
+  const list = arr
+    .filter((o: any) => o && roles.includes(o.role) && typeof o.name === 'string' && o.name.trim())
+    .map((o: any) => ({
+      role: o.role as OfficialRole,
+      name: String(o.name).trim(),
+      headshotUrl: typeof o.headshotUrl === 'string' && o.headshotUrl ? o.headshotUrl : undefined,
+    }));
+  return list.length ? list : undefined;
 }
 
 /** competition_logos is stored as a JSON array of image URLs/data-URLs. Be lenient
@@ -108,7 +134,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y, officials, polo_image_url, runner_image_url');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids');
@@ -328,6 +355,9 @@ export async function loadTeamSheet(
     competitionLogos: parseLogoList(lineup && (lineup as any).competition_logos),
     showcase: !!(lineup && (lineup as any).showcase),
     hideSponsors: !!(lineup && (lineup as any).hide_sponsors),
+    officials: parseOfficials(lineup && (lineup as any).officials),
+    poloImageUrl: (lineup && (lineup as any).polo_image_url) || undefined,
+    runnerImageUrl: (lineup && (lineup as any).runner_image_url) || undefined,
   };
 
   return {
@@ -688,6 +718,7 @@ async function imagesToStorage(d: TeamSheetData): Promise<TeamSheetData> {
     club: { ...d.club },
     match: { ...d.match },
     players: d.players.map((p) => ({ ...p })),
+    officials: d.officials?.map((o) => ({ ...o })),
     sponsors: d.sponsors && {
       rotating: (d.sponsors.rotating ?? []).map((s) => ({ ...s })),
       library: (d.sponsors.library ?? []).map((s) => ({ ...s })),
@@ -702,6 +733,16 @@ async function imagesToStorage(d: TeamSheetData): Promise<TeamSheetData> {
     slug(next.match.opponent, 'opponent'),
   );
   move(() => next.jumperImageUrl, (u) => (next.jumperImageUrl = u ?? undefined), 'jumpers', slug(next.club.name, 'jumper'));
+  move(() => next.poloImageUrl, (u) => (next.poloImageUrl = u ?? undefined), 'staff', slug(next.club.name, 'polo'));
+  move(
+    () => next.runnerImageUrl,
+    (u) => (next.runnerImageUrl = u ?? undefined),
+    'staff',
+    slug(next.club.name, 'runner'),
+  );
+  for (const o of next.officials ?? []) {
+    move(() => o.headshotUrl, (u) => (o.headshotUrl = u ?? undefined), 'staff', slug(o.name || o.role, 'official'));
+  }
   move(
     () => next.watermarkLogoUrl,
     (u) => (next.watermarkLogoUrl = u ?? undefined),
@@ -924,6 +965,15 @@ export async function saveTeamSheet(
     // byte-for-byte what it was.
     const jx = d.jumperOffset?.x ? d.jumperOffset.x : null;
     const jy = d.jumperOffset?.y ? d.jumperOffset.y : null;
+    // Match-day staff ride on the lineup row as JSON: they are not players, so
+    // they never become rows in players/lineup_positions.
+    const staff = JSON.stringify(
+      (d.officials ?? [])
+        .map((o) => ({ ...o, name: o.name.trim() }))
+        .filter((o) => o.name),
+    );
+    const polo = d.poloImageUrl ?? null;
+    const runner = d.runnerImageUrl ?? null;
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
@@ -934,6 +984,7 @@ export async function saveTeamSheet(
       // is genuinely missing. A real failure (RLS, payload) is thrown, not swallowed —
       // otherwise a failed publish silently leaves the old, jumper-less row live.
       const patches: Record<string, any>[] = [
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, ...live },
@@ -955,6 +1006,7 @@ export async function saveTeamSheet(
     } else {
       const live = { published: publish };
       const inserts: Record<string, any>[] = [
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors },

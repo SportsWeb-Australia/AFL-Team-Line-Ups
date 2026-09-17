@@ -3,6 +3,7 @@ import { toPng } from 'html-to-image';
 import type {
   BenchArea,
   MatchTier,
+  Official,
   Player,
   PlayerStatus,
   PositionKey,
@@ -14,6 +15,7 @@ import type {
 } from '../types';
 import { FIELD_SLOTS, FIELD_SLOTS_MOBILE, LINE_LABELS, BENCH_TITLES, FOLLOWER_LABELS } from '../lib/field';
 import MatchHeader from './MatchHeader';
+import MatchDayStaff from './MatchDayStaff';
 import RotatingBanner from './RotatingBanner';
 import Oval from './Oval';
 import { preloadBackgroundRemoval } from '../lib/removeBg';
@@ -161,6 +163,7 @@ function buildSig(p: {
   clubName?: string;
   match?: { opponent?: string; grade?: string; round?: string };
   sponsors?: TeamSheetData['sponsors'];
+  officials?: Official[];
 }): string {
   const pos = p.positions || {};
   const posStr = Object.keys(pos).sort().map((k) => `${k}=${pos[k] ?? ''}`).join(',');
@@ -178,7 +181,12 @@ function buildSig(p: {
   const sp = p.sponsors || {};
   const adv = `${sp.advertiseEnabled !== false}|${sp.advertiseHref ?? ''}`;
   const rotating = JSON.stringify(sp.rotating ?? []);
-  return [posStr, bench, roster, p.clubName ?? '', match, adv, rotating].join('##');
+  const staff = (p.officials ?? [])
+    .filter((o) => o.name.trim())
+    .map((o) => `${o.role}:${o.name.trim()}`)
+    .sort()
+    .join(',');
+  return [posStr, bench, roster, p.clubName ?? '', match, adv, rotating, staff].join('##');
 }
 
 export default function TeamSheet({ data, mode = 'public', embed = false, autoLoad = false }: TeamSheetProps) {
@@ -301,6 +309,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [sponsors, setSponsors] = useState(data.sponsors);
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [jumperOffset, setJumperOffset] = useState<{ x: number; y: number }>(data.jumperOffset ?? { x: 0, y: 0 });
+  // The coaches' box. Staff are not players, so they live beside the line-up
+  // rather than in the squad, and an unnamed role simply isn't drawn.
+  const [officials, setOfficials] = useState<Official[]>(data.officials ?? []);
+  const [poloImageUrl, setPoloImageUrl] = useState<string | undefined>(data.poloImageUrl);
+  const [runnerImageUrl, setRunnerImageUrl] = useState<string | undefined>(data.runnerImageUrl);
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
   const [matchTier, setMatchTier] = useState<MatchTier>(data.matchTier ?? 'home');
@@ -595,8 +608,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         clubName: club?.name,
         match,
         sponsors,
+        officials,
       }),
-    [positions, followers, interchange, emergencies, unavailable, players, club, match, sponsors],
+    [positions, followers, interchange, emergencies, unavailable, players, club, match, sponsors, officials],
   );
   // Draft-vs-live status for the toolbar flag. 'none' = nothing to publish to.
   const publishStatus: 'none' | 'never' | 'stale' | 'live' = !(
@@ -688,6 +702,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setWmSponsorLogo(d.watermarkLogoUrl ?? null);
     setJumperImageUrl(d.jumperImageUrl);
     setJumperOffset(d.jumperOffset ?? { x: 0, y: 0 });
+    setOfficials(d.officials ?? []);
+    setPoloImageUrl(d.poloImageUrl);
+    setRunnerImageUrl(d.runnerImageUrl);
     setCompetitionLogos(d.competitionLogos ?? []);
     if (d.vsStyle) setVsStyle(d.vsStyle);
     setMatchTier(d.matchTier ?? 'home');
@@ -710,6 +727,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       jumperOffset: jumperOffset.x || jumperOffset.y ? jumperOffset : undefined,
+      officials,
+      poloImageUrl,
+      runnerImageUrl,
       vsStyle,
       matchTier,
       showcase,
@@ -774,6 +794,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
               clubName: res.data.club?.name,
               match: res.data.match,
               sponsors: res.data.sponsors,
+              officials: res.data.officials,
             })
           : null,
       );
@@ -1347,6 +1368,26 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setJumperOffset({ x: 0, y: 0 });
   }
 
+  /** Name (or rename) one match-day role. Blanking the name drops the person,
+   *  which is also how a club removes a role from the band. */
+  function setOfficial(role: Official['role'], name: string) {
+    setOfficials((list) => {
+      const rest = list.filter((o) => o.role !== role);
+      if (!name.trim()) return rest;
+      const existing = list.find((o) => o.role === role);
+      // Keep what was typed, spaces and all. This value feeds the input box, so
+      // trimming here ate the space the moment it was typed: "Dean Mackey"
+      // came out as "DeanMackey". Names are trimmed where they're drawn and
+      // where they're saved instead.
+      return [...rest, { ...(existing ?? { role }), role, name }];
+    });
+  }
+
+  function setStaffShirt(kind: 'polo' | 'runner', url: string) {
+    if (kind === 'polo') setPoloImageUrl(url || undefined);
+    else setRunnerImageUrl(url || undefined);
+  }
+
   function addCompetitionLogo(dataUrl: string) {
     if (dataUrl) setCompetitionLogos((list) => [...list, dataUrl]);
   }
@@ -1809,6 +1850,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             teamJumperUrl={jumperImageUrl}
             jumperOffset={jumperOffset}
             onJumperOffset={setJumperOffset}
+            officials={officials}
+            onOfficial={setOfficial}
+            poloImageUrl={poloImageUrl}
+            runnerImageUrl={runnerImageUrl}
+            onStaffShirt={setStaffShirt}
             competitionLogos={competitionLogos}
             onAddCompetitionLogo={addCompetitionLogo}
             onRemoveCompetitionLogo={removeCompetitionLogo}
@@ -2064,6 +2110,17 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             </div>
           )}
         </div>
+
+        {/* The coaches' box. Outside .sw1-stage on purpose — Interchange and
+            Emergencies float against the stage, so adding height inside it drags
+            them off the oval. */}
+        <MatchDayStaff
+          officials={officials}
+          club={club}
+          visualMode={visualMode}
+          poloImageUrl={poloImageUrl}
+          runnerImageUrl={runnerImageUrl}
+        />
 
         {/* Unavailable: admin-only — never shown on the public/embedded graphic */}
         {admin && renderBench('unavailable') && (

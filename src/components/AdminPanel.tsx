@@ -1,10 +1,11 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { Club, MatchInfo, MatchTier, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
+import type { Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import JumperPositioner, { type JumperOffset } from './JumperPositioner';
+import { OFFICIAL_ROLES } from './MatchDayStaff';
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
 import { SHOW_EMBED } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
@@ -77,6 +78,12 @@ interface Props {
   /** Where the team jumper sits on its plate (percent of the image's size). */
   jumperOffset?: JumperOffset;
   onJumperOffset?: (next: JumperOffset) => void;
+  /** The coaches' box: coach, assistant coach, team manager, runner. */
+  officials?: Official[];
+  onOfficial?: (role: OfficialRole, name: string) => void;
+  poloImageUrl?: string;
+  runnerImageUrl?: string;
+  onStaffShirt?: (kind: 'polo' | 'runner', dataUrl: string) => void;
   vsStyle?: 'chrome' | 'split';
   onVsStyle?: (s: 'chrome' | 'split') => void;
   matchTier?: MatchTier;
@@ -186,6 +193,11 @@ export default function AdminPanel({
   onTeamJumper,
   jumperOffset,
   onJumperOffset,
+  officials,
+  onOfficial,
+  poloImageUrl,
+  runnerImageUrl,
+  onStaffShirt,
   vsStyle,
   onVsStyle,
   matchTier,
@@ -335,6 +347,11 @@ export default function AdminPanel({
     const file = e.target.files?.[0];
     if (file) onLogo(target, await readAsDataUrl(file));
   };
+  const uploadStaffShirt = (kind: 'polo' | 'runner') => async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && onStaffShirt) onStaffShirt(kind, await readAsDataUrl(file));
+  };
+
   const uploadTeamJumper = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file && onTeamJumper) onTeamJumper(await readAsDataUrl(file));
@@ -1290,6 +1307,60 @@ export default function AdminPanel({
             <strong> Jumper</strong>. <strong>Headshots are per player</strong> — add them with each player's
             <strong> ✎ Edit</strong> button below (or bulk import with a photo URL).
           </p>
+        </div>
+      )}
+
+      {/* Match-day staff: the coaches' box. Sits with the squad because it is the
+          same question — who is here today — but it never touches the line-up. */}
+      {onOfficial && (
+        <div className="sw1-staffedit">
+          <h4 className="sw1-staffedit__title">Match day staff</h4>
+          <p className="sw1-admin__hint">
+            The people in the coaches&rsquo; box. <strong>Leave a name blank to hide that role</strong> &mdash; the
+            band only appears on the graphic once someone is named. Staff aren&rsquo;t players, so they have no
+            number and never appear in the squad or on the ground.
+          </p>
+          {OFFICIAL_ROLES.map((r) => (
+            <label key={r.key} className="sw1-staffedit__row">
+              <span className="sw1-staffedit__label">{r.label}</span>
+              <input
+                type="text"
+                placeholder={r.key === 'runner' ? 'e.g. T. Ryan' : 'Full name'}
+                value={(officials ?? []).find((o) => o.role === r.key)?.name ?? ''}
+                onChange={(e) => onOfficial(r.key as OfficialRole, e.target.value)}
+              />
+            </label>
+          ))}
+
+          {onStaffShirt && (
+            <div className="sw1-staffedit__shirts">
+              {([
+                { kind: 'polo' as const, url: poloImageUrl, label: 'club polo', who: 'Coach, assistant and team manager' },
+                { kind: 'runner' as const, url: runnerImageUrl, label: "runner's top", who: 'Runner' },
+              ]).map((sh) => (
+                <div key={sh.kind} className="sw1-staffedit__shirt">
+                  <label className="sw1-btn sw1-staffedit__btn">
+                    {sh.url ? `Replace ${sh.label}` : `Upload ${sh.label}`}
+                    <input type="file" accept="image/*" hidden onChange={uploadStaffShirt(sh.kind)} />
+                  </label>
+                  {sh.url && (
+                    <>
+                      <img className="sw1-teamjumper__preview" src={sh.url} alt="" />
+                      <button type="button" className="sw1-teamjumper__clear" onClick={() => onStaffShirt(sh.kind, '')}>
+                        Clear
+                      </button>
+                    </>
+                  )}
+                  <span className="sw1-admin__hint">{sh.who}</span>
+                </div>
+              ))}
+              <p className="sw1-admin__hint">
+                Optional. With nothing uploaded we draw a polo in <strong>your club colours</strong>, and a
+                <strong> fluro top</strong> for the runner. Same as the jumper: a square PNG with a see-through
+                background works best.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

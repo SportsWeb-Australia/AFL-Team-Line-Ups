@@ -29,6 +29,19 @@ export type PlayerStatus =
   | 'personal'
   | 'suspended';
 
+/** Match-day staff — the people in the coaches' box rather than on the ground.
+ *  They are deliberately NOT players: no guernsey number, never selected into a
+ *  position, and stored on the sheet rather than in the club's squad. */
+export type OfficialRole = 'coach' | 'assistant-coach' | 'team-manager' | 'runner';
+
+export interface Official {
+  role: OfficialRole;
+  name: string;
+  /** Optional portrait. Only used when the sheet is in Headshot mode; otherwise
+   *  the club polo (or the runner's hi-vis top) is drawn instead. */
+  headshotUrl?: string | null;
+}
+
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
@@ -165,6 +178,14 @@ export interface TeamSheetData {
    *  negative y = up), so one setting holds at every plate size and in the PNG
    *  export. Absent means not moved. */
   jumperOffset?: { x: number; y: number };
+  /** The coaches' box. Only officials with a name are drawn, so a club that
+   *  never fills this in simply never sees the band. */
+  officials?: Official[];
+  /** ONE club polo for the coaching staff — the staff equivalent of
+   *  `jumperImageUrl`. Absent means a polo drawn in the club's own colours. */
+  poloImageUrl?: string;
+  /** The runner's hi-vis top. Absent means a drawn fluro shirt. */
+  runnerImageUrl?: string;
   /** Centre "VS" treatment: 'chrome' (metallic) or 'split' (bold two-tone). */
   vsStyle?: 'chrome' | 'split';
   /** Which occasion the graphic is dressed for. Drives the struck plate and the

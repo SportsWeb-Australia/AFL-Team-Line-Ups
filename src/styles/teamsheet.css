@@ -4145,3 +4145,121 @@
 .sw1-jumperpos__btn.is-reset { grid-area: 2 / 2; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
 .sw1-jumperpos__btn.is-right { grid-area: 2 / 3; }
 .sw1-jumperpos__btn.is-down { grid-area: 3 / 2; }
+
+/* ── Match-day staff (the coaches' box) ─────────────────────────────────── */
+/* A full-width band UNDER the stage, not inside it: Interchange and Emergencies
+   are absolutely positioned against .sw1-stage to float into the ground's
+   corners, so anything added inside the stage below them would push those cards
+   off the oval. Sitting below the stage also reads correctly — these people are
+   off the field. */
+.sw1-staff {
+  text-align: center;
+  padding: clamp(12px, 1.8vw, 18px) clamp(10px, 2vw, 22px) clamp(14px, 2vw, 20px);
+  border-radius: 14px;
+  /* Light, club-tinted panel rather than the header/bench gradient: the drawn
+     polo is in the club's PRIMARY colour, so a primary-coloured ground would
+     swallow it. */
+  background: linear-gradient(
+    180deg,
+    color-mix(in srgb, var(--club-primary) 9%, #ffffff) 0%,
+    #ffffff 100%
+  );
+  border: 1px solid color-mix(in srgb, var(--club-primary) 20%, #ffffff);
+}
+.sw1-staff__grid {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: clamp(10px, 2.6vw, 34px);
+  margin-top: 2px;
+}
+.sw1-staff__person {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  /* Matches the follower slot so staff line up with the group above them. */
+  min-width: 132px;
+}
+.sw1-staff__role {
+  font-size: clamp(10px, 1.1vw, 12px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--club-primary);
+  line-height: 1;
+}
+/* The drawn polo fills the plate's art box the same way a jumper PNG does. */
+.sw1-polo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.18));
+}
+/* Staff have no guernsey number, so the plate's number tab is empty — pull the
+   name back to centre instead of leaving a gap where the tab would sit. */
+.sw1-staff .sw1-plate__no--empty { display: none; }
+
+@media (max-width: 560px) {
+  /* Two-up on a phone rather than one tall column. */
+  .sw1-staff__grid { gap: 12px 10px; }
+  .sw1-staff__person { min-width: 44%; }
+}
+
+/* ── Match-day staff editor (admin panel, step 2) ───────────────────────── */
+.sw1-staffedit {
+  margin: 14px 0 6px;
+  padding: 12px 14px 14px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.sw1-staffedit__title {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--club-primary);
+}
+.sw1-staffedit__row {
+  display: grid;
+  grid-template-columns: minmax(96px, 34%) 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+.sw1-staffedit__label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #475569;
+}
+.sw1-staffedit__row input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+  background: #ffffff;
+}
+.sw1-staffedit__shirts {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #cbd5e1;
+  display: grid;
+  gap: 10px;
+}
+.sw1-staffedit__shirt {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 10px;
+}
+.sw1-staffedit__btn { flex: 0 0 auto; }
+@media (max-width: 480px) {
+  .sw1-staffedit__row { grid-template-columns: 1fr; gap: 4px; }
+}

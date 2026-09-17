@@ -105,4 +105,13 @@ export const sampleTeam: TeamSheetData = {
     emergencies: ['p23', 'p24'],
     unavailable: ['p25', 'p26', 'p27', 'p28'],
   },
+
+  // The coaches' box. Demo data, so the band shows up the moment someone opens
+  // the sample — a club that names nobody never sees it.
+  officials: [
+    { role: 'coach', name: 'Dean Mackey' },
+    { role: 'assistant-coach', name: 'Pete Halloran' },
+    { role: 'team-manager', name: 'Jo Whitlam' },
+    { role: 'runner', name: 'Sam Teague' },
+  ],
 };
