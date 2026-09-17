@@ -29,6 +29,23 @@ export const isSportsWebClient = CLIENT_TYPE === 'sportsweb';
 /** Embed codes are a SportsWeb-site feature only. */
 export const SHOW_EMBED = isSportsWebClient;
 
+/**
+ * The "3 · Playing list" section of the editor: a read-only list of the picked
+ * side. HIDDEN 2026-09-17 while its role on the platform is rethought — it
+ * repeated what the ground already shows and had no action or tick of its own.
+ *
+ * Nothing was deleted: PlayingList.tsx, its data and its wiring are all intact,
+ * so bringing it back is a switch, not a rebuild.
+ *   - Everyone:        set VITE_SHOW_PLAYING_LIST=true (Vercel env var) and redeploy.
+ *   - Just a preview:  add ?playinglist=1 to the editor URL.
+ *
+ * The progress bar's "3 Side" and the Quick Start's "3 · Pick the side" still
+ * hold without it: step 3 is picking the side, which happens on the ground.
+ */
+export const SHOW_PLAYING_LIST =
+  new URLSearchParams(window.location.search).get('playinglist') === '1' ||
+  (import.meta.env.VITE_SHOW_PLAYING_LIST as string | undefined) === 'true';
+
 /** Where a published team goes live — used in publish confirmation copy. */
 export const PUBLISH_TARGET_LABEL = isAppClient
   ? 'your team page in the app'

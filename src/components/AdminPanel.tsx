@@ -5,7 +5,7 @@ import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
-import { SHOW_EMBED } from '../lib/config';
+import { SHOW_EMBED, SHOW_PLAYING_LIST } from '../lib/config';
 import appLogo from '../assets/app-logo.png';
 
 /** Outbound SportsWeb links (single place to update the domain). */
@@ -1353,11 +1353,14 @@ export default function AdminPanel({
       />
       </details>
 
-      {/* Playing list — read-only summary of the on-field selections */}
-      <details name="sw1adm" className="sw1-section">
-        <summary><span className="sw1-stepnum">3</span>Playing list</summary>
-        {playingList}
-      </details>
+      {/* Playing list — read-only summary of the on-field selections. Hidden for
+          now, not removed: see SHOW_PLAYING_LIST in lib/config.ts to restore. */}
+      {SHOW_PLAYING_LIST && (
+        <details name="sw1adm" className="sw1-section">
+          <summary><span className="sw1-stepnum">3</span>Playing list</summary>
+          {playingList}
+        </details>
+      )}
 
       {/* Ins & Outs vs last week — admin reference only (never on the public graphic) */}
       <details name="sw1adm" className="sw1-section">
