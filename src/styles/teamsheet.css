@@ -177,6 +177,27 @@
   -webkit-text-stroke: 1.4px rgba(8, 18, 36, 0.34);
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.6));
 }
+/* The result word in place of VS once the score shows. Same chrome, same bolt,
+   sized by length so DEF, DRAW and the two-line DEF BY all sit in the space VS
+   had. BY is set smaller under DEF, the way a scoreboard stacks it. */
+.sw1-header__word { text-transform: uppercase; text-align: center; white-space: nowrap; }
+.sw1-header__word.is-def { font-size: clamp(36px, 6.6vw, 82px); }
+.sw1-header__word.is-draw { font-size: clamp(28px, 5vw, 62px); letter-spacing: -0.02em; }
+.sw1-header__word.is-defby { font-size: clamp(34px, 6vw, 74px); line-height: 0.92; display: flex; flex-direction: column; align-items: center; }
+.sw1-header__word small {
+  display: block;
+  font-size: 0.6em;
+  letter-spacing: 0.1em;
+  margin-top: 0.14em;
+  padding: 0 0.1em 0.04em 0;
+  /* the gradient is on the parent; the child needs its own to stay metal */
+  background: inherit;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.sw1-header__v--word .sw1-header__bolt { opacity: 0.85; }
+
 /* Split style: bold two-tone "VS" (left white, right club accent) + brighter bolt. */
 .sw1-header__v--split .sw1-header__vs {
   background: linear-gradient(
@@ -333,6 +354,40 @@
   mix-blend-mode: screen;
   pointer-events: none;
 }
+/* The event panel after the gold: dark alloy, and the one segment allowed to
+   shrink, so a long carnival name trims with an ellipsis instead of pushing the
+   plate off the header. */
+.sw1-occasion { max-width: calc(100% - 2 * clamp(14px, 2vw, 24px)); }
+.sw1-occasion__inner { min-width: 0; }
+.sw1-occasion__sub { min-width: 0; flex: 0 1 auto; }
+.sw1-occasion__sub b { overflow: hidden; text-overflow: ellipsis; letter-spacing: 0.16em; color: var(--tier-edge); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9); }
+.sw1-occasion__sub::before { opacity: 0.25; }
+.sw1-occasion-line { display: none; }
+@media (max-width: 640px) {
+  .sw1-occasion__sub { display: none; }
+  .sw1-occasion-line {
+    display: block;
+    position: absolute;
+    z-index: 3;
+    left: clamp(14px, 2vw, 24px);
+    right: clamp(14px, 2vw, 24px);
+    top: calc(clamp(12px, 1.8vw, 20px) + clamp(26px, 3.4vw, 34px) + 7px);
+    font-size: 10px;
+    font-weight: 900;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    line-height: 1.25;
+    color: var(--tier-edge);
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  }
+  .sw1-root--finals .sw1-header--event,
+  .sw1-root--grand-final .sw1-header--event { padding-top: 78px; }
+}
+.sw1-occasion__final:not(:first-child) + .sw1-occasion__sub,
+.sw1-occasion__final:first-child + .sw1-occasion__sub {
+  box-shadow: inset 2px 0 0 rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(0, 0, 0, 0.6);
+}
+
 /* Un-skew the lettering so only the plate is raked, never the type. */
 .sw1-occasion__tier b,
 .sw1-occasion__final b {
@@ -985,6 +1040,9 @@
   .sw1-crest__name { font-size: 13px; margin-top: 6px; }
   .sw1-header__v { min-width: 50px; padding: 0 4px; }
   .sw1-header__vs { font-size: 30px; }
+  .sw1-header__word.is-def { font-size: 28px; }
+  .sw1-header__word.is-draw { font-size: 22px; }
+  .sw1-header__word.is-defby { font-size: 26px; }
   .sw1-fixture { margin-top: 10px; padding: 4px 6px; }
   .sw1-fixture__round { font-size: 13px; padding: 5px 18px; margin-bottom: 9px; }
   .sw1-fixture__grade { font-size: clamp(26px, 8.4vw, 40px); }
@@ -4522,3 +4580,21 @@
 @media (max-width: 480px) {
   .sw1-staffedit__row { grid-template-columns: 1fr; gap: 4px; }
 }
+
+/* ── Finals plate wording (admin, match details) ────────────────────────── */
+.sw1-plateedit { display: grid; gap: 8px; margin-top: 10px; }
+.sw1-plateedit__row { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 10px; }
+.sw1-plateedit__row span { font-size: 12.5px; font-weight: 800; color: #334155; }
+.sw1-plateedit__row input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font: inherit;
+  font-size: 14px;
+}
+.sw1-plateedit__row input:focus-visible { outline: 2px solid var(--club-primary); outline-offset: 1px; }
+@media (max-width: 520px) { .sw1-plateedit__row { grid-template-columns: 1fr; gap: 4px; } }
+.sw1-score__word { display: grid; gap: 6px; margin: 10px 0 4px; }
+.sw1-score__word > span { font-size: 12.5px; font-weight: 800; color: #334155; }

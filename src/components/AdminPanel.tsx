@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
-import type { ArtPosition, Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
+import type { ArtPosition, CentreWord, Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import FinalScore from './FinalScore';
 import type { SlotDef } from '../lib/field';
@@ -103,6 +103,13 @@ interface Props {
   onVsStyle?: (s: 'chrome' | 'split') => void;
   matchTier?: MatchTier;
   onMatchTier?: (t: MatchTier) => void;
+  /** Between the crests once the score shows: DEF / DRAW / DEF BY, or VS. */
+  centreWord?: CentreWord;
+  onCentreWord?: (w: CentreWord) => void;
+  /** The club's own finals / grand final plate wording. */
+  plateTitle?: string;
+  plateSubtitle?: string;
+  onPlateText?: (title: string, subtitle: string) => void;
   showcase?: boolean;
   onShowcase?: (v: boolean) => void;
   hideSponsors?: boolean;
@@ -224,6 +231,11 @@ export default function AdminPanel({
   onVsStyle,
   matchTier,
   onMatchTier,
+  centreWord = 'result',
+  onCentreWord,
+  plateTitle = '',
+  plateSubtitle = '',
+  onPlateText,
   showcase,
   onShowcase,
   hideSponsors,
@@ -710,12 +722,50 @@ export default function AdminPanel({
               Finals and Grand Final add the struck plate to the header and swap the accent metal
               across the whole graphic. The plate uses whatever you typed in Round.
             </p>
+            {onPlateText && (matchTier ?? 'home') !== 'home' && (
+              <div className="sw1-plateedit">
+                <label className="sw1-plateedit__row">
+                  <span>Plate text</span>
+                  <input
+                    type="text"
+                    maxLength={60}
+                    value={plateTitle}
+                    placeholder={matchTier === 'grand-final' ? 'Automatic: Grand Final, or 2026 Premiers after a win' : `Automatic: ${match.round?.trim() || 'the round'}`}
+                    onChange={(e) => onPlateText(e.target.value, plateSubtitle)}
+                  />
+                </label>
+                <label className="sw1-plateedit__row">
+                  <span>Event line</span>
+                  <input
+                    type="text"
+                    maxLength={90}
+                    value={plateSubtitle}
+                    placeholder="Optional, e.g. AFL Masters National Carnival · Newcastle 2026"
+                    onChange={(e) => onPlateText(plateTitle, e.target.value)}
+                  />
+                </label>
+                <p className="sw1-vsstyle__hint">
+                  For tournaments and carnivals: type <strong>Premiers</strong> (or <strong>Champions</strong>) as the
+                  plate text and the event in the second box. Leave both blank for the automatic wording.
+                </p>
+              </div>
+            )}
           </div>
         )}
 
         {/* Final score: after the game, put the result in the header. A Grand
             Final the club won turns the plate into "Premiers". */}
-        {!showcase && <FinalScore club={club} match={match} matchTier={matchTier ?? 'home'} onMatch={onMatch} />}
+        {!showcase && (
+          <FinalScore
+            club={club}
+            match={match}
+            matchTier={matchTier ?? 'home'}
+            onMatch={onMatch}
+            centreWord={centreWord}
+            onCentreWord={onCentreWord}
+            plateTitle={plateTitle}
+          />
+        )}
 
         {onVsStyle && (
           <div className="sw1-vsstyle">

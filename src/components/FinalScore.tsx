@@ -1,5 +1,5 @@
-import type { Club, MatchInfo, MatchTier, TeamScore } from '../types';
-import { EMPTY_RESULT, premiersLabel, scoreBreakdown, scoreTotal, winner } from '../lib/score';
+import type { CentreWord, Club, MatchInfo, MatchTier, TeamScore } from '../types';
+import { EMPTY_RESULT, premiersLabel, resultWord, scoreBreakdown, scoreTotal, winner } from '../lib/score';
 
 /**
  * Final score entry for the match header. AFL scoring is entered the way it's
@@ -11,9 +11,13 @@ interface Props {
   match: MatchInfo;
   matchTier: MatchTier;
   onMatch: (patch: Partial<MatchInfo>) => void;
+  centreWord?: CentreWord;
+  onCentreWord?: (w: CentreWord) => void;
+  /** The club's own plate text, which replaces "Premiers" when set. */
+  plateTitle?: string;
 }
 
-export default function FinalScore({ club, match, matchTier, onMatch }: Props) {
+export default function FinalScore({ club, match, matchTier, onMatch, centreWord = 'result', onCentreWord, plateTitle }: Props) {
   const result = match.result ?? EMPTY_RESULT;
   const set = (patch: Partial<typeof result>) => onMatch({ result: { ...result, ...patch } });
   const setSide = (side: 'club' | 'opponent', key: keyof TeamScore, raw: string) => {
@@ -24,7 +28,8 @@ export default function FinalScore({ club, match, matchTier, onMatch }: Props) {
   const w = winner(result);
   const margin = Math.abs(scoreTotal(result.club) - scoreTotal(result.opponent));
   const opponentName = match.opponent?.trim() || 'Opponent';
-  const premiers = premiersLabel({ ...match, result: { ...result, show: true } }, matchTier);
+  const premiers = plateTitle?.trim() || premiersLabel({ ...match, result: { ...result, show: true } }, matchTier);
+  const word = resultWord(result);
 
   const row = (side: 'club' | 'opponent', name: string) => (
     <div className="sw1-score__row">
@@ -73,10 +78,37 @@ export default function FinalScore({ club, match, matchTier, onMatch }: Props) {
         <>
           {row('club', club.name || 'Your club')}
           {row('opponent', opponentName)}
+          {onCentreWord && (
+            <div className="sw1-score__word">
+              <span>Between the crests</span>
+              <div className="sw1-admin__modes">
+                <button
+                  type="button"
+                  className={`sw1-chip ${centreWord === 'result' ? 'is-active' : ''}`}
+                  onClick={() => onCentreWord('result')}
+                >
+                  Def / Draw / Def by
+                </button>
+                <button
+                  type="button"
+                  className={`sw1-chip ${centreWord === 'vs' ? 'is-active' : ''}`}
+                  onClick={() => onCentreWord('vs')}
+                >
+                  VS
+                </button>
+              </div>
+            </div>
+          )}
           <p className="sw1-score__outcome" aria-live="polite">
             {w === 'draw'
               ? 'Draw.'
               : `${w === 'club' ? club.name || 'Your club' : opponentName} by ${margin} ${margin === 1 ? 'point' : 'points'}.`}
+            {centreWord === 'result' && (
+              <>
+                {' '}
+                The header reads <strong>{club.name || 'Your club'} {word.toUpperCase()} {opponentName}</strong>.
+              </>
+            )}
             {matchTier === 'grand-final' &&
               (premiers ? (
                 <>

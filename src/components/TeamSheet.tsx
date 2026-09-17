@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import type {
   ArtPosition,
+  CentreWord,
   BenchArea,
   MatchTier,
   Official,
@@ -318,6 +319,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [runnerImageUrl, setRunnerImageUrl] = useState<string | undefined>(data.runnerImageUrl);
   // Off hides the band without forgetting who was named.
   const [showStaff, setShowStaff] = useState<boolean>(data.showStaff ?? true);
+  // Header: the word between the crests once the score shows, and the club's
+  // own wording for the finals plate.
+  const [centreWord, setCentreWord] = useState<CentreWord>(data.centreWord ?? 'result');
+  const [plateTitle, setPlateTitle] = useState<string>(data.plateTitle ?? '');
+  const [plateSubtitle, setPlateSubtitle] = useState<string>(data.plateSubtitle ?? '');
   // Where the pictures sit. The team's headshot position is the default every
   // player inherits; a player's own position (on the player) overrides it.
   const [headshotPosition, setHeadshotPosition] = useState<ArtPosition>(data.headshotPosition ?? CENTRED);
@@ -714,6 +720,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setPoloImageUrl(d.poloImageUrl);
     setRunnerImageUrl(d.runnerImageUrl);
     setShowStaff(d.showStaff ?? true);
+    setCentreWord(d.centreWord ?? 'result');
+    setPlateTitle(d.plateTitle ?? '');
+    setPlateSubtitle(d.plateSubtitle ?? '');
     setHeadshotPosition(d.headshotPosition ?? CENTRED);
     setStaffPosition(d.staffPosition ?? CENTRED);
     setCompetitionLogos(d.competitionLogos ?? []);
@@ -742,6 +751,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       poloImageUrl,
       runnerImageUrl,
       showStaff: showStaff ? undefined : false,
+      centreWord: centreWord === 'vs' ? 'vs' : undefined,
+      plateTitle: plateTitle.trim() || undefined,
+      plateSubtitle: plateSubtitle.trim() || undefined,
       headshotPosition: isCentred(headshotPosition) ? undefined : headshotPosition,
       staffPosition: isCentred(staffPosition) ? undefined : staffPosition,
       vsStyle,
@@ -1899,6 +1911,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onVsStyle={setVsStyle}
             matchTier={matchTier}
             onMatchTier={setMatchTier}
+            centreWord={centreWord}
+            onCentreWord={setCentreWord}
+            plateTitle={plateTitle}
+            plateSubtitle={plateSubtitle}
+            onPlateText={(t, sub) => {
+              setPlateTitle(t);
+              setPlateSubtitle(sub);
+            }}
             showcase={showcase}
             onShowcase={setShowcaseMode}
             hideSponsors={hideSponsors}
@@ -1992,7 +2012,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         )}
 
       <div className="sw1-frame" ref={captureRef}>
-        <MatchHeader club={club} match={match} vsStyle={vsStyle} showcase={showcase} matchTier={matchTier} />
+        <MatchHeader
+          club={club}
+          match={match}
+          vsStyle={vsStyle}
+          showcase={showcase}
+          matchTier={matchTier}
+          centreWord={centreWord}
+          plateTitle={plateTitle}
+          plateSubtitle={plateSubtitle}
+        />
 
         {!hideSponsors && (
           <RotatingBanner

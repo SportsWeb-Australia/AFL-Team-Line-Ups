@@ -52,6 +52,9 @@ export interface ArtPosition {
   scale?: number;
 }
 
+/** The word between the crests once the result is in. */
+export type CentreWord = 'result' | 'vs';
+
 /** How players are drawn on the field/bench. */
 export type VisualMode = 'jumper' | 'headshot' | 'none';
 
@@ -221,6 +224,15 @@ export interface TeamSheetData {
   /** Show the match-day staff band on the graphic. Absent means shown; false
    *  hides it without forgetting the names. */
   showStaff?: boolean;
+  /** What sits between the two crests once the final score is showing:
+   *  'result' (default) reads DEF / DRAW / DEF BY from the club's side,
+   *  'vs' keeps the VS. Before a score is shown it is always VS. */
+  centreWord?: CentreWord;
+  /** Finals and Grand Final plate. `plateTitle` replaces the automatic text
+   *  ("2026 Premiers", "Grand Final", or the round in finals); `plateSubtitle`
+   *  adds a second panel, e.g. "AFL Masters National Carnival · Newcastle 2026". */
+  plateTitle?: string;
+  plateSubtitle?: string;
   /** Team-wide headshot position (Headshot mode). Each player can override it. */
   headshotPosition?: ArtPosition;
   /** Where the staff polos and runner's top sit, and how big. Separate from the
