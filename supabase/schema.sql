@@ -115,6 +115,13 @@ create table if not exists fixtures (
   opponent_club_id  uuid references clubs(id) on delete set null,
   opponent_name     text,                      -- fallback when opponent_club_id is null
   opponent_logo_url text,                      -- fallback
+  -- Final score (AFL: total = goals x 6 + behinds, so only these are stored).
+  -- "club" is the club that owns the sheet. A won grand final reads "Premiers".
+  show_score        boolean not null default false,
+  club_goals        smallint check (club_goals between 0 and 99),
+  club_behinds      smallint check (club_behinds between 0 and 99),
+  opponent_goals    smallint check (opponent_goals between 0 and 99),
+  opponent_behinds  smallint check (opponent_behinds between 0 and 99),
   created_at        timestamptz not null default now(),
   updated_at        timestamptz not null default now()
 );

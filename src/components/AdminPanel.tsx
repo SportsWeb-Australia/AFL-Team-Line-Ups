@@ -2,6 +2,7 @@ import { useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import type { Club, MatchInfo, MatchTier, Official, OfficialRole, Player, PlayerStatus, PositionKey, Sponsor, VisualMode, WatermarkSource } from '../types';
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
+import FinalScore from './FinalScore';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
 import JumperPositioner, { type JumperOffset } from './JumperPositioner';
@@ -683,6 +684,10 @@ export default function AdminPanel({
             </p>
           </div>
         )}
+
+        {/* Final score: after the game, put the result in the header. A Grand
+            Final the club won turns the plate into "Premiers". */}
+        {!showcase && <FinalScore club={club} match={match} matchTier={matchTier ?? 'home'} onMatch={onMatch} />}
 
         {onVsStyle && (
           <div className="sw1-vsstyle">

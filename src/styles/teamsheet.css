@@ -552,6 +552,106 @@
   text-transform: uppercase;
 }
 
+/* ── Final score under each team ────────────────────────────────────────── */
+/* Kept beside the crest rules rather than appended to the end of the file, so
+   it doesn't collide with other branches that append there. */
+.sw1-crest__score {
+  margin-top: clamp(6px, 1vw, 12px);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.sw1-crest__total {
+  font-size: clamp(34px, 6vw, 76px);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.02em;
+  /* Room for the metal text's stroke and shadow on the winning score. */
+  padding: 0 0.06em;
+}
+.sw1-crest__breakdown {
+  font-size: clamp(12px, 1.6vw, 20px);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  opacity: 0.82;
+}
+/* The loser steps back so the result reads at a glance, not just the numbers. */
+.sw1-crest__score.is-lost { opacity: 0.6; }
+/* In finals the winning total is struck from the same metal as the plate and
+   the VS: gold for a grand final, silver for finals. background-image, not the
+   `background` shorthand, which would reset background-clip. */
+.sw1-root--finals .sw1-crest__score.is-won .sw1-crest__total,
+.sw1-root--grand-final .sw1-crest__score.is-won .sw1-crest__total {
+  background-image: var(--tier-metal);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  -webkit-text-stroke: 1px rgba(0, 0, 0, 0.28);
+  filter: drop-shadow(0 3px 6px rgba(0, 0, 0, 0.55));
+}
+
+/* Final score entry (editor, step 1). */
+.sw1-score__toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.sw1-score__row {
+  display: grid;
+  grid-template-columns: minmax(90px, 1fr) 72px 72px minmax(78px, auto);
+  align-items: end;
+  gap: 8px;
+  margin-top: 10px;
+}
+.sw1-score__team {
+  align-self: center;
+  font-size: 13px;
+  font-weight: 800;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+.sw1-score__field {
+  display: grid;
+  gap: 3px;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+.sw1-score__field input {
+  width: 100%;
+  padding: 7px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 15px;
+  font-weight: 800;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+.sw1-score__total {
+  align-self: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #334155;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.sw1-score__outcome { margin: 10px 0 0; font-size: 13px; color: #334155; }
+@media (max-width: 480px) {
+  .sw1-score__row { grid-template-columns: 1fr 1fr; }
+  .sw1-score__team,
+  .sw1-score__total { grid-column: 1 / -1; }
+}
+
 .sw1-header__detail {
   position: relative;
   z-index: 1;
