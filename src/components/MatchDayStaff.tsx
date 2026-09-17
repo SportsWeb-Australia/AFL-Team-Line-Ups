@@ -1,5 +1,6 @@
 import type { Club, Official, OfficialRole, VisualMode } from '../types';
 import PlayerPlate from './PlayerPlate';
+import { useTrimmedImage } from '../lib/trimImage';
 
 /**
  * The coaches' box: a full-width band under the ground for the people who run
@@ -87,7 +88,9 @@ interface PersonProps {
 export function StaffPerson({ role, name, headshotUrl, club, visualMode, poloImageUrl, runnerImageUrl }: PersonProps) {
   const def = OFFICIAL_ROLES.find((r) => r.key === role)!;
   const isRunner = role === 'runner';
-  const uploaded = isRunner ? runnerImageUrl : poloImageUrl;
+  // Cropped to the visible shirt, so a runner's top and a polo shot with
+  // different padding still come out the same size.
+  const uploaded = useTrimmedImage(isRunner ? runnerImageUrl : poloImageUrl);
   // A portrait only wins when the whole sheet is in Headshot mode —
   // otherwise the shirt is the point.
   const headshot = visualMode === 'headshot' ? headshotUrl : null;
