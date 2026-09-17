@@ -11,7 +11,8 @@ import PlayerPlate from './PlayerPlate';
 
 type JumperOffset = { x: number; y: number };
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
-import { SHOW_EMBED, SHOW_PLAYING_LIST } from '../lib/config';
+import { SHOW_EMBED, SHOW_PLAYING_LIST, VOICE_SELECTION } from '../lib/config';
+import VoiceSelection from './VoiceSelection';
 import appLogo from '../assets/app-logo.png';
 
 /** Outbound SportsWeb links (single place to update the domain). */
@@ -112,7 +113,7 @@ interface Props {
   onAddCompetitionLogo?: (dataUrl: string) => void;
   onRemoveCompetitionLogo?: (index: number) => void;
   onSelect: (id: string) => void;
-  onAddPlayer: (number: string, name: string) => void;
+  onAddPlayer: (number: string, name: string) => string | void;
   onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
   onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
@@ -1494,6 +1495,16 @@ export default function AdminPanel({
         <a href={HEADSHOT_GUIDE_URL} target="_blank" rel="noopener noreferrer">See our headshot guide</a>{' '}
         for the right size, framing and background.
       </p>
+
+      {VOICE_SELECTION && (
+        <VoiceSelection
+          players={players}
+          onAddPlayer={onAddPlayer}
+          onQuickPlace={onQuickPlace}
+          onSetRole={onSetRole}
+          onSetAvailability={onSetAvailability}
+        />
+      )}
 
       <p className="sw1-admin__hint">
         Your full squad. Tap a player to pick them up, then tap a field position or bench group (drag works on a computer). Set availability to move someone straight to Unavailable.
