@@ -2489,14 +2489,49 @@
    header, so they read as part of the team graphic rather than plain white panels. */
 .sw1-emergencies .sw1-bench,
 .sw1-interchange .sw1-bench {
+  position: relative;
+  isolation: isolate;
+  /* The match header's panel, exactly as the coaches' box uses it, so the two
+     corner cards and the staff band are cut from the same material. */
   background:
     radial-gradient(130% 120% at 50% -12%,
-      color-mix(in srgb, var(--club-primary) 60%, #ffffff) 0%, transparent 55%),
+      color-mix(in srgb, var(--club-primary) 62%, #ffffff) 0%, transparent 55%),
     linear-gradient(155deg,
       color-mix(in srgb, var(--club-primary) 90%, #000000) 0%,
       var(--club-primary) 46%,
-      color-mix(in srgb, var(--club-primary) 74%, #ffffff) 100%);
-  box-shadow: 0 12px 26px -14px rgba(0, 0, 0, 0.45);
+      color-mix(in srgb, var(--club-primary) 72%, #ffffff) 100%);
+  box-shadow: var(--shadow-card);
+}
+/* The same soft spotlight the coaches' box puts behind each shirt: a navy
+   jumper on a navy panel needs light behind it, not just a shadow. */
+.sw1-emergencies .sw1-bench__item,
+.sw1-interchange .sw1-bench__item { position: relative; isolation: isolate; }
+.sw1-emergencies .sw1-bench__item::before,
+.sw1-interchange .sw1-bench__item::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: 50%;
+  top: -6px;
+  width: 132px;
+  aspect-ratio: 1;
+  translate: -50% 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.07) 55%, rgba(255, 255, 255, 0));
+  pointer-events: none;
+}
+.sw1-root--grand-final .sw1-emergencies .sw1-bench__item::before,
+.sw1-root--grand-final .sw1-interchange .sw1-bench__item::before {
+  background: radial-gradient(closest-side, rgba(255, 236, 190, 0.20), rgba(255, 236, 190, 0.05) 55%, rgba(255, 236, 190, 0));
+}
+/* Home and away: the card is the club colour, so the label takes the darker cut
+   the coaches' box uses. :where() keeps it under the finals label rule. */
+.sw1-emergencies .sw1-bench > :where(.sw1-bench__title),
+.sw1-interchange .sw1-bench > :where(.sw1-bench__title) {
+  background-image: linear-gradient(90deg,
+    color-mix(in srgb, var(--club-primary) 55%, #000000),
+    color-mix(in srgb, var(--club-primary) 78%, #000000));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 6px 14px rgba(0, 0, 0, 0.3);
 }
 .sw1-emergencies .sw1-bench__empty,
 .sw1-interchange .sw1-bench__empty { color: rgba(255, 255, 255, 0.82); }
