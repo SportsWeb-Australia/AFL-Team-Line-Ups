@@ -2206,12 +2206,19 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
         <StatusLegend present={presentStatuses} />
 
-        <footer className="sw1-footer">
-          Powered by{' '}
-          <a href="https://sportsweb.com.au" target="_blank" rel="noopener noreferrer">
-            <strong>SportsWeb One</strong>
-          </a>
-        </footer>
+        {/* The credit belongs on the week-to-week sheet, not on a keepsake. A
+            grand final (premiership) sheet and a Team of the Century get framed
+            and hung, so they carry no branding but the club's own. The download
+            drops it too (see .sw1-exporting in the stylesheet): that file is
+            what goes to the printer. */}
+        {matchTier !== 'grand-final' && !showcase && (
+          <footer className="sw1-footer">
+            Powered by{' '}
+            <a href="https://sportsweb.com.au" target="_blank" rel="noopener noreferrer">
+              <strong>SportsWeb One</strong>
+            </a>
+          </footer>
+        )}
       </div>
       </div>
       </div>

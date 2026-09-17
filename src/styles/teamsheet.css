@@ -1913,6 +1913,9 @@
 .sw1-footer strong { color: var(--club-primary); }
 .sw1-footer a { color: inherit; text-decoration: none; }
 .sw1-footer a:hover strong { text-decoration: underline; }
+/* The downloaded PNG is the file clubs send to the printer and frame, so the
+   credit never rides along on it. It stays on the live embed and the editor. */
+.sw1-exporting .sw1-footer { display: none; }
 
 /* ── Focus & motion ─────────────────────────────────────────────────────── */
 .sw1-root :focus-visible { outline: 3px solid var(--club-secondary); outline-offset: 2px; }
@@ -2584,7 +2587,7 @@
 .sw1-interchange .sw1-bench__grid,
 .sw1-emergencies .sw1-bench__grid {
   grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
-  gap: 10px 12px;
+  gap: 16px 12px;
 }
 /* Followers, Interchange and Emergencies stack as consistent rows beneath the
    oval by default (mobile + the admin editor — avoids any overlap while editing). */
@@ -2607,7 +2610,10 @@
   .sw1-root:not(.sw1-root--admin) .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
   .sw1-root:not(.sw1-root--admin) .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
     grid-template-columns: 1fr;
-    gap: 5px;
+    /* Each row carries a jumper ABOVE its name plate, so a tight row gap reads
+       as the next player sitting on the name above. 14px gives every player
+       their own air; a full six-player bench still clears the oval. */
+    gap: 14px;
   }
   /* Keep the centred followers clear of the corner cards. */
   .sw1-root:not(.sw1-root--admin) .sw1-followers-wrap {
@@ -2637,7 +2643,7 @@
 .sw1-exporting .sw1-interchange:not(.sw1-zone--stack) .sw1-bench__grid,
 .sw1-exporting .sw1-emergencies:not(.sw1-zone--stack) .sw1-bench__grid {
   grid-template-columns: 1fr;
-  gap: 5px;
+  gap: 14px;
 }
 .sw1-exporting .sw1-followers-wrap {
   padding-left: 300px;
