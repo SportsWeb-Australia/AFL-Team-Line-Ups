@@ -732,38 +732,37 @@
 }
 .sw1-sponsor__box img { max-width: 100%; max-height: 100%; object-fit: contain; }
 
-/* ── Rotating sponsor banner — fixed 8:1 ratio so it never dominates ──────── */
+/* ── Rotating sponsor banner — always 6:1 ─────────────────────────────────── */
+/* Banners are designed at 6:1 (e.g. 1800 × 300), so the strip is exactly that
+   shape at every width: phone, tablet and every desktop up to the 1180px frame
+   (≈197px tall there). No breakpoint heights. It used to be a clamped height
+   capped at 150px, which turned the strip into ~8:1 on desktop and left a 6:1
+   banner letterboxed with blank space either side.
+   overflow: hidden + border-radius on the wrapper clips the image to the
+   rounded outline; the "Advertise with us" tag now sits INSIDE, top-right. */
 .sw1-banner {
   position: relative;
-  /* Readable on every screen: a fixed, comfortable strip height rather than an
-     extreme 8:1 ratio that shrinks to unreadable on phones. Recommend banners at
-     1200×300 (4:1). object-fit: contain always shows the whole banner. */
-  height: clamp(96px, 13vw, 150px);
+  width: 100%;
+  height: auto;
+  aspect-ratio: 6 / 1;
+  padding: 0;
+  overflow: hidden;
   border-radius: var(--radius);
   background: var(--surface);
   border: 1px solid var(--hair);
-  /* Top room so the "Advertise" tab can straddle the top edge instead of
-     covering the sponsor artwork. Clipping moved to __slide (below) so the tab
-     isn't cut off while the banner image stays rounded. */
-  margin-top: 14px;
-}
-@media (max-width: 600px) {
-  /* On phones, show the banner at its natural height across the full width so the
-     whole ad is visible and as large as the screen allows — no side-cropping, no
-     wasted letterbox. Capped so an oversized/near-square banner can't dominate. */
-  .sw1-banner { height: auto; min-height: 56px; max-height: 150px; }
-  .sw1-banner__slide, .sw1-banner__slide a { height: auto; }
-  .sw1-banner__img { width: 100%; height: auto; max-height: 150px; object-fit: contain; }
+  /* Lets the tag, dots and empty-state text size to the strip, not the viewport. */
+  container-type: inline-size;
 }
 .sw1-banner__slide {
   display: block;
+  width: 100%;
   height: 100%;
-  border-radius: var(--radius);
-  overflow: hidden;
   animation: sw1-fade 0.5s ease;
 }
-.sw1-banner__slide a { display: block; height: 100%; }
-.sw1-banner__img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.sw1-banner__slide a { display: block; width: 100%; height: 100%; }
+/* Fills all four inner edges. A 6:1 banner in a 6:1 strip shows whole; cover
+   only ever trims a banner that isn't 6:1, and never stretches one. */
+.sw1-banner__img { display: block; width: 100%; height: 100%; object-fit: cover; }
 @keyframes sw1-fade {
   from { opacity: 0; transform: translateY(4px); }
   to { opacity: 1; transform: none; }
@@ -775,10 +774,11 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: clamp(1px, 0.5cqw, 4px);
+  padding: clamp(3px, 1cqw, 10px);
 }
 .sw1-banner__tier {
-  font-size: 10px;
+  font-size: clamp(8px, 1.4cqw, 10px);
   font-weight: 900;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -786,15 +786,17 @@
 }
 .sw1-banner__name {
   font-weight: 900;
-  font-size: clamp(16px, 2.6vw, 22px);
+  font-size: clamp(12px, 2.8cqw, 22px);
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: #475569;
 }
-.sw1-banner__fallback img { max-height: 84px; max-width: 80%; object-fit: contain; }
+/* A sponsor LOGO (no banner artwork) is not a 6:1 image, so it stays whole and
+   centred rather than being cropped to fill. */
+.sw1-banner__fallback img { min-height: 0; max-height: 72%; max-width: 80%; object-fit: contain; }
 .sw1-banner__dots {
   position: absolute;
-  bottom: 10px;
+  bottom: clamp(4px, 1cqw, 10px);
   left: 50%;
   transform: translateX(-50%);
   display: flex;
@@ -818,21 +820,22 @@
   border-radius: 10px;
 }
 
-/* small SportsWeb One revenue tag — straddles the banner's TOP edge as a tab so
-   it never covers the sponsor artwork (hidden in the exported PNG) */
+/* small SportsWeb One revenue tag — overlaid in the banner's top-right corner,
+   inside the rounded strip (hidden in the exported PNG) */
 .sw1-banner__advertise {
   position: absolute;
-  top: 0;
-  right: 12px;
-  transform: translateY(-50%);
+  top: clamp(4px, 1.1cqw, 10px);
+  right: clamp(4px, 1.1cqw, 10px);
   z-index: 3;
-  font-size: 11px;
+  line-height: 1.2;
+  white-space: nowrap;
+  font-size: clamp(9px, 1.5cqw, 11px);
   font-weight: 800;
   letter-spacing: 0.02em;
   text-decoration: none;
   color: #fff;
   background: rgba(12, 35, 64, 0.92);
-  padding: 4px 11px;
+  padding: clamp(2px, 0.45cqw, 4px) clamp(7px, 1.2cqw, 11px);
   border-radius: 999px;
   border: 1.5px solid rgba(255, 255, 255, 0.9);
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.22);
@@ -3470,21 +3473,28 @@
   font-style: normal; line-height: 1; vertical-align: 1px;
 }
 
-/* (#3) Sponsor space empty-state CTA */
+/* (#3) Sponsor space empty-state CTA. The strip is 6:1 on every screen, so on a
+   phone it's only ~60px tall: text sizes to the strip (cqw), and the sub-line
+   drops out when there isn't room for three lines. */
 .sw1-banner--empty { display: flex; align-items: stretch; }
 .sw1-banner__empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
-  gap: 3px; width: 100%; height: 100%; text-decoration: none; text-align: center;
-  border: 2px dashed #cbd5e1; border-radius: var(--radius); padding: 8px 14px;
+  gap: clamp(1px, 0.4cqw, 3px); width: 100%; height: 100%; text-decoration: none; text-align: center;
+  border: 2px dashed #cbd5e1; border-radius: var(--radius);
+  padding: clamp(3px, 1cqw, 8px) clamp(8px, 2cqw, 14px);
 }
 .sw1-banner__empty-main {
-  font-weight: 900; font-size: clamp(15px, 2.4vw, 20px);
+  font-weight: 900; font-size: clamp(11px, 2.9cqw, 20px); line-height: 1.1;
   letter-spacing: .04em; text-transform: uppercase; color: #0f172a;
 }
-.sw1-banner__empty-sub { font-size: clamp(11px, 1.4vw, 13px); font-weight: 600; color: #64748b; }
+.sw1-banner__empty-sub { font-size: clamp(9px, 1.5cqw, 13px); font-weight: 600; color: #64748b; }
 .sw1-banner__empty-tag {
-  margin-top: 6px; display: inline-block; padding: 4px 12px; border-radius: 999px;
-  background: #1faf57; color: #04220f; font-size: clamp(10px, 1.3vw, 12px); font-weight: 800;
+  margin-top: clamp(2px, 0.8cqw, 6px); display: inline-block; border-radius: 999px;
+  padding: clamp(2px, 0.45cqw, 4px) clamp(8px, 1.6cqw, 12px); line-height: 1.2;
+  background: #1faf57; color: #04220f; font-size: clamp(9px, 1.5cqw, 12px); font-weight: 800;
+}
+@container (max-width: 560px) {
+  .sw1-banner__empty-sub { display: none; }
 }
 .sw1-exporting .sw1-banner__empty-tag { display: none; }
 .sw1-banner__empty--quiet { border-color: #e2e8f0; }

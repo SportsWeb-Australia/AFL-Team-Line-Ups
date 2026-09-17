@@ -38,17 +38,10 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
   const slides = real.length > 0 ? real : [{ name: 'Banner 1' }];
   const [i, setI] = useState(0);
   const [paused, setPaused] = useState(false);
-  // Wide banners (≈4:1 or wider) fill the strip; small/square logos stay contained
-  // so they aren't cropped. Decided per image once it loads.
-  const [fit, setFit] = useState<'cover' | 'contain'>('contain');
 
   useEffect(() => {
     setI(0);
   }, [slides.length]);
-
-  useEffect(() => {
-    setFit('contain'); // reset until the new slide's image reports its ratio
-  }, [i]);
 
   useEffect(() => {
     if (slides.length < 2 || paused) return;
@@ -82,21 +75,11 @@ export default function RotatingBanner({ sponsors, interval = 3800, showAdvertis
   }
 
   const inner = active.bannerUrl ? (
-    <img
-      className="sw1-banner__img"
-      src={active.bannerUrl}
-      alt={active.name}
-      style={{ objectFit: fit }}
-      onLoad={(e) => {
-        const im = e.currentTarget;
-        if (im.naturalHeight > 0) {
-          // Only switch to cover for ULTRA-wide banners (wider than the strip box
-          // itself). Anything 4:1–~7:1 stays contained so the whole sponsor banner
-          // is visible — cover was cropping the sides of normal wide banners.
-          setFit(im.naturalWidth / im.naturalHeight >= 8 ? 'cover' : 'contain');
-        }
-      }}
-    />
+    // The strip is 6:1 and the stylesheet fills it edge to edge (object-fit:
+    // cover). Deliberately no per-image fit from here: an inline style would
+    // override the stylesheet, which is exactly how a 6:1 banner used to end
+    // up letterboxed with blank space either side.
+    <img className="sw1-banner__img" src={active.bannerUrl} alt={active.name} />
   ) : (
     <div className="sw1-banner__fallback">
       {active.tier && <span className="sw1-banner__tier">{active.tier}</span>}
