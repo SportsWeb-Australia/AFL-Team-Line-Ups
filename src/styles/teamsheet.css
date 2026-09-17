@@ -4596,6 +4596,30 @@
   .sw1-staff__person { min-width: 44%; }
 }
 
+/* ── Voice selection (premium, admin) ───────────────────────────────────── */
+.sw1-voice { margin: 12px 0; padding: 12px 14px; border: 1px solid #e2e8f0; border-radius: 12px; background: #f8fafc; display: grid; gap: 10px; }
+.sw1-voice__head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.sw1-voice__title { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 900; letter-spacing: 0.04em; text-transform: uppercase; color: var(--club-primary); }
+.sw1-voice__badge { font-size: 10.5px; font-weight: 900; letter-spacing: 0.08em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; color: #1a1405; background: linear-gradient(177deg, #fff8e2 0%, #ecd484 42%, #c9a233 62%, #f8ecc0 100%); }
+.sw1-voice__controls { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.sw1-voice__mic { display: inline-flex; align-items: center; gap: 8px; padding: 10px 16px; border-radius: 999px; border: 0; background: var(--club-primary); color: var(--club-on-primary); font: inherit; font-weight: 800; cursor: pointer; }
+.sw1-voice__mic.is-on { background: #dc2626; color: #fff; box-shadow: 0 0 0 6px rgba(220, 38, 38, 0.18); animation: sw1-voice-pulse 1.4s ease-in-out infinite; }
+@keyframes sw1-voice-pulse { 50% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0.06); } }
+@media (prefers-reduced-motion: reduce) { .sw1-voice__mic.is-on { animation: none; } }
+.sw1-voice__live { font-size: 13px; color: #475569; font-style: italic; }
+.sw1-voice__box { display: grid; gap: 4px; font-size: 12px; font-weight: 700; color: #334155; }
+.sw1-voice__box textarea { width: 100%; min-width: 0; padding: 8px 10px; border: 1px solid #cbd5e1; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 400; resize: vertical; }
+.sw1-voice__list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.sw1-voice__list li { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 8px; align-items: start; padding: 7px 9px; border-radius: 8px; background: #fff; border: 1px solid #e2e8f0; }
+.sw1-voice__list li input { width: 18px; height: 18px; margin: 1px 0 0; accent-color: var(--club-primary); }
+.sw1-voice__list li.is-skipped { opacity: 0.55; }
+.sw1-voice__list li.is-unknown { border-color: #fecaca; background: #fef2f2; }
+.sw1-voice__flag { display: grid; place-items: center; width: 18px; height: 18px; border-radius: 50%; background: #dc2626; color: #fff; font-size: 12px; font-weight: 900; }
+.sw1-voice__what { display: grid; gap: 1px; min-width: 0; }
+.sw1-voice__what strong { font-size: 13.5px; color: #0f172a; }
+.sw1-voice__what small { font-size: 12px; color: #64748b; overflow-wrap: anywhere; }
+.sw1-voice__actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
 /* ── Match-day staff editor (admin panel, step 2) ───────────────────────── */
 .sw1-staffedit {
   margin: 14px 0 6px;

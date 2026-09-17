@@ -1163,9 +1163,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     persist(true);
   };
 
-  function addPlayer(number: string, name: string) {
+  function addPlayer(number: string, name: string): string {
     // Manual add = a record this app owns. Reusable across future line-ups.
-    setPlayers((prev) => [...prev, { id: uid(), number, name, sourceType: 'standalone' }]);
+    // Returns the new id so voice selection can place a player it just added.
+    const id = uid();
+    setPlayers((prev) => [...prev, { id, number, name, sourceType: 'standalone' }]);
+    return id;
   }
 
   // Pull a player from another team at this club into the current squad. Keeps

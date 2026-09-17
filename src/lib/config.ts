@@ -59,3 +59,14 @@ export const PUBLISH_TARGET_LABEL = isAppClient
  * Set per deployment with VITE_REQUIRE_AUTH=true (Vercel env var).
  */
 export const REQUIRE_AUTH = (import.meta.env.VITE_REQUIRE_AUTH as string | undefined) === 'true';
+
+/**
+ * Voice selection (premium, in trial): read the side out and the editor fills
+ * the squad and the ground. OFF for everyone until it's packaged as an upgrade.
+ *   - Everyone:        VITE_VOICE_SELECTION=true (Vercel env var) and redeploy.
+ *   - Just a preview:  add ?voice=1 to the editor URL.
+ * Later this becomes a per-club entitlement rather than a deployment switch.
+ */
+export const VOICE_SELECTION =
+  new URLSearchParams(window.location.search).get('voice') === '1' ||
+  (import.meta.env.VITE_VOICE_SELECTION as string | undefined) === 'true';
