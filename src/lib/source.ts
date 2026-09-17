@@ -1,7 +1,8 @@
 import { supabase } from './supabase';
 import { resultFromRow, resultToRow } from './score';
 import { isDataUrl, putImage } from './imageStore';
-import type { TeamSheetData, Player, PositionKey, BenchArea, Official, OfficialRole } from '../types';
+import type { TeamSheetData, Player, PositionKey, BenchArea, Official, OfficialRole, ArtPosition } from '../types';
+import { isCentred, parsePosition } from './artPosition';
 
 /** The database identifiers behind a loaded sheet, so a save updates (not duplicates). */
 export interface DbRefs {
@@ -47,6 +48,32 @@ function isMissingColumn(err: any): boolean {
  *  isn't a usable {role, name} pair is dropped rather than rendered as a blank
  *  plate, and an unknown role is ignored so an older/newer app version can't put
  *  a stray person on the graphic. */
+/** lineups.art_settings → the sheet's picture positions and staff switch. */
+function parseArtSettings(raw: any): Pick<TeamSheetData, 'headshotPosition' | 'staffPosition' | 'showStaff'> {
+  let v = raw;
+  if (typeof v === 'string') {
+    try {
+      v = JSON.parse(v);
+    } catch {
+      return {};
+    }
+  }
+  if (!v || typeof v !== 'object') return {};
+  return {
+    headshotPosition: parsePosition(v.headshot),
+    staffPosition: parsePosition(v.staff),
+    showStaff: v.showStaff === false ? false : undefined,
+  };
+}
+
+function artSettingsFor(d: TeamSheetData): Record<string, unknown> | null {
+  const out: Record<string, unknown> = {};
+  if (!isCentred(d.headshotPosition)) out.headshot = d.headshotPosition;
+  if (!isCentred(d.staffPosition)) out.staff = d.staffPosition;
+  if (d.showStaff === false) out.showStaff = false;
+  return Object.keys(out).length ? out : null;
+}
+
 function parseOfficials(raw: any): Official[] | undefined {
   if (!raw) return undefined;
   let arr: any = raw;
@@ -141,7 +168,8 @@ export async function loadTeamSheet(
 
   const fxPromise = fetchFixture();
   // Try to read saved display settings; fall back column-by-column if not migrated.
-  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y, officials, polo_image_url, runner_image_url');
+  let lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y, officials, polo_image_url, runner_image_url, art_settings');
+  if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y, officials, polo_image_url, runner_image_url');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier, jumper_offset_x, jumper_offset_y');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors, match_tier');
   if (lnRes.error && isMissingColumn(lnRes.error)) lnRes = await lineupQuery('id, visual_mode, watermark_source, jumper_image_url, vs_style, watermark_text, watermark_logo_url, competition_logos, banner_ids, showcase, hide_sponsors');
@@ -179,7 +207,7 @@ export async function loadTeamSheet(
         .select(
           `position_key, bench_area, sort_order${withStatus ? ', status' : ''},
            player:players ( id, number, first_name, last_name, display_name,
-                            headshot_url, jumper_image_url )`,
+                            headshot_url, jumper_image_url, headshot_position )`,
         )
         .eq('lineup_id', (lineup as any).id)
         .order('sort_order');
@@ -201,6 +229,7 @@ export async function loadTeamSheet(
         name: p.display_name ?? `${p.first_name} ${p.last_name}`,
         headshotUrl: p.headshot_url ?? undefined,
         jumperImageUrl: p.jumper_image_url ?? undefined,
+        headshotPosition: parsePosition(p.headshot_position),
         sourceType: 'standalone',
         status,
       });
@@ -253,7 +282,7 @@ export async function loadTeamSheet(
         const { data: roster } = await supabase
           .from('players')
           .select(
-            'id, number, first_name, last_name, display_name, headshot_url, jumper_image_url',
+            'id, number, first_name, last_name, display_name, headshot_url, jumper_image_url, headshot_position',
           )
           .in('id', missing);
         for (const p of (roster as any[]) ?? []) {
@@ -264,6 +293,7 @@ export async function loadTeamSheet(
             name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
             headshotUrl: p.headshot_url ?? undefined,
             jumperImageUrl: p.jumper_image_url ?? undefined,
+            headshotPosition: parsePosition(p.headshot_position),
             sourceType: 'standalone',
           });
         }
@@ -366,6 +396,7 @@ export async function loadTeamSheet(
     officials: parseOfficials(lineup && (lineup as any).officials),
     poloImageUrl: (lineup && (lineup as any).polo_image_url) || undefined,
     runnerImageUrl: (lineup && (lineup as any).runner_image_url) || undefined,
+    ...parseArtSettings(lineup && (lineup as any).art_settings),
   };
 
   return {
@@ -644,6 +675,7 @@ export interface ClubPlayer {
   name: string;
   headshotUrl?: string;
   jumperImageUrl?: string;
+  headshotPosition?: ArtPosition;
 }
 
 /**
@@ -674,7 +706,7 @@ export async function listClubPlayers(clubId: string | null): Promise<ClubPlayer
     const { data } = await sb
       .from('lineup_positions')
       .select(
-        `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url ),
+        `player:players ( id, number, first_name, last_name, display_name, headshot_url, jumper_image_url, headshot_position ),
          lineup:lineups!inner ( fixture:fixtures!inner ( team_id ) )`,
       )
       .in('lineup.fixture.team_id', teamIds);
@@ -690,6 +722,7 @@ export async function listClubPlayers(clubId: string | null): Promise<ClubPlayer
         name: p.display_name ?? `${p.first_name ?? ''} ${p.last_name ?? ''}`.trim(),
         headshotUrl: p.headshot_url ?? undefined,
         jumperImageUrl: p.jumper_image_url ?? undefined,
+        headshotPosition: parsePosition(p.headshot_position),
       });
     }
     return out;
@@ -983,6 +1016,10 @@ export async function saveTeamSheet(
     );
     const polo = d.poloImageUrl ?? null;
     const runner = d.runnerImageUrl ?? null;
+    // Picture positions and the staff on/off switch share one JSON column, so
+    // the next setting like them doesn't need another migration. Null when
+    // everything is at its default.
+    const art = artSettingsFor(d);
     if (existing && existing.length) {
       lineupId = (existing[0] as any).id;
       // Publish marks it live. A draft save updates the data + display settings and
@@ -993,6 +1030,7 @@ export async function saveTeamSheet(
       // is genuinely missing. A real failure (RLS, payload) is thrown, not swallowed —
       // otherwise a failed publish silently leaves the old, jumper-less row live.
       const patches: Record<string, any>[] = [
+        { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner, art_settings: art, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
         { visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, ...live },
@@ -1015,6 +1053,7 @@ export async function saveTeamSheet(
     } else {
       const live = { published: publish };
       const inserts: Record<string, any>[] = [
+        { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner, art_settings: art },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier, officials: staff, polo_image_url: polo, runner_image_url: runner },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, jumper_offset_x: jx, jumper_offset_y: jy, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
         { fixture_id: fixtureId, ...live, visual_mode: vmode, watermark_source: wmsrc, jumper_image_url: jumper, vs_style: vstyle, watermark_text: wmtext, watermark_logo_url: wmlogo, competition_logos: complogos, showcase, hide_sponsors: hideSponsors, match_tier: tier },
@@ -1078,6 +1117,7 @@ export async function saveTeamSheet(
         display_name: p.name,
         headshot_url: p.headshotUrl ?? null,
         jumper_image_url: p.jumperImageUrl ?? null,
+        headshot_position: isCentred(p.headshotPosition) ? null : p.headshotPosition,
       };
     };
 
@@ -1178,6 +1218,7 @@ export async function saveTeamSheet(
       display_name: p.name,
       headshot_url: p.headshotUrl ?? null,
       jumper_image_url: p.jumperImageUrl ?? null,
+      headshot_position: isCentred(p.headshotPosition) ? null : p.headshotPosition,
     };
     if (p.dbId) row.id = p.dbId; // update the existing row instead of inserting a new one
     const { data: savedOne, error: eN } = await supabase

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toPng } from 'html-to-image';
 import type {
+  ArtPosition,
   BenchArea,
   MatchTier,
   Official,
@@ -24,6 +25,7 @@ import BenchZone from './BenchZone';
 import StatusLegend from './StatusLegend';
 import PlayingList from './PlayingList';
 import AdminPanel from './AdminPanel';
+import { CENTRED, isCentred } from './ArtPositioner';
 import { ModuleMarquee } from './SportsWebModules';
 import sportswebOneLogo from '../assets/sportsweb-one-logo.png';
 
@@ -314,6 +316,12 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [officials, setOfficials] = useState<Official[]>(data.officials ?? []);
   const [poloImageUrl, setPoloImageUrl] = useState<string | undefined>(data.poloImageUrl);
   const [runnerImageUrl, setRunnerImageUrl] = useState<string | undefined>(data.runnerImageUrl);
+  // Off hides the band without forgetting who was named.
+  const [showStaff, setShowStaff] = useState<boolean>(data.showStaff ?? true);
+  // Where the pictures sit. The team's headshot position is the default every
+  // player inherits; a player's own position (on the player) overrides it.
+  const [headshotPosition, setHeadshotPosition] = useState<ArtPosition>(data.headshotPosition ?? CENTRED);
+  const [staffPosition, setStaffPosition] = useState<ArtPosition>(data.staffPosition ?? CENTRED);
   const [competitionLogos, setCompetitionLogos] = useState<string[]>(data.competitionLogos ?? []);
   const [vsStyle, setVsStyle] = useState<'chrome' | 'split'>(data.vsStyle ?? 'chrome');
   const [matchTier, setMatchTier] = useState<MatchTier>(data.matchTier ?? 'home');
@@ -705,6 +713,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setOfficials(d.officials ?? []);
     setPoloImageUrl(d.poloImageUrl);
     setRunnerImageUrl(d.runnerImageUrl);
+    setShowStaff(d.showStaff ?? true);
+    setHeadshotPosition(d.headshotPosition ?? CENTRED);
+    setStaffPosition(d.staffPosition ?? CENTRED);
     setCompetitionLogos(d.competitionLogos ?? []);
     if (d.vsStyle) setVsStyle(d.vsStyle);
     setMatchTier(d.matchTier ?? 'home');
@@ -730,6 +741,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       officials,
       poloImageUrl,
       runnerImageUrl,
+      showStaff: showStaff ? undefined : false,
+      headshotPosition: isCentred(headshotPosition) ? undefined : headshotPosition,
+      staffPosition: isCentred(staffPosition) ? undefined : staffPosition,
       vsStyle,
       matchTier,
       showcase,
@@ -1156,6 +1170,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           name: cp.name,
           headshotUrl: cp.headshotUrl,
           jumperImageUrl: cp.jumperImageUrl,
+          headshotPosition: cp.headshotPosition,
           sourceType: 'standalone',
         },
       ];
@@ -1185,6 +1200,11 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setPlayers((prev) =>
       prev.map((p) => (p.id === id ? { ...p, ...fields } : p)),
     );
+  }
+
+  /** Give one player their own headshot position, or null to follow the team's. */
+  function setPlayerPosition(id: string, pos: ArtPosition | null) {
+    setPlayers((prev) => prev.map((p) => (p.id === id ? { ...p, headshotPosition: pos } : p)));
   }
 
   /** Set or clear a player's headshot / jumper image (data URL, or null to clear). */
@@ -1312,6 +1332,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // size, applied to every team-jumper image on the sheet (see teamsheet.css).
     '--jumper-x': `${jumperOffset.x}%`,
     '--jumper-y': `${jumperOffset.y}%`,
+    // The team's headshot position (each player can override it on their own
+    // plate) and the staff pictures'. Same units as the jumper, plus a size.
+    '--headshot-x': `${headshotPosition.x}%`,
+    '--headshot-y': `${headshotPosition.y}%`,
+    '--headshot-scale': headshotPosition.scale ?? 1,
+    '--staff-x': `${staffPosition.x}%`,
+    '--staff-y': `${staffPosition.y}%`,
+    '--staff-scale': staffPosition.scale ?? 1,
   } as React.CSSProperties;
 
   const fieldName = club.shortName ?? club.name;
@@ -1856,6 +1884,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             poloImageUrl={poloImageUrl}
             runnerImageUrl={runnerImageUrl}
             onStaffShirt={setStaffShirt}
+            showStaff={showStaff}
+            onShowStaff={setShowStaff}
+            staffPosition={staffPosition}
+            onStaffPosition={setStaffPosition}
+            headshotPosition={headshotPosition}
+            onHeadshotPosition={setHeadshotPosition}
+            onSetPlayerPosition={setPlayerPosition}
             competitionLogos={competitionLogos}
             onAddCompetitionLogo={addCompetitionLogo}
             onRemoveCompetitionLogo={removeCompetitionLogo}
@@ -2115,6 +2150,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         {/* The coaches' box. Outside .sw1-stage on purpose — Interchange and
             Emergencies float against the stage, so adding height inside it drags
             them off the oval. */}
+        {showStaff && (
         <MatchDayStaff
           officials={officials}
           club={club}
@@ -2122,6 +2158,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           poloImageUrl={poloImageUrl}
           runnerImageUrl={runnerImageUrl}
         />
+        )}
 
         {/* Unavailable: admin-only — never shown on the public/embedded graphic */}
         {admin && renderBench('unavailable') && (
