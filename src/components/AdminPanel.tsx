@@ -511,7 +511,7 @@ export default function AdminPanel({
             <li><strong>1 · Match &amp; branding</strong> — pick the opponent, round, grade and venue from the dropdowns (or choose <em>Add a new…</em> to enter one). Set your club colours — the graphic is built from them — upload your home &amp; away logos, and pick your <em>VS style</em>. This step ticks once the club, opponent, round and colours are set.</li>
             <li><strong>2 · Team Squad</strong> — choose the look (<em>Jumper</em>, <em>Headshot</em> or <em>No image</em>), then add players: type them in, or use <em>Bulk import</em> (one per line: <em>number, name</em>, optional photo URL). Ticks once you have at least one player. You can also pull in a player from another team at your club via search.</li>
             <li><strong>3 · Pick the side</strong> — tap a player, then tap a spot on the ground (or <em>Add to position</em>). Fill the 15 field spots and the 3 Followers, then Interchange &amp; Emergencies. Ticks at a full 18 — if you export or publish with fewer, the app checks you're sure. Use the C / VC / Debut / Milestone chips and the availability dropdown for ins, outs and injuries.</li>
-            <li><strong>4 · Sponsors</strong> — add rotating banners (design at 4:1, ~1200×300) and paste each sponsor's link, or <em>Re-use a saved banner</em> from your library. No sponsors this week? Tick <em>No sponsors for this team</em> — the step needs a choice either way.</li>
+            <li><strong>4 · Sponsors</strong> — add rotating banners (design at 6:1, e.g. 1800×300) and paste each sponsor's link, or <em>Re-use a saved banner</em> from your library. No sponsors this week? Tick <em>No sponsors for this team</em> — the step needs a choice either way.</li>
             <li><strong>5 · Publish</strong> — <em>Save draft</em> keeps your progress private; <em>Publish</em> makes this round live. At all-done the bar flips to <em>Live ✓</em> with a <em>View live page</em> link. Then share it: <em>Download graphic</em> or the <em>Instagram</em> image for socials, copy the <em>auto-updating embed</em> onto your club site, or cast the public link to club TV screens.</li>
           </ol>
           <a className="sw1-quick__chat" href={SPORTSWEB_CONTACT} target="_blank" rel="noopener noreferrer">
@@ -1071,8 +1071,9 @@ export default function AdminPanel({
           </label>
 
           <p className="sw1-admin__hint sw1-admin__hint--links">
-            Design banners at a <strong>4:1 ratio</strong> — e.g. <strong>1200 × 300&nbsp;px</strong> in
-            Canva — so they read clearly on phones <em>and</em> desktop above the ground.{' '}
+            Design banners at a <strong>6:1 ratio</strong> — e.g. <strong>1800 × 300&nbsp;px</strong> in
+            Canva. The strip is always 6:1 and fills edge to edge, so a banner at any other ratio gets
+            trimmed to fit. Keep the top-right corner clear for the &ldquo;Advertise with us&rdquo; tag.{' '}
             <a href={SPORTSWEB_BANNERS_URL} target="_blank" rel="noopener noreferrer">
               Want one done professionally? SportsWeb Australia banners from $25 →
             </a>
