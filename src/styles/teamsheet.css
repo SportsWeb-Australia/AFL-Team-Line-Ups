@@ -4005,6 +4005,147 @@
   cursor: not-allowed;
 }
 
+/* ── Jumper sits higher on its name plate ───────────────────────────────── */
+/* Jumper art used to tuck 10px behind the plate. A club jumper is usually a
+   top-half product shot, so that bottom strip is exactly where the chest
+   graphic lives: the Vic Metro V lost half its arms. Now only 2px tucks in,
+   which still reads as seated on the plate. (Headshots already use -2px.)
+
+   Benches, followers and staff flow normally, so shrinking the tuck lets the
+   plate below make room and nothing stacked above gets touched. */
+.sw1-plate--jumper .sw1-plate__art { margin-bottom: -2px; }
+
+/* On the ground a slot is centred on the WHOLE plate (translate -50%, -50%).
+   Shrinking the tuck there would make the plate 8px taller and re-centre it,
+   nudging every name 4px down off its B/HB/C/HF/F line label. So the layout
+   box keeps its -10px and only the picture lifts: names don't move at all. */
+.sw1-slot .sw1-plate--jumper .sw1-plate__art {
+  margin-bottom: -10px;
+  transform: translateY(-8px);
+}
+
+/* ── Team jumper position (set by dragging it in the editor) ────────────── */
+/* --jumper-x / --jumper-y live on .sw1-root. Percent of the image's own
+   rendered size, so the same setting holds on every plate size and in the
+   fixed-width PNG export. Untouched sheets resolve to 0% — no change. */
+.sw1-plate--jumper .sw1-plate__art img {
+  transform: translate(var(--jumper-x, 0%), var(--jumper-y, 0%));
+}
+/* Match-day staff polos share the plate but are not the team jumper. */
+.sw1-staff .sw1-plate__art img { transform: none; }
+
+.sw1-jumperpos {
+  margin: 14px 0 4px;
+  padding: 12px 14px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+.sw1-jumperpos__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.sw1-jumperpos__title {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--club-primary);
+}
+.sw1-jumperpos__readout {
+  font-size: 12px;
+  font-weight: 700;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+.sw1-jumperpos__readout.is-moved { color: #0f766e; }
+.sw1-jumperpos__body {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+/* A patch of the actual ground, so the club judges the jumper against the same
+   green and the same plate it will sit on. */
+.sw1-jumperpos__stage {
+  position: relative;
+  flex: 1 1 220px;
+  min-width: 200px;
+  /* Tall enough that the jumper stays fully in view at the full 40% lift. */
+  height: 240px;
+  border-radius: 10px;
+  overflow: hidden;
+  cursor: grab;
+  touch-action: none; /* dragging must not scroll the page on a phone */
+  background:
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.035) 0 22px, transparent 22px 44px),
+    radial-gradient(120% 90% at 50% 40%, #2f8a3f 0%, #22702f 70%, #1b5e27 100%);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+.sw1-jumperpos__stage:active { cursor: grabbing; }
+.sw1-jumperpos__stage:focus-visible { outline: 3px solid var(--club-secondary); outline-offset: 2px; }
+/* The real field slot, enlarged. `scale` composes with the slot's own
+   translate(-50%, -50%), so it still centres on its anchor point. */
+/* Same width as the published ground (the PNG export is 1080px, the frame caps
+   at 1180px — both resolve the plate to its full 58px size). */
+.sw1-jumperpos__canvas {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1180px;
+  margin-left: -590px;
+  container-type: inline-size;
+  pointer-events: none;
+}
+.sw1-jumperpos__slot {
+  left: 50%;
+  top: 60%;
+  scale: 1.6;
+}
+.sw1-jumperpos__grip {
+  position: absolute;
+  left: 8px;
+  bottom: 7px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  pointer-events: none;
+}
+.sw1-jumperpos__pad {
+  display: grid;
+  grid-template-columns: repeat(3, 44px);
+  grid-template-rows: repeat(3, 44px);
+  gap: 4px;
+  flex: 0 0 auto;
+  margin-inline: auto;
+}
+.sw1-jumperpos__btn {
+  display: grid;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  color: #0f172a;
+  cursor: pointer;
+  font: inherit;
+}
+.sw1-jumperpos__btn:hover:not(:disabled) { border-color: var(--club-primary); color: var(--club-primary); }
+.sw1-jumperpos__btn:active:not(:disabled) { transform: translateY(1px); }
+.sw1-jumperpos__btn:disabled { opacity: 0.45; cursor: default; }
+.sw1-jumperpos__btn.is-up { grid-area: 1 / 2; }
+.sw1-jumperpos__btn.is-left { grid-area: 2 / 1; }
+.sw1-jumperpos__btn.is-reset { grid-area: 2 / 2; font-size: 10.5px; font-weight: 800; letter-spacing: 0.02em; }
+.sw1-jumperpos__btn.is-right { grid-area: 2 / 3; }
+.sw1-jumperpos__btn.is-down { grid-area: 3 / 2; }
+
 /* ── Match-day staff (the coaches' box) ─────────────────────────────────── */
 /* A full-width band UNDER the stage, not inside it: Interchange and Emergencies
    are absolutely positioned against .sw1-stage to float into the ground's

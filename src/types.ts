@@ -173,6 +173,11 @@ export interface TeamSheetData {
   watermarkLogoUrl?: string;
   /** ONE jumper image used for the whole team when visualMode === 'jumper'. */
   jumperImageUrl?: string;
+  /** Where that jumper sits on its name plate, set by dragging it in the editor.
+   *  Percent of the jumper image's own rendered size (negative x = left,
+   *  negative y = up), so one setting holds at every plate size and in the PNG
+   *  export. Absent means not moved. */
+  jumperOffset?: { x: number; y: number };
   /** The coaches' box. Only officials with a name are drawn, so a club that
    *  never fills this in simply never sees the band. */
   officials?: Official[];

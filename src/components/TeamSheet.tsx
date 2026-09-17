@@ -307,6 +307,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [match, setMatch] = useState(data.match);
   const [sponsors, setSponsors] = useState(data.sponsors);
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
+  const [jumperOffset, setJumperOffset] = useState<{ x: number; y: number }>(data.jumperOffset ?? { x: 0, y: 0 });
   // The coaches' box. Staff are not players, so they live beside the line-up
   // rather than in the squad, and an unnamed role simply isn't drawn.
   const [officials, setOfficials] = useState<Official[]>(data.officials ?? []);
@@ -699,6 +700,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setWmSponsorName(d.watermarkText ?? '');
     setWmSponsorLogo(d.watermarkLogoUrl ?? null);
     setJumperImageUrl(d.jumperImageUrl);
+    setJumperOffset(d.jumperOffset ?? { x: 0, y: 0 });
     setOfficials(d.officials ?? []);
     setPoloImageUrl(d.poloImageUrl);
     setRunnerImageUrl(d.runnerImageUrl);
@@ -723,6 +725,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkText: wmSponsorName || undefined,
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
+      jumperOffset: jumperOffset.x || jumperOffset.y ? jumperOffset : undefined,
       officials,
       poloImageUrl,
       runnerImageUrl,
@@ -1303,6 +1306,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     '--club-on-primary': readableOn(club.primaryColor),
     // Number colour on the (primary-filled) tab — secondary accent when legible.
     '--club-number': numberOn(club.primaryColor, club.secondaryColor),
+    // Where the club dragged its jumper to. Percent of the jumper image's own
+    // size, applied to every team-jumper image on the sheet (see teamsheet.css).
+    '--jumper-x': `${jumperOffset.x}%`,
+    '--jumper-y': `${jumperOffset.y}%`,
   } as React.CSSProperties;
 
   const fieldName = club.shortName ?? club.name;
@@ -1355,6 +1362,9 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   function setTeamJumper(url: string) {
     setJumperImageUrl(url || undefined);
+    // A different image (or none) has its own framing, so a position tuned for
+    // the old one would be wrong for it. Start the new jumper from centre.
+    setJumperOffset({ x: 0, y: 0 });
   }
 
   /** Name (or rename) one match-day role. Blanking the name drops the person,
@@ -1834,6 +1844,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             selectedPlayerId={focusedPlayerId}
             onVisualMode={setVisualMode}
             teamJumperUrl={jumperImageUrl}
+            jumperOffset={jumperOffset}
+            onJumperOffset={setJumperOffset}
             officials={officials}
             onOfficial={setOfficial}
             poloImageUrl={poloImageUrl}

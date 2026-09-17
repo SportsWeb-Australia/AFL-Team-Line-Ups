@@ -129,6 +129,10 @@ create table if not exists lineups (
   visual_mode text not null default 'none',
   watermark_source text,
   jumper_image_url text,
+  -- Where the club dragged the team jumper to on its name plate, as percent of the
+  -- jumper image's own size (negative = left / up). Null = not moved.
+  jumper_offset_x real,
+  jumper_offset_y real,
   vs_style text,
   watermark_text text,
   watermark_logo_url text,

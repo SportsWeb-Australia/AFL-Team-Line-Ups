@@ -4,6 +4,7 @@ import type { Club, MatchInfo, MatchTier, Official, OfficialRole, Player, Player
 import type { SavedSheet, OpponentClub, ClubPlayer } from '../lib/source';
 import type { SlotDef } from '../lib/field';
 import SquadList, { type QuickTarget } from './SquadList';
+import JumperPositioner, { type JumperOffset } from './JumperPositioner';
 import { OFFICIAL_ROLES } from './MatchDayStaff';
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
 import { SHOW_EMBED } from '../lib/config';
@@ -74,6 +75,9 @@ interface Props {
   /** ONE jumper image for the whole team (used in Jumper mode). */
   teamJumperUrl?: string;
   onTeamJumper?: (dataUrl: string) => void;
+  /** Where the team jumper sits on its plate (percent of the image's size). */
+  jumperOffset?: JumperOffset;
+  onJumperOffset?: (next: JumperOffset) => void;
   /** The coaches' box: coach, assistant coach, team manager, runner. */
   officials?: Official[];
   onOfficial?: (role: OfficialRole, name: string) => void;
@@ -187,6 +191,8 @@ export default function AdminPanel({
   onVisualMode,
   teamJumperUrl,
   onTeamJumper,
+  jumperOffset,
+  onJumperOffset,
   officials,
   onOfficial,
   poloImageUrl,
@@ -1281,6 +1287,17 @@ export default function AdminPanel({
               </>
             )}
           </div>
+          {/* Only once there's a real jumper to line up: the placeholder is
+              already framed for the plate. */}
+          {teamJumperUrl && onJumperOffset && (
+            <JumperPositioner
+              jumperUrl={teamJumperUrl}
+              offset={jumperOffset ?? { x: 0, y: 0 }}
+              onChange={onJumperOffset}
+              samplePlayer={players.find((pl) => pl.name.trim())}
+              jumperModeOn={visualMode === 'jumper'}
+            />
+          )}
           <p className="sw1-admin__hint sw1-teamjumper__help">
             <span className="sw1-helpdot" title="How to get a jumper image" aria-hidden="true">i</span>
             <strong>Where do I get a jumper image?</strong> Ask your jumper supplier for a product shot, or reach out to us at SportsWeb and for a small fee we&rsquo;ll generate it for you. Best result: a <strong>square PNG with a see-through (transparent) background, about 600&times;600&nbsp;px</strong>. More in the Quick Start &amp; Help guide.
