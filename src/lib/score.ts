@@ -19,6 +19,12 @@ export function winner(r: MatchResult): 'club' | 'opponent' | 'draw' {
   return c === o ? 'draw' : c > o ? 'club' : 'opponent';
 }
 
+/** DEF / DRAW / DEF BY, read from the club's side of the result. */
+export function resultWord(r: MatchResult): 'Def' | 'Draw' | 'Def by' {
+  const w = winner(r);
+  return w === 'draw' ? 'Draw' : w === 'club' ? 'Def' : 'Def by';
+}
+
 /** The season the match belongs to, from whatever the date field holds:
  *  the picker's ISO yyyy-mm-dd, or free text like "13/09/2026". */
 export function seasonYear(date?: string): string | null {

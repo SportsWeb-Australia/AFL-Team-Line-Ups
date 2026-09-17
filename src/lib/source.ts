@@ -49,7 +49,11 @@ function isMissingColumn(err: any): boolean {
  *  plate, and an unknown role is ignored so an older/newer app version can't put
  *  a stray person on the graphic. */
 /** lineups.art_settings → the sheet's picture positions and staff switch. */
-function parseArtSettings(raw: any): Pick<TeamSheetData, 'headshotPosition' | 'staffPosition' | 'showStaff'> {
+/** lineups.art_settings holds the sheet's graphic-only choices: picture
+ *  positions, the staff switch, the centre word and the finals plate text. */
+function parseArtSettings(
+  raw: any,
+): Pick<TeamSheetData, 'headshotPosition' | 'staffPosition' | 'showStaff' | 'centreWord' | 'plateTitle' | 'plateSubtitle'> {
   let v = raw;
   if (typeof v === 'string') {
     try {
@@ -63,6 +67,10 @@ function parseArtSettings(raw: any): Pick<TeamSheetData, 'headshotPosition' | 's
     headshotPosition: parsePosition(v.headshot),
     staffPosition: parsePosition(v.staff),
     showStaff: v.showStaff === false ? false : undefined,
+    centreWord: v.centreWord === 'vs' ? 'vs' : undefined,
+    plateTitle: typeof v.plateTitle === 'string' && v.plateTitle.trim() ? v.plateTitle.trim().slice(0, 60) : undefined,
+    plateSubtitle:
+      typeof v.plateSubtitle === 'string' && v.plateSubtitle.trim() ? v.plateSubtitle.trim().slice(0, 90) : undefined,
   };
 }
 
@@ -71,6 +79,9 @@ function artSettingsFor(d: TeamSheetData): Record<string, unknown> | null {
   if (!isCentred(d.headshotPosition)) out.headshot = d.headshotPosition;
   if (!isCentred(d.staffPosition)) out.staff = d.staffPosition;
   if (d.showStaff === false) out.showStaff = false;
+  if (d.centreWord === 'vs') out.centreWord = 'vs';
+  if (d.plateTitle?.trim()) out.plateTitle = d.plateTitle.trim().slice(0, 60);
+  if (d.plateSubtitle?.trim()) out.plateSubtitle = d.plateSubtitle.trim().slice(0, 90);
   return Object.keys(out).length ? out : null;
 }
 

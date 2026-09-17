@@ -1,5 +1,5 @@
-import type { Club, MatchInfo, MatchTier, TeamScore } from '../types';
-import { premiersLabel, scoreBreakdown, scoreTotal, winner } from '../lib/score';
+import type { CentreWord, Club, MatchInfo, MatchTier, TeamScore } from '../types';
+import { premiersLabel, resultWord, scoreBreakdown, scoreTotal, winner } from '../lib/score';
 
 /** Show ISO dates (yyyy-mm-dd, what the date picker stores) as dd/mm/yyyy.
  *  Any other free-typed text is shown exactly as entered. */
@@ -60,6 +60,11 @@ interface Props {
   vsStyle?: 'chrome' | 'split';
   showcase?: boolean;
   matchTier?: MatchTier;
+  /** Between the crests once the score shows: DEF / DRAW / DEF BY, or VS. */
+  centreWord?: CentreWord;
+  /** The club's own wording for the finals plate, and an optional second panel. */
+  plateTitle?: string;
+  plateSubtitle?: string;
 }
 
 export default function MatchHeader({
@@ -68,6 +73,9 @@ export default function MatchHeader({
   vsStyle = 'chrome',
   showcase = false,
   matchTier = 'home',
+  centreWord = 'result',
+  plateTitle,
+  plateSubtitle,
 }: Props) {
   const finals = matchTier === 'finals' || matchTier === 'grand-final';
   // The plate names the occasion, so the round pill below would only repeat it.
@@ -83,9 +91,20 @@ export default function MatchHeader({
   const oppOutcome = w === 'draw' ? 'drew' : w === 'opponent' ? 'won' : 'lost';
   // A Grand Final the club won turns its plate into "2026 Premiers".
   const premiers = premiersLabel(match, matchTier);
+  // A club's own plate wording wins over the automatic text; tournaments want
+  // "Premiers" plus the event, which the automatic text can't know.
+  const title = plateTitle?.trim() || null;
+  const subtitle = plateSubtitle?.trim() || null;
+  const gfTitle = title ?? premiers ?? 'Grand Final';
+  const finalsTitle = title ?? plateName;
+  // What sits between the crests. Only a shown result can say who won.
+  const word = result && centreWord === 'result' ? resultWord(result) : null;
+  const wordKey = word === 'Def by' ? 'defby' : word?.toLowerCase();
 
   return (
-    <header className={`sw1-header${result ? ' sw1-header--result' : ''}${premiers ? ' sw1-header--premiers' : ''}`}>
+    <header
+      className={`sw1-header${result ? ' sw1-header--result' : ''}${premiers || (title && matchTier === 'grand-final') ? ' sw1-header--premiers' : ''}${finals && subtitle ? ' sw1-header--event' : ''}`}
+    >
       {finals && (
         <div className="sw1-occasion" aria-hidden>
           {/* Outer element is the frame; the inner one is the face it holds, so
@@ -95,23 +114,34 @@ export default function MatchHeader({
               /* One week a year: the face is struck entirely from gold, with no
                  dark half to share it with. */
               <span className="sw1-occasion__final">
-                <b>{premiers ?? 'Grand Final'}</b>
+                <b>{gfTitle}</b>
               </span>
             ) : (
               <>
                 <span className="sw1-occasion__tier">
                   <b>Finals</b>
                 </span>
-                {plateName && (
+                {finalsTitle && (
                   <span className="sw1-occasion__final">
-                    <b>{plateName}</b>
+                    <b>{finalsTitle}</b>
                   </span>
                 )}
               </>
             )}
+            {/* The event, on the dark alloy after the gold: "AFL Masters National
+                Carnival · Newcastle 2026". Trims with an ellipsis rather than
+                running off a narrow header. */}
+            {subtitle && (
+              <span className="sw1-occasion__tier sw1-occasion__sub">
+                <b>{subtitle}</b>
+              </span>
+            )}
           </span>
         </div>
       )}
+      {/* On a phone the event line moves under the plate instead of trimming
+          inside it: a carnival name is the part people want to read. */}
+      {finals && subtitle && <div className="sw1-occasion-line">{subtitle}</div>}
       {/* faint crests bleeding off each side */}
       {club.logoUrl && <img className="sw1-header__ghost sw1-header__ghost--l" src={club.logoUrl} alt="" />}
       {!showcase && match.opponentLogoUrl && (
@@ -128,9 +158,23 @@ export default function MatchHeader({
         />
         {!showcase && (
           <>
-            <div className={`sw1-header__v sw1-header__v--${vsStyle}`} aria-hidden>
-              <span className="sw1-header__bolt" />
-              <span className="sw1-header__vs">VS</span>
+            <div className={`sw1-header__v sw1-header__v--${vsStyle}${word ? ' sw1-header__v--word' : ''}`}>
+              <span className="sw1-header__bolt" aria-hidden />
+              {word ? (
+                <span className={`sw1-header__vs sw1-header__word is-${wordKey}`}>
+                  {word === 'Def by' ? (
+                    <>
+                      Def<small>by</small>
+                    </>
+                  ) : (
+                    word
+                  )}
+                </span>
+              ) : (
+                <span className="sw1-header__vs" aria-hidden>
+                  VS
+                </span>
+              )}
             </div>
             <Crest
               name={match.opponent}
