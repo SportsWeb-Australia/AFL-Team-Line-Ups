@@ -1208,6 +1208,21 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     ]);
   }
 
+  /** Players from SportsWeb One: linked by their SW1 id so they can be recognised if brought in again. */
+  function importSW1Players(rows: { number: string; name: string; headshotUrl?: string; externalId: string }[]) {
+    setPlayers((prev) => [
+      ...prev,
+      ...rows.map((r) => ({
+        id: uid(),
+        sourceType: 'sportsweb_one' as const,
+        externalId: r.externalId,
+        number: r.number,
+        name: r.name,
+        headshotUrl: r.headshotUrl || undefined,
+      })),
+    ]);
+  }
+
   function removePlayer(id: string) {
     clearEverywhere(id);
     setPlayers((prev) => prev.filter((p) => p.id !== id));
@@ -1934,6 +1949,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             onSelect={(id) => holdPlayer(selectedPlayerId === id ? null : id)}
             onAddPlayer={addPlayer}
             onImport={importPlayers}
+            onImportSW1={importSW1Players}
             onSetAvailability={setAvailability}
             onSetRole={setRole}
             onRemovePlayer={removePlayer}
