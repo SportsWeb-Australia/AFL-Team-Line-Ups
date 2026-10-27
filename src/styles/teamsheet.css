@@ -1545,6 +1545,16 @@
   margin-bottom: 14px;
 }
 .sw1-admin__bulk { margin-bottom: 14px; }
+/* From SportsWeb One: tick who to bring in (27 Oct 2026). */
+.sw1-fromsw1__list { list-style: none; margin: 10px 0; padding: 0; display: grid; gap: 4px; max-height: 320px; overflow-y: auto; }
+.sw1-fromsw1__list label { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid #e2e6ee; border-radius: 10px; cursor: pointer; font-size: 14px; }
+.sw1-fromsw1__list input { width: 18px; height: 18px; flex: none; }
+.sw1-fromsw1__list b { min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
+.sw1-fromsw1__list span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw1-fromsw1__list em { font-style: normal; font-size: 12px; color: #64748b; }
+.sw1-fromsw1__list li[data-in] label { opacity: .6; cursor: default; }
+.sw1-fromsw1__quick { margin: 0 0 10px; font-size: 13px; }
+.sw1-linkbtn { border: 0; background: none; padding: 0; color: inherit; text-decoration: underline; cursor: pointer; font: inherit; }
 .sw1-admin__bulk:not([open]) > *:not(summary) { display: none; }
 .sw1-admin__bulk summary { font-weight: 800; cursor: pointer; margin-bottom: 8px; }
 .sw1-admin__bulk textarea {

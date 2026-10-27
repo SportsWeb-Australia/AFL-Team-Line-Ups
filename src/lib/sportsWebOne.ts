@@ -82,6 +82,8 @@ export interface SW1Player {
   team: string | null;
   position: string | null;
   photo: string | null;
+  /** Every team they play in, with their number in that team (SW1, 27 Oct 2026). Older SW1 builds leave it out. */
+  teams?: { team: string; number: string | null }[];
 }
 
 /**
