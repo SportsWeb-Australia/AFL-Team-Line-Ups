@@ -609,6 +609,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const gateRender = autoLoad && mode !== 'admin';
   const [booted, setBooted] = useState(!gateRender);
   const [dbMsg, setDbMsg] = useState('');
+  // Save and publish results shown right under the buttons (Carson, 27 Oct 2026: a publish was refused and the only
+  // message sat in the folded "New & Saved teams" panel, so it looked saved).
+  const [saveNote, setSaveNote] = useState<{ tone: 'ok' | 'err'; text: string } | null>(null);
+  // Restore offer for a sheet kept on this device that never reached the database.
+  const [unsaved, setUnsaved] = useState<{ at: number; data: TeamSheetData } | null>(null);
+  const localKey = useMemo(() => {
+    const qp = new URLSearchParams(window.location.search);
+    return `sw1-lineups-unsaved:${qp.get('sw1club') || qp.get('club') || 'local'}`;
+  }, []);
   const [dbRefs, setDbRefs] = useState<DbRefs>(EMPTY_REFS);
   // Signature of the currently *published* team; null = nothing published yet.
   const [publishedSig, setPublishedSig] = useState<string | null>(null);
@@ -771,6 +780,22 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     };
   }
 
+  // Keep the sheet on this device as it changes, so a refresh or a refused save never loses it (Carson, 27 Oct 2026:
+  // "the line up most recently entered should hold"). Cleared once a save succeeds.
+  const loadedOnce = useRef(false);
+  const baselineSig = useRef<string | null>(null);
+  useEffect(() => {
+    if (mode !== 'admin') return;
+    if (!loadedOnce.current) { baselineSig.current = currentSig; return; }
+    if (currentSig === baselineSig.current) return;
+    const t = window.setTimeout(() => {
+      try { localStorage.setItem(localKey, JSON.stringify({ at: Date.now(), sig: currentSig, data: currentData() })); }
+      catch { /* too big for this device's storage (photos) - the database save still works */ }
+    }, 800);
+    return () => window.clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentSig, mode]);
+
   async function loadFromDatabase() {
     setDbState('loading');
     setDbMsg('');
@@ -854,6 +879,16 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       setDbMsg(err?.message ?? 'Could not reach the database.');
     } finally {
       setBooted(true);
+      // A sheet kept on this device that never reached the database: offer it back.
+      if (mode === 'admin') {
+        try {
+          const raw = localStorage.getItem(localKey);
+          const kept = raw ? (JSON.parse(raw) as { at: number; data: TeamSheetData }) : null;
+          if (kept?.data) setUnsaved({ at: kept.at, data: kept.data });
+        } catch { /* nothing kept, or unreadable */ }
+        // Start keeping copies only once what was loaded has settled, so loading itself never counts as a change.
+        window.setTimeout(() => { loadedOnce.current = true; }, 1200);
+      }
     }
   }
 
@@ -1099,6 +1134,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   async function persist(publish: boolean) {
     setDbState('saving');
     setDbMsg('');
+    setSaveNote(null);
     try {
       const { refs, playerIds, bannerIds } = await saveTeamSheet(currentData(), dbRefs, { publish });
       setDbRefs(refs);
@@ -1142,11 +1178,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       }
       setDbState('ok');
       if (publish) setPublishedSig(currentSig);
-      setDbMsg(
-        publish
-          ? `Published — your team is now live on ${PUBLISH_TARGET_LABEL}.`
-          : 'Draft saved. It won\u2019t go live until you hit Publish.',
-      );
+      const okText = publish
+        ? `Published — your team is now live on ${PUBLISH_TARGET_LABEL}.`
+        : 'Draft saved. It won\u2019t go live until you hit Publish.';
+      setDbMsg(okText);
+      setSaveNote({ tone: 'ok', text: okText });
+      // Saved for real, so the copy kept on this device is no longer needed.
+      try { localStorage.removeItem(localKey); } catch { /* storage unavailable */ }
+      setUnsaved(null);
       refreshSavedSheets(refs.clubId);
       refreshPrevWeek(refs.clubId, match.grade, refs.fixtureId);
     } catch (err: any) {
@@ -1161,14 +1200,15 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         const ent = await getClubEntitlement(dbRefs.clubId).catch(() => null);
         if (ent && !ent.entitled) {
           setDbMsg(`Can't save — ${ent.reason}`);
+          setSaveNote({ tone: 'err', text: `Not saved — ${ent.reason} Your team is kept on this device; nothing is lost.` });
           return;
         }
       }
-      setDbMsg(
-        blocked
-          ? "Can't save — this club doesn't currently have access to Team Line-Ups."
-          : err?.message ?? 'Could not save to the database.',
-      );
+      const errText = blocked
+        ? "Can't save — this club doesn't currently have access to Team Line-Ups."
+        : err?.message ?? 'Could not save to the database.';
+      setDbMsg(errText);
+      setSaveNote({ tone: 'err', text: `Not saved. ${errText} Your team is kept on this device; nothing is lost - tell SportsWeb if it keeps happening.` });
     }
   }
 
@@ -1912,6 +1952,19 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
           <button className="sw1-btn sw1-btn--primary" onClick={downloadPng} disabled={downloading}>
             {downloading ? 'Preparing…' : 'Download graphic'}
           </button>
+        </div>
+      )}
+      {admin && saveNote && (
+        <p className={`sw1-savenote sw1-savenote--${saveNote.tone}`} role={saveNote.tone === 'err' ? 'alert' : 'status'}>
+          {saveNote.text}
+          <button type="button" onClick={() => setSaveNote(null)} aria-label="Close">×</button>
+        </p>
+      )}
+      {admin && unsaved && (
+        <div className="sw1-savenote sw1-savenote--keep" role="status">
+          <span>You have a team on this device that wasn&apos;t saved ({new Date(unsaved.at).toLocaleString('en-AU', { weekday: 'short', hour: 'numeric', minute: '2-digit' })}).</span>
+          <button type="button" className="sw1-btn" onClick={() => { applyData(unsaved.data); setUnsaved(null); setSaveNote({ tone: 'ok', text: 'Restored. Press Save draft or Publish to keep it.' }); }}>Restore it</button>
+          <button type="button" className="sw1-btn" onClick={() => { try { localStorage.removeItem(localKey); } catch { /* ignore */ } setUnsaved(null); }}>Discard</button>
         </div>
       )}
 

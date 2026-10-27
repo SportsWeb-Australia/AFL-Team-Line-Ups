@@ -4832,3 +4832,10 @@
 @media (max-width: 520px) { .sw1-plateedit__row { grid-template-columns: 1fr; gap: 4px; } }
 .sw1-score__word { display: grid; gap: 6px; margin: 10px 0 4px; }
 .sw1-score__word > span { font-size: 12.5px; font-weight: 800; color: #334155; }
+/* Save results under the buttons, and the "kept on this device" restore offer (Carson, 27 Oct 2026). */
+.sw1-savenote { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin: 8px 0; padding: 10px 14px; border-radius: 10px; font-size: 14px; font-weight: 600; }
+.sw1-savenote > button:last-child:not(.sw1-btn) { margin-left: auto; background: none; border: 0; font-size: 18px; line-height: 1; cursor: pointer; color: inherit; opacity: .7; }
+.sw1-savenote--ok { background: #ecfdf3; color: #166534; border: 1px solid #bbf7d0; }
+.sw1-savenote--err { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+.sw1-savenote--keep { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.sw1-savenote--keep span { flex: 1 1 260px; }
