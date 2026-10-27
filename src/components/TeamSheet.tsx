@@ -806,8 +806,13 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         ? await loadTeamSheet(fixtureParam, { publishedOnly })
         : await loadLatestTeamSheet({ publishedOnly });
       if (!res) {
-        setDbState('error');
-        setDbMsg('Connected, but no fixtures found yet. Run seed.sql or save one.');
+        setDbState('ok'); // an empty club is not an error - no red box
+        // Plain words for the club (Carson, 27 Oct 2026): "Run seed.sql" meant nothing to a team manager.
+        setDbMsg(
+          clubParam
+            ? 'No teams saved for this club yet. Build one below and press Save draft - it will be here next time.'
+            : 'No teams saved yet. Build one below and press Save draft - it will be here next time.',
+        );
         return;
       }
       applyData(res.data);
