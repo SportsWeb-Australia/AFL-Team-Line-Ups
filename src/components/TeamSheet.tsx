@@ -47,6 +47,7 @@ import {
   deleteLibraryBanner,
   addOpponentClub,
   deleteOpponentClub,
+  loadClubBasics,
   EMPTY_REFS,
   type DbRefs,
   type SavedSheet,
@@ -807,6 +808,14 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
         : await loadLatestTeamSheet({ publishedOnly });
       if (!res) {
         setDbState('ok'); // an empty club is not an error - no red box
+        // A known club with no saved team yet: start as that club (its name, colours, logo) and
+        // remember its id, so the first save lands under it - not under the sample sheet's club
+        // name (27 Oct 2026: a Dookie test draft was saved as "Riverton Hawks").
+        if (clubParam) {
+          const basics = await loadClubBasics(clubParam);
+          if (basics) setClub((c) => ({ ...c, ...basics }));
+          setDbRefs({ ...EMPTY_REFS, clubId: clubParam });
+        }
         // Plain words for the club (Carson, 27 Oct 2026): "Run seed.sql" meant nothing to a team manager.
         setDbMsg(
           clubParam
@@ -1593,10 +1602,10 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
 
   const handleAddOpponentClub = useCallback(
     async (name: string, logoUrl: string | null) => {
-      await addOpponentClub(name, logoUrl);
+      await addOpponentClub(name, logoUrl, dbRefs.clubId);
       await refreshOpponentClubs();
     },
-    [refreshOpponentClubs],
+    [refreshOpponentClubs, dbRefs.clubId],
   );
 
   const handleDeleteOpponentClub = useCallback(

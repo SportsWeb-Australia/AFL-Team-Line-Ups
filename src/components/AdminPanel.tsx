@@ -332,6 +332,7 @@ export default function AdminPanel({
   const [oppName, setOppName] = useState('');
   const [oppLogo, setOppLogo] = useState<string | null>(null);
   const [oppBusy, setOppBusy] = useState(false);
+  const [oppErr, setOppErr] = useState('');
   const [addLogo, setAddLogo] = useState<string | null>(null);
   const [addBusy, setAddBusy] = useState(false);
   const [gradeNew, setGradeNew] = useState(false);
@@ -941,10 +942,13 @@ export default function AdminPanel({
                   onClick={async () => {
                     if (!oppName.trim() || !onAddOpponentClub) return;
                     setOppBusy(true);
+                    setOppErr('');
                     try {
                       await onAddOpponentClub(oppName.trim(), oppLogo);
                       setOppName('');
                       setOppLogo(null);
+                    } catch (e: any) {
+                      setOppErr(e?.message || "That club couldn't be added. Try again.");
                     } finally {
                       setOppBusy(false);
                     }
@@ -953,6 +957,7 @@ export default function AdminPanel({
                   {oppBusy ? 'Adding…' : 'Add club'}
                 </button>
               </div>
+              {oppErr && <p className="sw1-oppdir__err" role="alert">{oppErr}</p>}
               <ul className="sw1-oppdir__list">
                 {opponentClubs.filter((c) => c.source === 'directory').length === 0 && (
                   <li className="sw1-oppdir__empty">No opposition clubs added yet.</li>

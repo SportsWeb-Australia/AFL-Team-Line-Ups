@@ -546,6 +546,27 @@ export async function loadLatestForClubGrade(
   return null;
 }
 
+/** A club's own name, colours and logo - for a club that has no saved team yet,
+ *  so the editor starts as that club rather than the sample one (and a first save
+ *  lands under it, not under whatever name the sample sheet carried). */
+export async function loadClubBasics(clubId: string): Promise<Partial<import('../types').Club> | null> {
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('clubs')
+    .select('name, short_name, primary_color, secondary_color, ink_color, logo_url')
+    .eq('id', clubId)
+    .maybeSingle();
+  if (!data) return null;
+  const c = data as any;
+  const out: Partial<import('../types').Club> = { name: c.name };
+  if (c.short_name) out.shortName = c.short_name;
+  if (c.primary_color) out.primaryColor = c.primary_color;
+  if (c.secondary_color) out.secondaryColor = c.secondary_color;
+  if (c.ink_color) out.inkColor = c.ink_color;
+  if (c.logo_url) out.logoUrl = c.logo_url;
+  return out;
+}
+
 export interface OpponentClub {
   id: string;
   name: string;
@@ -556,64 +577,42 @@ export interface OpponentClub {
 }
 
 /**
- * Opponent picker options = real clubs in the `clubs` table PLUS the media
- * officer's lightweight `opponent_clubs` directory (name + logo). The home club
- * is excluded by id and (defensively) by name. Returns [] when the DB isn't
- * configured. If the opponent_clubs table hasn't been created yet, that half is
- * silently skipped so the picker still works.
+ * Opponent picker options = this club's OWN opposition list (opponent_clubs rows
+ * with its club_id), A-Z. Each club keeps its own list (Carson, 27 Oct 2026: a new
+ * club was shown another club's opposition, and every club using the app). No
+ * club yet (an unsaved sheet) means an empty list - the free-text opponent field
+ * still works. The home club is skipped by name, defensively.
  */
 export async function listOpponentClubs(
   homeClubId: string | null,
   homeClubName?: string | null,
 ): Promise<OpponentClub[]> {
-  if (!supabase) return [];
+  if (!supabase || !homeClubId) return [];
   const homeLc = (homeClubName ?? '').trim().toLowerCase();
-  const out: OpponentClub[] = [];
-  const seen = new Set<string>();
-
-  const { data: clubRows, error: clubErr } = await supabase
-    .from('clubs')
+  const { data, error } = await supabase
+    .from('opponent_clubs')
     .select('id, name, logo_url')
+    .eq('club_id', homeClubId)
     .order('name', { ascending: true });
-  if (clubErr) throw clubErr;
-  for (const c of (clubRows as any[]) ?? []) {
-    const nameLc = String(c.name ?? '').trim().toLowerCase();
-    if (c.id === homeClubId || (homeLc && nameLc === homeLc)) continue;
-    seen.add(nameLc);
-    out.push({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null, source: 'club' });
-  }
-
-  try {
-    const { data: oppRows } = await supabase
-      .from('opponent_clubs')
-      .select('id, name, logo_url')
-      .order('name', { ascending: true });
-    for (const c of (oppRows as any[]) ?? []) {
-      const nameLc = String(c.name ?? '').trim().toLowerCase();
-      if (homeLc && nameLc === homeLc) continue;
-      if (seen.has(nameLc)) continue; // a real club of the same name wins
-      seen.add(nameLc);
-      out.push({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null, source: 'directory' });
-    }
-  } catch {
-    /* opponent_clubs table not created yet — skip the directory half */
-  }
-
-  out.sort((a, b) => a.name.localeCompare(b.name));
-  return out;
+  if (error) throw error;
+  return ((data as any[]) ?? [])
+    .filter((c) => !(homeLc && String(c.name ?? '').trim().toLowerCase() === homeLc))
+    .map((c) => ({ id: c.id, name: c.name, logoUrl: c.logo_url ?? null, source: 'directory' as const }));
 }
 
 /** Add a media-officer opposition club (name + optional logo data URL). */
 export async function addOpponentClub(
   name: string,
-  logoUrl?: string | null,
+  logoUrl: string | null | undefined,
+  clubId: string | null,
 ): Promise<OpponentClub | null> {
   if (!supabase) return null;
   const clean = name.trim();
   if (!clean) return null;
+  if (!clubId) throw new Error('Save this team once first, so the opposition club is kept in your club\'s own list.');
   const { data, error } = await supabase
     .from('opponent_clubs')
-    .insert({ name: clean, logo_url: logoUrl ?? null })
+    .insert({ name: clean, logo_url: logoUrl ?? null, club_id: clubId })
     .select('id, name, logo_url')
     .single();
   if (error) throw error;
@@ -945,13 +944,14 @@ export async function saveTeamSheet(
   let venueId: string | null = null;
   const venueName = d.match.venue?.trim();
   if (venueName) {
-    const { data: found } = await supabase.from('venues').select('id').eq('name', venueName).limit(1);
+    // Each club keeps its own grounds (27 Oct 2026) - never another club's row.
+    const { data: found } = await supabase.from('venues').select('id').eq('club_id', clubId).eq('name', venueName).limit(1);
     if (found && found.length) {
       venueId = (found[0] as any).id;
     } else {
       const { data: v, error: ev } = await supabase
         .from('venues')
-        .insert({ name: venueName })
+        .insert({ name: venueName, club_id: clubId })
         .select('id')
         .single();
       if (ev) throw ev;

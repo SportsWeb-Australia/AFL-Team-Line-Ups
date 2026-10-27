@@ -3624,6 +3624,7 @@
   border-radius: 8px;
 }
 .sw1-oppdir__empty { justify-content: center; color: #94a3b8; font-size: 13px; font-style: italic; }
+.sw1-oppdir__err { margin: 6px 0 0; color: #b91c1c; font-size: 13px; }
 .sw1-oppdir__crest {
   width: 28px;
   height: 28px;
