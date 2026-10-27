@@ -11,6 +11,7 @@ import PlayerPlate from './PlayerPlate';
 
 type JumperOffset = { x: number; y: number };
 import { ImportFromFixturesLadder } from './ImportFromFixturesLadder';
+import { ImportFromSportsWebOne, type SW1ImportRow } from './ImportFromSportsWebOne';
 import { SHOW_EMBED, SHOW_PLAYING_LIST, VOICE_SELECTION } from '../lib/config';
 import VoiceSelection from './VoiceSelection';
 import appLogo from '../assets/app-logo.png';
@@ -128,6 +129,8 @@ interface Props {
   onSelect: (id: string) => void;
   onAddPlayer: (number: string, name: string) => string | void;
   onImport: (rows: { number: string; name: string; headshotUrl?: string }[]) => void;
+  /** Players brought in from SportsWeb One (the club was opened from SW1). */
+  onImportSW1?: (rows: SW1ImportRow[]) => void;
   onSetAvailability: (id: string, reason: PlayerStatus | null) => void;
   onSetRole: (id: string, role: PlayerStatus, on: boolean) => void;
   onRemovePlayer: (id: string) => void;
@@ -208,6 +211,9 @@ function readAsDataUrl(file: File): Promise<string> {
 }
 
 /** Controls shown only in admin mode. Pure UI — all state lives in TeamSheet. */
+// The SportsWeb One club this editor was opened for, if any (SW1 opens it with ?sw1club=<its club id>).
+const SW1_CLUB = new URLSearchParams(window.location.search).get('sw1club')?.trim() || '';
+
 export default function AdminPanel({
   players,
   squadLocation,
@@ -257,6 +263,7 @@ export default function AdminPanel({
   onSelect,
   onAddPlayer,
   onImport,
+  onImportSW1,
   onSetAvailability,
   onSetRole,
   onRemovePlayer,
@@ -1593,6 +1600,10 @@ export default function AdminPanel({
           {showBulk ? 'Hide bulk import' : 'Bulk import'}
         </button>
       </div>
+
+      {!showcase && onImportSW1 && SW1_CLUB && (
+        <ImportFromSportsWebOne sw1ClubId={SW1_CLUB} grade={match.grade} players={players} onImport={onImportSW1} />
+      )}
 
       {showBulk && (
         <div className="sw1-admin__bulk">

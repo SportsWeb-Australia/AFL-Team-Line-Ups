@@ -9,8 +9,11 @@ import { createClient } from '@supabase/supabase-js';
  * id across them. If the lookup fails or finds nothing, this app behaves exactly
  * as it always has (the import picker just doesn't appear).
  */
-const SW1_URL = 'https://uzibfawcwoapfbigpzum.supabase.co';
-const SW1_PUBLISHABLE_KEY = 'sb_publishable_bxaxVOhm9-9wyRrsvJG7Sw_MxAZ-egN';
+// Production SportsWeb One unless the deployment says otherwise: a preview built for SW1's training site sets
+// VITE_SW1_URL / VITE_SW1_KEY to SW1's develop project, so training never reads (or shows) live clubs' players.
+const SW1_URL = (import.meta.env.VITE_SW1_URL as string | undefined) || 'https://uzibfawcwoapfbigpzum.supabase.co';
+const SW1_PUBLISHABLE_KEY =
+  (import.meta.env.VITE_SW1_KEY as string | undefined) || 'sb_publishable_bxaxVOhm9-9wyRrsvJG7Sw_MxAZ-egN';
 
 const sw1 = createClient(SW1_URL, SW1_PUBLISHABLE_KEY);
 
@@ -69,4 +72,30 @@ export function formatSW1Date(iso: string | null): string {
   const d = new Date(`${iso}T00:00:00`);
   if (isNaN(d.getTime())) return iso;
   return d.toLocaleDateString('en-AU', { weekday: 'long', day: 'numeric', month: 'long' });
+}
+
+/** A player as SportsWeb One hands them over (Website > Players). Names of under-18s already shortened by SW1. */
+export interface SW1Player {
+  id: string;
+  name: string;
+  number: string | null;
+  team: string | null;
+  position: string | null;
+  photo: string | null;
+  /** Every team they play in, with their number in that team (SW1, 27 Oct 2026). Older SW1 builds leave it out. */
+  teams?: { team: string; number: string | null }[];
+}
+
+/**
+ * The club's players from SportsWeb One, by its SW1 club id (the `?sw1club` SW1 opens this app with) - no name
+ * matching. SW1 only hands over players the club has ticked OK to be shown, and only while Team Line-Ups is switched
+ * on for the club; anything else (or SW1 being unreachable) is an empty list and the editor carries on as before.
+ */
+export async function listSW1Players(sw1ClubId: string): Promise<SW1Player[]> {
+  const { data, error } = await sw1.rpc('lineups_squad', { p_club: sw1ClubId });
+  if (error) {
+    console.error('SportsWeb One players fetch failed', error);
+    return [];
+  }
+  return Array.isArray(data) ? (data as SW1Player[]) : [];
 }
