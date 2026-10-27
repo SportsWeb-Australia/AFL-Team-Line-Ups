@@ -83,6 +83,9 @@ interface Props {
   /** Where the team jumper sits on its plate (percent of the image's size). */
   jumperOffset?: JumperOffset;
   onJumperOffset?: (next: JumperOffset) => void;
+  /** Size of the jumper on every plate (1 = as uploaded), like the staff shirts' size. */
+  jumperScale?: number;
+  onJumperScale?: (next: number) => void;
   /** The coaches' box: coach, assistant coach, team manager, runner. */
   officials?: Official[];
   onOfficial?: (role: OfficialRole, name: string) => void;
@@ -219,6 +222,8 @@ export default function AdminPanel({
   onTeamJumper,
   jumperOffset,
   onJumperOffset,
+  jumperScale = 1,
+  onJumperScale,
   officials,
   onOfficial,
   poloImageUrl,
@@ -1388,12 +1393,16 @@ export default function AdminPanel({
           {teamJumperUrl && onJumperOffset && (
             <ArtPositioner
               title="Position the jumper"
-              value={{ ...(jumperOffset ?? { x: 0, y: 0 }), scale: 1 }}
-              onChange={({ x, y }) => onJumperOffset({ x, y })}
+              value={{ ...(jumperOffset ?? { x: 0, y: 0 }), scale: jumperScale }}
+              onChange={({ x, y, scale }) => {
+                onJumperOffset({ x, y });
+                if (onJumperScale && scale !== undefined) onJumperScale(scale);
+              }}
+              allowScale={!!onJumperScale}
               hint={
                 <>
-                  Drag the jumper, or tap the arrows. This moves it on <strong>every player</strong>, on the ground, the
-                  bench and the downloaded image.
+                  Drag the jumper, or tap the arrows, and set its size. This changes it on <strong>every player</strong>,
+                  on the ground, the bench and the downloaded image.
                   {visualMode !== 'jumper' && (
                     <>
                       {' '}

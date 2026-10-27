@@ -4332,7 +4332,8 @@
    rendered size, so the same setting holds on every plate size and in the
    fixed-width PNG export. Untouched sheets resolve to 0% — no change. */
 .sw1-plate--jumper .sw1-plate__art img {
-  transform: translate(var(--jumper-x, 0%), var(--jumper-y, 0%));
+  /* --jumper-scale: the size set in the editor (1 = as uploaded), like the staff shirts' --staff-scale. */
+  transform: translate(var(--jumper-x, 0%), var(--jumper-y, 0%)) scale(var(--jumper-scale, 1));
 }
 
 /* ── Headshot position: the team's, or one player's own ─────────────────── */

@@ -213,6 +213,8 @@ export interface TeamSheetData {
    *  negative y = up), so one setting holds at every plate size and in the PNG
    *  export. Absent means not moved. */
   jumperOffset?: { x: number; y: number };
+  /** Size of the team jumper on every plate, 1 = as uploaded (Carson, 27 Oct 2026). Kept in art_settings. */
+  jumperScale?: number;
   /** The coaches' box. Only officials with a name are drawn, so a club that
    *  never fills this in simply never sees the band. */
   officials?: Official[];

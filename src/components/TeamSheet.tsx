@@ -312,6 +312,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
   const [sponsors, setSponsors] = useState(data.sponsors);
   const [jumperImageUrl, setJumperImageUrl] = useState<string | undefined>(data.jumperImageUrl);
   const [jumperOffset, setJumperOffset] = useState<{ x: number; y: number }>(data.jumperOffset ?? { x: 0, y: 0 });
+  const [jumperScale, setJumperScale] = useState<number>(data.jumperScale ?? 1);
   // The coaches' box. Staff are not players, so they live beside the line-up
   // rather than in the squad, and an unnamed role simply isn't drawn.
   const [officials, setOfficials] = useState<Official[]>(data.officials ?? []);
@@ -717,6 +718,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     setWmSponsorLogo(d.watermarkLogoUrl ?? null);
     setJumperImageUrl(d.jumperImageUrl);
     setJumperOffset(d.jumperOffset ?? { x: 0, y: 0 });
+    setJumperScale(d.jumperScale ?? 1);
     setOfficials(d.officials ?? []);
     setPoloImageUrl(d.poloImageUrl);
     setRunnerImageUrl(d.runnerImageUrl);
@@ -749,6 +751,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
       watermarkLogoUrl: wmSponsorLogo || undefined,
       jumperImageUrl,
       jumperOffset: jumperOffset.x || jumperOffset.y ? jumperOffset : undefined,
+      jumperScale: jumperScale !== 1 ? jumperScale : undefined,
       officials,
       poloImageUrl,
       runnerImageUrl,
@@ -1350,6 +1353,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // size, applied to every team-jumper image on the sheet (see teamsheet.css).
     '--jumper-x': `${jumperOffset.x}%`,
     '--jumper-y': `${jumperOffset.y}%`,
+    '--jumper-scale': jumperScale,
     // The team's headshot position (each player can override it on their own
     // plate) and the staff pictures'. Same units as the jumper, plus a size.
     '--headshot-x': `${headshotPosition.x}%`,
@@ -1413,6 +1417,7 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
     // A different image (or none) has its own framing, so a position tuned for
     // the old one would be wrong for it. Start the new jumper from centre.
     setJumperOffset({ x: 0, y: 0 });
+    setJumperScale(1);
   }
 
   /** Name (or rename) one match-day role. Blanking the name drops the person,
@@ -1897,6 +1902,8 @@ export default function TeamSheet({ data, mode = 'public', embed = false, autoLo
             teamJumperUrl={jumperImageUrl}
             jumperOffset={jumperOffset}
             onJumperOffset={setJumperOffset}
+            jumperScale={jumperScale}
+            onJumperScale={setJumperScale}
             officials={officials}
             onOfficial={setOfficial}
             poloImageUrl={poloImageUrl}

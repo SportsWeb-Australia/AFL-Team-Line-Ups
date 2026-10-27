@@ -55,7 +55,7 @@ function parseArtSettings(
   raw: any,
 ): Pick<
   TeamSheetData,
-  'headshotPosition' | 'staffPosition' | 'showStaff' | 'centreWord' | 'plateTitle' | 'plateSubtitle' | 'showBolt'
+  'headshotPosition' | 'staffPosition' | 'showStaff' | 'centreWord' | 'plateTitle' | 'plateSubtitle' | 'showBolt' | 'jumperScale'
 > {
   let v = raw;
   if (typeof v === 'string') {
@@ -69,6 +69,7 @@ function parseArtSettings(
   return {
     headshotPosition: parsePosition(v.headshot),
     staffPosition: parsePosition(v.staff),
+    jumperScale: typeof v.jumperScale === 'number' && v.jumperScale !== 1 ? Math.min(1.6, Math.max(0.6, v.jumperScale)) : undefined,
     showStaff: v.showStaff === false ? false : undefined,
     centreWord: v.centreWord === 'vs' ? 'vs' : undefined,
     showBolt: v.showBolt === false ? false : undefined,
@@ -82,6 +83,7 @@ function artSettingsFor(d: TeamSheetData): Record<string, unknown> | null {
   const out: Record<string, unknown> = {};
   if (!isCentred(d.headshotPosition)) out.headshot = d.headshotPosition;
   if (!isCentred(d.staffPosition)) out.staff = d.staffPosition;
+  if (d.jumperScale && d.jumperScale !== 1) out.jumperScale = d.jumperScale;
   if (d.showStaff === false) out.showStaff = false;
   if (d.centreWord === 'vs') out.centreWord = 'vs';
   if (d.showBolt === false) out.showBolt = false;
